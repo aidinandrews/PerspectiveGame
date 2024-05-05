@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PerspectiveGame", "PerspectiveGame\PerspectiveGame.vcxproj", "{7FC2A835-8F33-462B-95BE-030191448BBB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Debug|x64.ActiveCfg = Debug|x64
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Debug|x64.Build.0 = Debug|x64
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Debug|x86.ActiveCfg = Debug|Win32
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Debug|x86.Build.0 = Debug|Win32
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Release|x64.ActiveCfg = Release|x64
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Release|x64.Build.0 = Release|x64
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Release|x86.ActiveCfg = Release|Win32
+		{7FC2A835-8F33-462B-95BE-030191448BBB}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EB090B6C-DE1D-4DAA-B5D4-F584F2DC6F91}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\Shaders">
+      <UniqueIdentifier>{6062c0a8-caff-4450-9b7e-c65bff36ac6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Textures">
+      <UniqueIdentifier>{707bdbaf-a839-46bc-99b4-0391328753b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dependancies">
+      <UniqueIdentifier>{ec6f02b9-bcd2-4fe9-90d2-d829a8daf949}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dependancies\ImGui">
+      <UniqueIdentifier>{eb2eb804-38a1-44c8-b9b6-b81c278b9869}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dependancies\vcxproj">
+      <UniqueIdentifier>{eb532003-9d09-4113-ae5c-b0bf40a2f268}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Managers">
+      <UniqueIdentifier>{bb563a69-b55a-4770-9645-c80ad6a26beb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\World">
+      <UniqueIdentifier>{50c1790c-09c9-484d-bb6e-d53687c6641e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{131d71ab-1eeb-4ecd-ba85-2283b0b55a07}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Libraries\include\ImGui\imconfig.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\imgui.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\imgui_internal.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\imstb_rectpack.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\imstb_textedit.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\imstb_truetype.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_opengl3.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_opengl3_loader.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_glfw.h">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="glew.h">
+      <Filter>Source Files\Dependancies</Filter>
+    </ClInclude>
+    <ClInclude Include="buttonManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="cameraManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="Building.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="entity.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="globalVariables.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="frameBuffer.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="portal.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="shaderManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="textureManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="tileManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="vertexManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="windowManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="inputManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="app.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="tile.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="scene.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="vectorHelperFunctions.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="guiManager.h">
+      <Filter>Source Files\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="makeShapes.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="calcFunctions.h">
+      <Filter>Source Files\Dependancies</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\imgui.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\imgui_demo.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\imgui_draw.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\imgui_tables.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\imgui_widgets.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\backends\imgui_impl_opengl3.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\include\ImGui\backends\imgui_impl_glfw.cpp">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\glad.c">
+      <Filter>Source Files\Dependancies</Filter>
+    </ClCompile>
+    <ClCompile Include="cameraManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="building.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="globalVariables.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="frameBuffer.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="guiManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="shaderManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="textureManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="tileManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="vertexManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="windowManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="inputManager.cpp">
+      <Filter>Source Files\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="tile.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="scene.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="vectorHelperFunctions.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\2D3rdPersonPOV.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\2D3rdPersonPOV.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\3D3rdPersonPOV.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\3D3rdPersonPOV.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\default.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\default.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\empty.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\imGuiTest.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\passthrough.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\simple.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\simple.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\stencil.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\stencil.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="..\Libraries\include\ImGui\imgui.ini">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </None>
+    <None Include="imgui.ini">
+      <Filter>Source Files\Dependancies\ImGui</Filter>
+    </None>
+    <None Include="TilingIn3D.vcxproj.user">
+      <Filter>Source Files\Dependancies\vcxproj</Filter>
+    </None>
+    <None Include="TilingIn3D.vcxproj">
+      <Filter>Source Files\Dependancies\vcxproj</Filter>
+    </None>
+    <None Include="TilingIn3D.vcxproj.filters">
+      <Filter>Source Files\Dependancies\vcxproj</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="textures\8x8x8ColorCube.jpg">
+      <Filter>Resource Files\Textures</Filter>
+    </Image>
+    <Image Include="textures\TheGreatWave.jpg">
+      <Filter>Resource Files\Textures</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

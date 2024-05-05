@@ -1,0 +1,237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="cameraManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="globalVariables.cpp">
+      <Filter>Game Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\backends\imgui_impl_glfw.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\backends\imgui_impl_opengl3.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_tables.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="inputManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="scene.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="shaderManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="textureManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="vertexManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="windowManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="tile.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="..\glad.c">
+      <Filter>Dependancies</Filter>
+    </ClCompile>
+    <ClCompile Include="vectorHelperFunctions.cpp">
+      <Filter>Game Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="guiManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="frameBuffer.cpp">
+      <Filter>Game Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="tileManager.cpp">
+      <Filter>Game Engine\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="Building.h">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="building.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cameraManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="guiManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="globalVariables.h">
+      <Filter>Game Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imconfig.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\backends\imgui_impl_glfw.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\backends\imgui_impl_opengl3.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\backends\imgui_impl_opengl3_loader.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_internal.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_rectpack.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_textedit.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_truetype.h">
+      <Filter>Dependancies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="inputManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="scene.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="portal.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="textureManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="shaderManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="windowManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="vertexManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="tile.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="makeShapes.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="vectorHelperFunctions.h">
+      <Filter>Game Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="calcFunctions.h">
+      <Filter>Dependancies</Filter>
+    </ClInclude>
+    <ClInclude Include="glew.h">
+      <Filter>Dependancies</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>Game Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="app.h">
+      <Filter>Game Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="buttonManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="frameBuffer.h">
+      <Filter>Game Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="tileManager.h">
+      <Filter>Game Engine\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="entity.h">
+      <Filter>World</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\default.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\default.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\stencil.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\simple.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\simple.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\stencil.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\imGuiTest.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\passthrough.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\empty.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\2D3rdPersonPOV.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\2D3rdPersonPOV.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\3D3rdPersonPOV.frag">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="shaders\3D3rdPersonPOV.vert">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Game Engine">
+      <UniqueIdentifier>{aa3b131c-ff83-4db6-86dc-1c9f4b1a25f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game Engine\Managers">
+      <UniqueIdentifier>{2c255bdf-e873-4898-bf3d-c93062797edd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{8d2bb5b9-a26e-4d79-858e-33c4564f5c10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{5d780169-ba62-4ffe-96b9-2e20a11aa431}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Shaders">
+      <UniqueIdentifier>{f20e9885-8e84-4991-b9d8-ee33cfb3eb74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependancies">
+      <UniqueIdentifier>{5b8b80b7-a1af-4cf0-bf42-5838b8cef567}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependancies\ImGui">
+      <UniqueIdentifier>{cec2df45-ef03-46ac-a6d1-ae8ad28006cd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
