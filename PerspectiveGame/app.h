@@ -148,6 +148,7 @@ struct App {
 			//std::cout << FrameTime << std::endl;
 			Sleep((DWORD)std::max(16.0f - FrameTime, 0.0f));
 			FPS = 1000.0f / FrameTime;
+			NumFrames++;
 		}
 	}
 };

@@ -74,6 +74,7 @@ public:
 	std::vector<Tile *> tiles;
 	std::vector<Producer> producers;
 	std::vector<Consumer> consumers;
+	std::vector<ForceBlock> forceBlocks;
 
 	float TOTAL_TIME = 0;
 
@@ -127,11 +128,16 @@ public:
 
 	void update();
 
-	bool createProducer(int tileIndex, Tile::Edge orientation);
+	// Creates a producer which can create any entity and set it inside the tile it is inside.
+	bool createProducer(int tileIndex, Tile::Edge orientation, Tile::Entity::Type producedEntityType);
 	void updateProducers();
 
+	// Creates a consumer which will destroy any entity at offset 0 inside the tile it is inside.
 	bool createConsumer(int tileIndex);
 	void updateConsumers();
+
+	bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
+	void updateForceBlocks();
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();
@@ -151,6 +157,7 @@ public:
 
 	void addPreviewTileToScene();
 	void deleteTile(Tile *tile);
+	void deleteBuilding(Tile *tile);
 	void cyclePreviewTileOrientation();
 
 	// Because of space wrapping, there are times when going over a corner of a tile would actually rip or stretch

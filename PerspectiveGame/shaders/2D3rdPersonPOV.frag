@@ -3,6 +3,7 @@
 layout(location = 0) in vec2 fragWorldPos;
 layout(location = 1) in vec2 povPos;
 
+uniform int numFrames;
 uniform int initialTileIndex;
 uniform int initialSideIndex;
 uniform int initialTexCoordIndex;
@@ -11,29 +12,54 @@ uniform sampler2D inTexture;
 uniform mat4 inPovRelativePositions;
 
 struct tileInfo {
-	vec4 color;
 	int neighborIndices[4];
-	int neighborMirrored[4];
-	int neighborSideIndex[4];
+	int neighborMirrored[4]; // 1x4 bits
+	int neighborSideIndex[4]; // 2x4 bits
+	
+	vec4 color; // could be vec3 
 	vec2 texCoords[4];
 
-	int buildingType;
+	int basisType;
+	int basisOrientation; // 2 bits
+
+	int hasForce; // 1 bit
+	int forceDirection; // 2 bits
+
 	int entityType;
-	float entityOffset;
-	int entityOffsetSide;
+	float entityOffset; // 2 bits (+ interpolation with delta time)
+	int entityDirection; // 2 bits
+	int entityOrientation; // 2 bits
+	
 	// alignas is a bastard and scales the struct size by the largest alignas(n) n value for some reason.  
 	// This means we need a buffer in here so the stride length is consistent between OpenGl's definition 
 	// and the shader's struct.
-	float bufferSpace[4]; 
+	// float bufferSpace[]; 
 };
 
 layout (std430, binding = 1) buffer tileInfosBuffer { 
 	tileInfo tileInfos[]; 
 };
 
-#define NONE 0
-#define	PRODUCER 1
-#define	CONSUMER 2
+#define PI 3.1415926535897932384626433832795
+
+// Entity IDs:
+#define NONE			0
+#define OMNI			1
+#define MATERIAL_A		2
+#define MATERIAL_B		3
+
+#define COMPRESSOR		4
+#define FORCE_BLOCK		5
+#define DISPERSER		6
+#define FORCE_MIRROR	7
+
+// Basis IDs:
+#define EMPTY			0
+#define PRODUCER		1
+#define CONSUMER		2
+#define FORCE			3
+#define DISPERCER		4
+
 #define TRUE 1
 #define FALSE 0
 // Protect against infinite loops.
@@ -41,6 +67,7 @@ layout (std430, binding = 1) buffer tileInfosBuffer {
 
 const int VERT_INFO_OFFSETS[] = { 2,1,0,3 };
 const vec2 DRAW_TILE_COORDS[] = { vec2(1, 1), vec2(1, 0), vec2(0, 0), vec2(0, 1) };
+const bool IS_OBJECT[] = { false, true, true, true, false, false, false, false, };
 const vec2 ADJACENT_ENTITY_OFFSETS[] = { vec2(1, 0), vec2(0, -1), vec2(-1, 0), vec2(0, 1) };
 const vec2 povPosToPixelPos = fragWorldPos - povPos;
 const float totalDist = length(povPosToPixelPos);
@@ -79,6 +106,9 @@ vec2 stepDist;
 float currentDist = 0;
 // Coord relative to bottom left of the fragWorldPos's drawTile:
 vec2 fragDrawTilePos; // Lies in domain { (x, y) | 0 <= x <= 1, 0 <= y <= 1 }.
+vec2 vertOrigin;
+vec2 vertA;
+vec2 vertB;
 
 // connectionIndex is the side index of the side of the current tile we are passing over.
 // drawTileSideIndex is the side index of that same side but from the perspective of screen space.
@@ -140,30 +170,32 @@ vec4 tileTexColor() {
 
 float WEIGHT = 0.5;
 
+void getRelativeVertPositions() {
+	int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
+
+	vertOrigin = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (2 * currentSideOffset)) % 4];
+	vertA = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + currentSideOffset) % 4]) - vertOrigin;					
+	vertB = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (3 * currentSideOffset)) % 4]) - vertOrigin;
+}
+
 bool isInsidePlayer() {
 	bool inside = false;
 	int numRelativeInfoIndices = 0;
 	vec2 scalars[4];
 
-	for (int i = 0; i < 5; i++) {
+	// figure out if the tile we are drawing is even one of the tiles the player is in:
+	for (int i = 0; i < 4; i++) {
 		if (currentTileIndex == relativePosTileIndices[i]) {
 			inside = true;
-
 			scalars[numRelativeInfoIndices++] = relativePositions[i];
 		}
 	}
 	if (!inside) { return false; }
 
-	int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
+	vec2 a1 = vertA * scalars[0].x;
+	vec2 b1 = vertB * scalars[0].y;
 
-	vec2 origin = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (2 * currentSideOffset)) % 4];
-	vec2 a = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + currentSideOffset) % 4]) - origin;					
-	vec2 b = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (3 * currentSideOffset)) % 4]) - origin;
-
-	vec2 a1 = a * scalars[0].x;
-	vec2 b1 = b * scalars[0].y;
-
-	vec2 drawTilePlayerPos =  origin + a1 + b1;
+	vec2 drawTilePlayerPos =  vertOrigin + a1 + b1;
 
 	if (length(fragDrawTilePos - drawTilePlayerPos) < 0.25) {
 		return true;
@@ -171,10 +203,10 @@ bool isInsidePlayer() {
 	// There are cases where the tile has more than one copy of player data.
 	// It is possible to 'see' the same tile from 2 edges, or the tile you are on in a corner!
 	if (numRelativeInfoIndices == 2) {
-		a1 = a * scalars[1].x;
-		b1 = b * scalars[1].y;
+		a1 = vertA * scalars[1].x;
+		b1 = vertB * scalars[1].y;
 
-		drawTilePlayerPos =  origin + a1 + b1;
+		drawTilePlayerPos =  vertOrigin + a1 + b1;
 
 		if (length(fragDrawTilePos - drawTilePlayerPos) < 0.25) {
 			return true;
@@ -184,14 +216,13 @@ bool isInsidePlayer() {
 }
 
 bool isInsideEntity() {
-
 	// check current tile for entity:
-	if (tileInfos[currentTileIndex].entityType != NONE) {
+	if (IS_OBJECT[tileInfos[currentTileIndex].entityType]) {
 		int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
 		vec2 entityVert = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
-						+ (tileInfos[currentTileIndex].entityOffsetSide * currentSideOffset)) % 4];
+						+ (tileInfos[currentTileIndex].entityDirection * currentSideOffset)) % 4];
 		vec2 entityVertOther = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
-						+ ((tileInfos[currentTileIndex].entityOffsetSide + 3) * currentSideOffset)) % 4];
+						+ ((tileInfos[currentTileIndex].entityDirection + 3) * currentSideOffset)) % 4];
 
 		vec2 direction = entityVert - entityVertOther;
 		vec2 entityPos = vec2(0.5f, 0.5f) + direction * tileInfos[currentTileIndex].entityOffset;
@@ -208,7 +239,7 @@ bool isInsideEntity() {
 		int neighborSideIndex = tileInfos[currentTileIndex].neighborSideIndex[ithIndex];
 
 		if (tileInfos[neighborTileIndex].entityType == NONE ||
-			tileInfos[neighborTileIndex].entityOffsetSide != neighborSideIndex) {
+			tileInfos[neighborTileIndex].entityDirection != neighborSideIndex) {
 			continue;
 		}
 
@@ -277,29 +308,90 @@ void findTile() {
 	}
 }
 
+bool isInsideBuilding() {
+	switch(tileInfos[currentTileIndex].entityType) {
+	case(FORCE_BLOCK):
+		// Find the vertices of the arrow:
+		vec2 A, B, C;
+		switch(tileInfos[currentTileIndex].entityOrientation) {
+		case(0):
+			A = vertOrigin + vertB;
+			B = vertOrigin + vertA + vertB / 2.0f;
+			C = vertOrigin;
+			break;
+		case(1):
+			A = vertOrigin + vertA + vertB;
+			B = vertOrigin + vertA / 2.0f;
+			C = vertOrigin + vertB;
+			break;
+		case(2):
+			A = vertOrigin + vertA;
+			B = vertOrigin + vertB / 2.0f;
+			C = vertOrigin + vertA + vertB;
+			break;
+		case(3):
+			A = vertOrigin;
+			B = vertOrigin + vertA / 2.0f + vertB;
+			C = vertOrigin + vertA;
+			break;
+		}
+
+		if (pointToLineSegDist(A, B, fragDrawTilePos) < 0.1f ||
+			pointToLineSegDist(B, C, fragDrawTilePos) < 0.1f) {
+			gl_FragColor = vec4(0.937, 0.737, 0.608, 1);
+			return true;
+		} 
+		break;
+	}
+
+	switch(tileInfos[currentTileIndex].basisType) {
+		case(PRODUCER):
+			if (pointToLineSegDist(vec2(0.5, 0), vec2(0.5, 1), fragDrawTilePos) < 0.1f ||
+				pointToLineSegDist(vec2(0, 0.5), vec2(1, 0.5), fragDrawTilePos) < 0.1f) {
+				gl_FragColor = vec4(0.69, 0.773, 0.643, 1);
+				return true;
+			} 
+			break;
+		case(CONSUMER):
+			if (pointToLineSegDist(vec2(0, 0), vec2(1, 1), fragDrawTilePos) < 0.1f ||
+				pointToLineSegDist(vec2(0, 1), vec2(1, 0), fragDrawTilePos) < 0.1f) {
+				gl_FragColor = vec4(0.827, 0.463, 0.463, 1);
+				return true;
+			}
+			break;
+		}
+
+		return false;
+}
+
 void colorPixel() {
+	// Rendering heierarchy (first prio to last prio): 
+	//     player > entity > basis > force
+	
+	bool insideBasis    = false;
+	bool insidePlayer   = false;
+	bool insideEntity   = false;
+	bool insideBuilding = false;
+
 	if (isInsidePlayer()) {
-//		gl_FragColor = -(tileInfos[currentTileIndex].color - vec4(1, 1, 1, 1));
-//		gl_FragColor.a = 1;
-		gl_FragColor = vec4(1, 1, 1, 1);
+		insidePlayer = true;
+		gl_FragColor = vec4(0.984, 0.953, 0.835, 1);
 	} 
 	else if (isInsideEntity()) {
-		gl_FragColor = vec4(0, 0, 1, 1);
-	} 
-	else if (tileInfos[currentTileIndex].buildingType == PRODUCER &&
-			   (pointToLineSegDist(vec2(0.5, 0), vec2(0.5, 1), fragDrawTilePos) < 0.1f ||
-				pointToLineSegDist(vec2(0, 0.5), vec2(1, 0.5), fragDrawTilePos) < 0.1f)) {
-		gl_FragColor = vec4(0, 1, 0, 1);
-	} 
-	else if (tileInfos[currentTileIndex].buildingType == CONSUMER &&
-			   (pointToLineSegDist(vec2(0, 0), vec2(1, 1), fragDrawTilePos) < 0.1f ||
-				pointToLineSegDist(vec2(0, 1), vec2(1, 0), fragDrawTilePos) < 0.1f)) {
-		gl_FragColor = vec4(1, 0, 0, 1);
+		insideEntity = true;
+		gl_FragColor = vec4(0.612, 0.686, 0.667, 1);
 	} 
 	else {
-		// Now that we are in the correct tile, we need to find the UV for coloring the pixel!
-		//gl_FragColor = tileTexColor();
+		insideBuilding = isInsideBuilding();
+	}
+
+	// Texture of the underlying pixel:
+	if (!insidePlayer && !insideEntity && !insideBuilding) {
 		gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5);
+	}
+
+	if (tileInfos[currentTileIndex].hasForce == TRUE) {
+		gl_FragColor.b = (cos(2 * PI * fragDrawTilePos.y - float(numFrames) / 10.0f) + 1) / 2.0f;
 	}
 }
 
@@ -307,6 +399,7 @@ void main() {
 	// Quick check to see if we are in the initial tile.  If so we dont have to bother raycasting:
 	if (fragWorldPos.x > 0 && fragWorldPos.x < 1 && fragWorldPos.y > 0 && fragWorldPos.y < 1) {
 		getFragDrawTilePos();
+		getRelativeVertPositions();
 		colorPixel();
 		return;
 	}
@@ -314,5 +407,6 @@ void main() {
 	setup();
 	findTile();
 	getFragDrawTilePos();
+	getRelativeVertPositions();
 	colorPixel();
 };

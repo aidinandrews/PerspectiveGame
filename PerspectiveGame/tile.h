@@ -30,9 +30,8 @@
 
 // Represents a square tile in 3D space.  Can be oriented such that it is parallel with one of the x, y, or z axes.  Tiles can connect to each other and shuffle items between them.
 struct Tile {
-	/////////
-	//ENUMS//
-	/////////
+
+public: // ENUMS
 
 	// Each tile has a type corrosponding to what principal/coordinate plane (XY, XA, and YZ) the tile is 
 	// parallel to.  This type means that a tile can be fully described with a type and a point on the 
@@ -112,45 +111,195 @@ struct Tile {
 		ENTITY_TYPE_RED_CIRCLE,
 	};
 
-	///////////
-	//STRUCTS//
-	///////////
+public: // STRUCTS
 
-	struct Connection {
-		Tile *tile = nullptr;
-		int sideIndex = 0;
-		bool mirrored = false;
+	struct SideInfos {
+
+	public: // MEMBER VARIABLES:
+
+		glm::vec2 texCoords[4];
+		Tile *connectedTiles[4];
+		int connectedSideIndices[4];
+		bool connectionsMirrored[4];
+
+	public: // MEMBER FUNCTIONS:
+
+		SideInfos() {
+			for (int i = 0; i < 4; i++) {
+				texCoords[i] = glm::vec2(0, 0);
+				connectedTiles[i] = nullptr;
+				connectedSideIndices[i] = 0;
+				connectionsMirrored[i] = false;
+			}
+		}
 	};
 
-	struct TileSideInfo {
-		glm::vec2 texCoord{};
-		Connection connection;
+	// Every tile (with the exclusion of tiles housing dispercer bases) applies a force to entities inside it.
+	// This force is the actor that makes entities move.  Movement consumes force equal to an entity's mass,
+	// and is quantized into 0, 1, 2, or 4 tiles/tick.  Movement is further subdivided into sub ticks for 
+	// collision detection, so it is really quantized into 0, 1/4, 1/2, 3/4, and 1 tiles/sub tick.  This is so 
+	// that entities can be moved at most 1 block at a time even if they have a speed of > 1 block/tick.  Entities
+	// are updated in this list based on speed: 
+	// 
+	//     { [ *4_, *2_, *1_ ], [ *4_/2_/1_ ], [ *4_, *2_/1_ ], [ *4_/2_/1_ ] }
+	// 
+	// where {} is a tick, [] is a sub tick, *x is a collision check and x_ is a movement.  '/' designates that
+	// the movement/collision chack can be done at the same time since movements with no collision detection do
+	// not need to be done in order.  This heirarchy breaks ties when two entities want to enter the same tile 
+	// (a 4 tile/tick entity will always superceed a 1 tile/tick entity if both try to enter a tile on the same tick).
+	//
+	struct Force {
+	public: // MEMBER VARIABLES:
+
+		// This can be any number but will likely be limited for game design.  
+		// Force applies to masses and makes them move.
+		int magnitude;
+
+		// Since there are only 4 directions force can be applied, 
+		// only two bits are needed to store the direction.
+		unsigned int direction : 2;
+
+	public: // MEMBER FUNCTIONS:
+
+		Force() : magnitude(0), direction(0) {}
 	};
 
-	////////////////////
-	//MEMBER VARIABLES//
-	////////////////////
+	// Each tile has the ability to 'hold' one entity.  These entities can be shuffled between tiles.  Entities
+	// can be either simple materials that are processed by buildings/machines or the machines themselves.
+	// Entities are moved with the application of force (supplied by a force block which is another entity).
+	// Entities consume force on movement based on their mass.  Continuous movement does not obec Newton's II.
+	// Movement is quantized to 0, 1, 2, and 4 tiles/tick with 0, 1/4, 1/2, 3/4, and 1 tiles/sub tick moved.
+	// This allows for much more straight forward and mechanic-driven collisions.  Overall, tiles are the space
+	// and entities are the objects inside that space.
+	struct Entity {
+	public: // MEMBER ENUMS AND MEMBER STRUCTS:
+
+		// All objects can be moved, so buildings and materials
+		// both fall under the 'entity' struct.
+		enum Type {
+			NONE,
+
+			MATERIAL_OMNI,
+			MATERIAL_A,
+			MATERIAL_B,
+
+			BUILDING_COMPRESSOR,
+			BUILDING_FORCE_BLOCK,
+			BIULDING_DISPERSER,
+			BUILDING_FORCE_MIRROR,
+		};
+
+	public: // MEMBER VARIABLES:
+
+		Type type;
+
+		// This flag will help when updating entities.  On creation, all entities start static.  If the tile's 
+		// force changes from 0 -> non-0, the entity inside the tile must check if it can move to the next tile.
+		// If it can, isStatic is set to false and it is moved.  After it is moved, the tile in the opposite 
+		// direction of movement must be updated (this is to make sure lines of entities move at once on update).
+		// All dynamic entities (entites that had an 'open' tile in their direction of movement and enough force
+		// to move last update) will be swept through on an update, and if they can move again, their dynamic status
+		// will be propogated backwards.  This makes sure that only the entities that could possibly be moving are
+		// updated, letting the total updated entity count fall below the total entity count in most cases.
+		bool isStatic;
+
+		// Velocity if quantized to 0, 1, 2, 4 tiles/tick for
+		// optimization/simplicitys sake so it can be represented by two bits.
+		unsigned int velocity : 2;
+
+		// Because velocity is quantized, each sub-tick an object can only go 
+		// incriments of 1/4th of a tile (making the representation only 2 bits 
+		// long), with a maximum of 1 tile/sub tick @ velocity of 4 tiles/tick.
+		unsigned int offset : 2;
+
+		// Entities can move, so they need a movement direction.  There are only 4 
+		// possible directions of movement, so all directions can be represented 
+		// by 2 bits.  This direction is relative to the tileType, so comparing 
+		// directions of entities onside tiles of different tileTypes will require 
+		// a conversion function.
+		unsigned int direction : 2;
+
+		// Material entities do not need orientation but building entities need
+		// them for rendering correctly.
+		unsigned int orientation : 2;
+
+		// Force blocks let tiles give force to entities, and this given force is 
+		// kept track of this this variable.  Force is consumed on movement, so 
+		// this variable will be incremented by force tiles and decremented by 
+		// entity movement.  Max value is 3 * mass as velocity of 4 tiles/tick is 
+		// max velocity.
+		int storedForce;
+
+		// Entities have mass.  This mass determines how much force is required 
+		// for them to move.  Each tick, each entity will consume an amount of 
+		// storedForce equal to n times its mass, allowing the entity to move k 
+		// tiles between ticks.
+		int mass;
+
+		// Opacity is used on creation/destruction of objects (and maybe 2D 
+		// lighting simulation if I get to that).  On creation, an entity will 
+		// slowly increase its opacity until fully opaque.  On destruction, an 
+		// entuty will slowly decrease its opacity until full transparent, then 
+		// delete itself.  This transition is for visual purposes as popping in 
+		// and out of existance looks bad.
+		float opacity;
+
+	public: // MEMBER FUNCTIONS
+
+		Entity() : type(NONE), isStatic(true), velocity(0), offset(0), 
+			direction(0), orientation(0), storedForce(0), mass(0), opacity(0) 
+		{}
+	};
+
+	// Each tile can have an underlying ans immoveable (basis) structure if necessary for its action.
+	// Ex: A tile that produces entities needs to communicate this visually and also cannot be able to be moved.
+	// Providing the shader with information about a tile's basis will allow it to rener under the tile's entity.
+	// Not allowing basis structures to move is necessary because of how they interact with entities.  If a basis
+	// could move, there would be no way to seperate it from the object it interacts with.  Overall, tiles are
+	// the space and basis structures are the forces/actors that act on that space.
+	struct Basis {
+
+	public: // MEMBER ENUMS:
+
+		enum Type {
+			EMPTY,
+			PRODUCER,
+			CONSUMER,
+			FORCE,
+			DISPERCER,
+		};
+
+	public: // MEMBER VARIABLES:
+
+		Type type;
+		unsigned int orientation : 2;
+
+	public: // MEMBER FUNCTIONS:
+
+		Basis() : type(EMPTY), orientation(0) {}
+	};
+
+public: // MEMBER VARIABLES:
 
 	int index = 0;
-	Tile::SubType type;
+	Tile *sibling;
+
+	SubType type;
+	Force force;
+	Entity entity;
+	Basis basis;
+
+	SideInfos sideInfos;
+
+	// only one position value is needed since the other three corners 
+	// can be caluclated using only the maxVert and tileType variables.
 	glm::ivec3 maxVert;
 
+	// Used for decoration/organization.  
+	// Colors the tile a certain color/pattern.	
 	glm::fvec3 color;
-	bool hasBeenDrawn;
-	float opacity;
-	Tile *sibling;
-	TileSideInfo sideInfos[4];
 
-	BuildingType buildingType;
-	Tile::Edge buildingOrientation;
-
-	EntityType entityType;
-	float entityOffset;
-	Tile::Edge entityOffsetSide;
-
-	////////////////
-	//INITIALIZERS//
-	////////////////
+public: // MEMBER FUNCTIONS:
 
 	Tile();
 
@@ -160,11 +309,6 @@ struct Tile {
 	//			   This vertex will always be in pos[0].
 	Tile(Tile::SubType tileSubType, glm::ivec3 maxVert);
 
-
-	////////////////////////////
-	//DYNAMIC MEMBER FUNCTIONS//
-	////////////////////////////
-
 	// Returns the normal of the tile.
 	glm::ivec3 normal();
 
@@ -173,10 +317,6 @@ struct Tile {
 	glm::ivec3 getMaxVert() { return maxVert; }
 
 	glm::ivec3 getVertPos(int index);
-
-	///////////////////////////
-	//STATIC MEMBER FUNCTIONS//
-	///////////////////////////
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
 	static Tile::Type getTileType(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);
@@ -248,7 +388,7 @@ struct PovTileTarget {
 	}
 	// Returns the side info of the ith side index respecting Draw Tile ordering:
 	// 0 (top left) -> 1 (top right) -> 2 (bottom right) -> 3 (bottom left)...
-	Tile::TileSideInfo *sideInfo(int i) { return &tile->sideInfos[sideIndex(i)]; }
+	//Tile::TileSideInfo *sideInfo(int i) { return &tile->sideInfos[sideIndex(i)]; }
 
 	// Returns true if the 'next' vertex (from the perspective of a drawTile) 
 	// is clockwise from the previous vertex.
@@ -270,153 +410,25 @@ struct PovTileTarget {
 // Becuase the data structure used for storing tiles on the CPU is not easily translateable to the GPU, this
 // struct will act as a translator for the information so that a scene can be drawn in a shader on the GPU.
 struct TileGpuInfo {
-	alignas(16) glm::vec4 color;
 	alignas(16) int neighborIndices[4];
 	alignas(16) int neighborMirrored[4];
 	alignas(16) int neighborSideIndex[4];
+
+	alignas(16) glm::vec4 color;
 	alignas(32) glm::vec2 texCoords[4];
-	alignas(4) int buildingType;
+
+	alignas(4) int basisType;
+	alignas(4) int basisOrientation;
+
+	alignas(4) int hasForce;
+	alignas(4) int forceDirection;
+
 	alignas(4) int entityType;
 	alignas(4) float entityOffset;
-	alignas(4) int entityOffsetSide;
+	alignas(4) int entityDirection;
+	alignas(4) int entityOrientation;
 
 	TileGpuInfo(Tile *tile);
 };
 
 #endif
-
-
-
-struct NewTile {
-public: // ENUMS AND MEMBER STRUCTS:
-
-	// Each tile has one of 6 orientations.  TileType specifies this orientation.  
-	// The first two letters designate the coordinate plane the tile is parallel 
-	// to (XY, XZ, or YZ) and the third letter specifies if it is facing forward 
-	// (F), or backward (B).
-	enum Type {
-		XYF, XYB, XZF, XZB, YZF, YZB,
-	};
-
-	// Since the world is made up of tiles, there are only 4 possible directions 
-	// to go when moving between them.  Unforfunately, since there are 6 different 
-	// tileTypes/tile orientations, this direction must be relative to each tile.  
-	// This means that when comparing directions between tiles, a conversion must 
-	// take place if the two tiles do not have the same tileType.
-	enum Direction {
-		DIRECTION_0,
-		DIRECTION_1,
-		DIRECTION_2,
-		DIRECTION_3,
-	};
-
-	// Each side of a tile has associated data that is specified here.  
-	// This coveres connections to other tiles, texture information, etc.
-	struct SideInfos {
-		glm::vec2 texCoords[4];
-		
-		Tile *connectedTiles[4];
-		Direction connectedSideIndices[4];
-		bool connectionsMirrored[4];
-
-		SideInfos() {
-			for (int i = 0; i < 4; i++) {
-				texCoords[i] = glm::vec2(0, 0);
-				connectedTiles[i] = nullptr;
-				connectedSideIndices[i] = DIRECTION_0;
-				connectionsMirrored[i] = false;
-			}
-		}
-	};
-
-	struct Force {
-		// This can be any number but will likely be limited for game design.  
-		// Force applies to masses and makes them move.
-		int magnitude;
-
-		// Since there are only 4 directions force can be applied, 
-		// only two bits are needed to store the direction.
-		unsigned int direction : 2;
-	};
-
-	struct Entity {
-	public: // ENUMS AND MEMBER STRUCTS:
-
-		// All objects can be moved, so buildings and materials
-		// both fall under the 'entity' struct.
-		enum Type {
-			NONE,
-
-			MATERIAL_OMNI, 
-			MATERIAL_A, 
-			MATERIAL_B,
-
-			BUILDING_PRODUCER, 
-			BUILDING_CONSUMER, 
-			BUILDING_COMPRESSOR
-		};
-
-	public: // MEMBER VARIABLES:
-
-		Type type;
-
-		// Velocity if quantized to 0, 1, 2, 4 tiles/tick for
-		// optimization/simplicitys sake so it can be represented by two bits.
-		unsigned int velocity : 2;
-
-		// Because velocity is quantized, each sub-tick an object can only go 
-		// incriments of 1/4th of a tile (making the representation only 2 bits 
-		// long), with a maximum of 1 tile/sub tick @ velocity of 4 tiles/tick.
-		unsigned int offset : 2;
-
-		// Entities can move, so they need a movement direction.  There are only 4 
-		// possible directions of movement, so all directions can be represented 
-		// by 2 bits.  This direction is relative to the tileType, so comparing 
-		// directions of entities onside tiles of different tileTypes will require 
-		// a conversion function.
-		unsigned int direction : 2;
-
-		// Force blocks let tiles give force to entities, and this given force is 
-		// kept track of this this variable.  Force is consumed on movement, so 
-		// this variable will be incremented by force tiles and decremented by 
-		// entity movement.  Max value is 3 * mass as velocity of 4 tiles/tick is 
-		// max velocity.
-		int storedForce;
-
-		// Entities have mass.  This mass determines how much force is required 
-		// for them to move.  Each tick, each entity will consume an amount of 
-		// storedForce equal to n times its mass, allowing the entity to move k 
-		// tiles between ticks.
-		int mass;
-
-		// Opacity is used on creation/destruction of objects (and maybe 2D 
-		// lighting simulation if I get to that).  On creation, an entity will 
-		// slowly increase its opacity until fully opaque.  On destruction, an 
-		// entuty will slowly decrease its opacity until full transparent, then 
-		// delete itself.  This transition is for visual purposes as popping in 
-		// and out of existance looks bad.
-		float opacity;
-	};
-
-public: // MEMBER VARIABLES:
-	int index = 0;
-	Tile *sibling;
-
-	Type type;
-	Force force;
-	Entity entity;
-
-	SideInfos sideInfos;
-
-	// only one position value is needed since the other three corners 
-	// can be caluclated using only the maxVert and tileType variables.
-	glm::ivec3 maxVert;
-
-	// Used for decoration/organization.  
-	// Colors the tile a certain color/pattern.	
-	glm::fvec3 color;
-
-public: // FUNCTIONS:
-
-	//glm::ivec3 getVertPos(int index);
-};

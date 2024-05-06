@@ -361,6 +361,9 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
 
+	GLuint numFramesID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "numFrames");
+	glUniform1i(numFramesID, NumFrames);
+
 	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
 	glUniform1i(initialTileIndexID, p_tileManager->povTile.tile->index);
 

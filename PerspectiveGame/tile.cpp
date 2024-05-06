@@ -5,16 +5,14 @@ Tile::Tile() {
 	index = 0;
 	type = TILE_TYPE_XY_FRONT;
 	color = glm::vec3(1, 1, 1);
-	hasBeenDrawn = false;
-	opacity = 1.0f;
 	sibling = nullptr;
 	this->maxVert = glm::ivec3(0, 0, 0);
 
-	buildingType = BUILDING_TYPE_NONE;
+	/*buildingType = BUILDING_TYPE_NONE;
 	buildingOrientation = Tile::Edge::UP;
 	entityType = ENTITY_TYPE_NONE;
 	entityOffsetSide = Tile::Edge::UP;
-	entityOffset = 0.0f;
+	entityOffset = 0.0f;*/
 }
 
 Tile::Tile(Tile::SubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), maxVert(maxVert) {
@@ -27,44 +25,29 @@ Tile::Tile(Tile::SubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), m
 	// Generate verts:
 	switch (superTileType(tileSubType)) {
 	case TILE_TYPE_XY:
-		/*sideInfos[0].pos = maxVert;
-		sideInfos[1].pos = maxVert - glm::ivec3(0, 1, 0);
-		sideInfos[2].pos = maxVert - glm::ivec3(1, 1, 0);
-		sideInfos[3].pos = maxVert - glm::ivec3(1, 0, 0);*/
-
-		sideInfos[0].texCoord = A;
-		sideInfos[1].texCoord = B;
-		sideInfos[2].texCoord = C;
-		sideInfos[3].texCoord = D;
+		sideInfos.texCoords[0] = A;
+		sideInfos.texCoords[1] = B;
+		sideInfos.texCoords[2] = C;
+		sideInfos.texCoords[3] = D;
 		break;
 	case TILE_TYPE_XZ:
-		/*sideInfos[0].pos = maxVert;
-		sideInfos[1].pos = maxVert - glm::ivec3(1, 0, 0);
-		sideInfos[2].pos = maxVert - glm::ivec3(1, 0, 1);
-		sideInfos[3].pos = maxVert - glm::ivec3(0, 0, 1);*/
-
-		sideInfos[3].texCoord = D;
-		sideInfos[2].texCoord = C;
-		sideInfos[1].texCoord = B;
-		sideInfos[0].texCoord = A;
+		sideInfos.texCoords[0] = D;
+		sideInfos.texCoords[1] = C;
+		sideInfos.texCoords[2] = B;
+		sideInfos.texCoords[3] = A;
 		break;
 	default: /*TILE_TYPE_YZ*/
-		/*sideInfos[0].pos = maxVert;
-		sideInfos[1].pos = maxVert - glm::ivec3(0, 0, 1);
-		sideInfos[2].pos = maxVert - glm::ivec3(0, 1, 1);
-		sideInfos[3].pos = maxVert - glm::ivec3(0, 1, 0);*/
-
-		sideInfos[0].texCoord = A;
-		sideInfos[1].texCoord = B;
-		sideInfos[2].texCoord = C;
-		sideInfos[3].texCoord = D;
+		sideInfos.texCoords[0] = A;
+		sideInfos.texCoords[1] = B;
+		sideInfos.texCoords[2] = C;
+		sideInfos.texCoords[3] = D;
 	}
 
-	buildingType = BUILDING_TYPE_NONE;
+	/*buildingType = BUILDING_TYPE_NONE;
 	buildingOrientation = Tile::Edge::UP;
 	entityType = ENTITY_TYPE_NONE;
 	entityOffsetSide = Tile::Edge::UP;
-	entityOffset = 0.0f;
+	entityOffset = 0.0f;*/
 }
 
 glm::ivec3 Tile::normal() {
@@ -213,16 +196,21 @@ Tile::TileRelation Tile::getRelation(Tile::SubType A, Tile::SubType B) {
 TileGpuInfo::TileGpuInfo(Tile *tile) {
 	color = glm::vec4(tile->color, 1);
 
-	buildingType = (int)tile->buildingType;
-	entityType = (int)tile->entityType;
-	entityOffset = tile->entityOffset;
-	entityOffsetSide = (int)tile->entityOffsetSide;
+	basisType = (int)tile->basis.type;
+	basisOrientation = tile->basis.orientation;
+
+	hasForce = (int)tile->force.magnitude > 0;
+	forceDirection = tile->force.direction;
+
+	entityType = (int)tile->entity.type;
+	entityOffset = tile->entity.offset;
+	entityDirection = tile->entity.direction;
+	entityOrientation = tile->entity.orientation;
 
 	for (int i = 0; i < 4; i++) {
-		neighborIndices[i] = tile->sideInfos[i].connection.tile->index;
-		neighborMirrored[i] = (int)tile->sideInfos[i].connection.mirrored;
-		neighborSideIndex[i] = tile->sideInfos[i].connection.sideIndex;
-		texCoords[i] = tile->sideInfos[i].texCoord;
+		neighborIndices[i] = tile->sideInfos.connectedTiles[i]->index;
+		neighborMirrored[i] = (int)tile->sideInfos.connectionsMirrored[i];
+		neighborSideIndex[i] = tile->sideInfos.connectedSideIndices[i];
+		texCoords[i] = tile->sideInfos.texCoords[i];
 	}
-	//std::cout << std::endl << std::endl;
 }
