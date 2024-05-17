@@ -84,7 +84,7 @@ public:
 			   ButtonManager *bm);
 	~GuiManager();
 
-	void setupFramebufferForButtonRender(int buttonIndex);
+	void setupFramebufferForButtonRender(int buttonIndex, GLuint textureID);
 
 	void renderImGuiDebugWindows();
 

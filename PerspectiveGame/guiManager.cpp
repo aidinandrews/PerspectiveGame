@@ -85,9 +85,11 @@ GuiManager::GuiManager(GLFWwindow *w, GLFWwindow *imgw, ShaderManager *sm, Input
 }
 
 GuiManager::~GuiManager() {
+#ifdef USE_GUI_WINDOW
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+#endif
 }
 
 void GuiManager::renderImGuiDebugWindows() {
@@ -220,11 +222,11 @@ void GuiManager::drawColoredTriFromPixelSpace(glm::ivec2 A, glm::ivec2 B, glm::i
 	drawColoredTri(corners, color);
 }
 
-void GuiManager::setupFramebufferForButtonRender(int buttonIndex) {
+void GuiManager::setupFramebufferForButtonRender(int buttonIndex, GLuint textureID) {
 	p_framebuffer->bind_framebuffer();
 	Button *button = &p_buttonManager->buttons[buttonIndex];
 	glm::ivec2 buttonSizePixels = button->size * PixelsPerGuiGridUnit;
-	p_framebuffer->rescale_framebuffer((GLsizei)buttonSizePixels.x, (GLsizei)buttonSizePixels.y);
+	p_framebuffer->rescale_framebuffer((GLsizei)buttonSizePixels.x, (GLsizei)buttonSizePixels.y, textureID);
 	glViewport(0, 0, button->pixelWidth(), button->pixelHeight());
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -361,8 +363,8 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
 
-	GLuint numFramesID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "numFrames");
-	glUniform1i(numFramesID, NumFrames);
+	GLuint deltaTimeID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "deltaTime");
+	glUniform1f(deltaTimeID, TimeSinceProgramStart);
 
 	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
 	glUniform1i(initialTileIndexID, p_tileManager->povTile.tile->index);
@@ -401,6 +403,8 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tileManager->texID);
 
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 	glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
@@ -411,7 +415,8 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 }
 
 void GuiManager::draw2d3rdPerson() {
-	setupFramebufferForButtonRender(ButtonManager::pov2d3rdPersonViewButtonIndex);
+	setupFramebufferForButtonRender(ButtonManager::pov2d3rdPersonViewButtonIndex, 
+									p_framebuffer->pov2D3rdPersonTextureID);
 
 	switch (renderType2d3rdPerson) {
 	case cpuCropping: draw2d3rdPersonCpuCropping(); break;
@@ -427,18 +432,21 @@ void GuiManager::draw2d3rdPerson() {
 	p_framebuffer->unbind_framebuffer();
 
 	// Render off-screen buffer to window:
-	p_buttonManager->renderButton(p_buttonManager->buttons[p_buttonManager->pov2d3rdPersonViewButtonIndex]);
+	p_buttonManager->renderButton(p_buttonManager->buttons[p_buttonManager->pov2d3rdPersonViewButtonIndex], 
+								  p_framebuffer->pov2D3rdPersonTextureID);
 }
 
 void GuiManager::draw3d3rdPerson() {
-	setupFramebufferForButtonRender(ButtonManager::pov3d3rdPersonViewButtonIndex);
+	setupFramebufferForButtonRender(ButtonManager::pov3d3rdPersonViewButtonIndex, 
+									p_framebuffer->pov3D3rdPersonTextureID);
 	
 	p_tileManager->draw3Dview();
 	//p_tileManager->drawPlayerPos();
 
 	p_framebuffer->unbind_framebuffer();
 
-	p_buttonManager->renderButton(p_buttonManager->buttons[p_buttonManager->pov3d3rdPersonViewButtonIndex]);
+	p_buttonManager->renderButton(p_buttonManager->buttons[p_buttonManager->pov3d3rdPersonViewButtonIndex],
+								  p_framebuffer->pov3D3rdPersonTextureID);
 }
 
 void GuiManager::render() {

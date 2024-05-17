@@ -44,7 +44,8 @@ public:
 public:
 	ButtonManager(Framebuffer *fb, ShaderManager *sm, GLFWwindow* w, InputManager *im) 
 		: p_framebuffer(fb), p_shaderManager(sm), p_window(w), p_inputManager(im) {
-		pov2d3rdPersonViewTexId = p_framebuffer->texture_id;
+		
+		pov2d3rdPersonViewTexId = p_framebuffer->pov2D3rdPersonTextureID;
 
 		Button pov2d3rdPersonViewButton;
 		pov2d3rdPersonViewButton.size = glm::ivec2(10, 10);
@@ -187,7 +188,7 @@ public:
 		adjustTargetButtonSize();
 	}
 
-	void renderButton(Button &button) {
+	void renderButton(Button &button, GLuint texId) {
 		glDisable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDisable(GL_DEPTH_TEST);
@@ -214,7 +215,7 @@ public:
 			glUniform1f(colorAlphaID, 0.0f);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, pov2d3rdPersonViewTexId);
+			glBindTexture(GL_TEXTURE_2D, texId);
 
 			for (int i = 0; i < 4; i++) {
 				// position of vertex:

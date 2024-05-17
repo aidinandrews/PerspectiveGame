@@ -354,16 +354,16 @@ public: // MEMBER FUNCTIONS:
 // This struct acts as a wrapper for a tile, giving it more information that is useful when
 // rendering scenes and animations effects.  The thought is to wrap whatever tile you are 'on'
 // in one of these, so that it is easier to keep track of stuff.
-struct PovTileTarget {
+struct TileTarget {
 	Tile *tile;
 	int sideInfosOffset;
 	int initialSideIndex;
 	int initialVertIndex;
 
-	PovTileTarget() :
+	TileTarget() :
 		tile(nullptr), sideInfosOffset(1), initialSideIndex(0), initialVertIndex(0) {}
 
-	PovTileTarget(Tile *tile, int sideInfosOffset, int initialSideIndex, int initialVertIndex) :
+	TileTarget(Tile *tile, int sideInfosOffset, int initialSideIndex, int initialVertIndex) :
 		tile(tile), sideInfosOffset(sideInfosOffset), initialSideIndex(initialSideIndex),
 		initialVertIndex(initialVertIndex) {}
 
@@ -398,7 +398,7 @@ struct PovTileTarget {
 	// is counterclockwise from the previous vertex.
 	bool woundCounterClockwise() { return !woundClockwise(); }
 
-	PovTileTarget &operator=(const PovTileTarget &other) {
+	TileTarget &operator=(const TileTarget &other) {
 		this->tile = other.tile;
 		this->sideInfosOffset = other.sideInfosOffset;
 		this->initialSideIndex = other.initialSideIndex;

@@ -3,7 +3,7 @@
 layout(location = 0) in vec2 fragWorldPos;
 layout(location = 1) in vec2 povPos;
 
-uniform int numFrames;
+uniform float deltaTime;
 uniform int initialTileIndex;
 uniform int initialSideIndex;
 uniform int initialTexCoordIndex;
@@ -62,6 +62,11 @@ layout (std430, binding = 1) buffer tileInfosBuffer {
 
 #define TRUE 1
 #define FALSE 0
+
+#define RIGHT			0
+#define DOWN			1
+#define LEFT			2
+#define UP				3
 // Protect against infinite loops.
 #define MAX_STEPS 1000 
 
@@ -69,10 +74,12 @@ const int VERT_INFO_OFFSETS[] = { 2,1,0,3 };
 const vec2 DRAW_TILE_COORDS[] = { vec2(1, 1), vec2(1, 0), vec2(0, 0), vec2(0, 1) };
 const bool IS_OBJECT[] = { false, true, true, true, false, false, false, false, };
 const vec2 ADJACENT_ENTITY_OFFSETS[] = { vec2(1, 0), vec2(0, -1), vec2(-1, 0), vec2(0, 1) };
+
 const vec2 povPosToPixelPos = fragWorldPos - povPos;
 const float totalDist = length(povPosToPixelPos);
 const bool goingRight = povPosToPixelPos.x > 0.0f;
 const bool goingUp = povPosToPixelPos.y > 0.0f;
+
 const vec2 relativePositions[5] = {
 	vec2(inPovRelativePositions[0][0], inPovRelativePositions[0][1]),
 	vec2(inPovRelativePositions[1][0], inPovRelativePositions[1][1]),
@@ -86,11 +93,6 @@ const int relativePosTileIndices[5] = {
 	int(inPovRelativePositions[2][2]), 
 	int(inPovRelativePositions[3][2]),
 	int(inPovRelativePositions[2][3])
-};
-const vec4 BUILDING_COLORS[] = {
-	vec4(0, 0, 0, 0), // NONE
-	vec4(0, 1, 0, 1), // PRODUCER
-	vec4(1, 0, 0, 1), // CONSUMER
 };
 
 // Used for navigating throught the tile map:
@@ -173,7 +175,7 @@ float WEIGHT = 0.5;
 void getRelativeVertPositions() {
 	int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
 
-	vertOrigin = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (2 * currentSideOffset)) % 4];
+	vertOrigin = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + 2) % 4];
 	vertA = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + currentSideOffset) % 4]) - vertOrigin;					
 	vertB = (DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) + (3 * currentSideOffset)) % 4]) - vertOrigin;
 }
@@ -340,8 +342,10 @@ bool isInsideBuilding() {
 			pointToLineSegDist(B, C, fragDrawTilePos) < 0.1f) {
 			gl_FragColor = vec4(0.937, 0.737, 0.608, 1);
 			return true;
-		} 
-		break;
+		} else {
+			gl_FragColor = vec4(0.612, 0.686, 0.667, 1);
+			return true;
+		}
 	}
 
 	switch(tileInfos[currentTileIndex].basisType) {
@@ -366,12 +370,14 @@ bool isInsideBuilding() {
 
 void colorPixel() {
 	// Rendering heierarchy (first prio to last prio): 
-	//     player > entity > basis > force
+	// player > entity > basis > force
 	
 	bool insideBasis    = false;
 	bool insidePlayer   = false;
 	bool insideEntity   = false;
 	bool insideBuilding = false;
+	float forceWeight = 0.5f;
+	vec4 forceColor;
 
 	if (isInsidePlayer()) {
 		insidePlayer = true;
@@ -379,19 +385,30 @@ void colorPixel() {
 	} 
 	else if (isInsideEntity()) {
 		insideEntity = true;
-		gl_FragColor = vec4(0.612, 0.686, 0.667, 1);
+		gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
 	} 
-	else {
-		insideBuilding = isInsideBuilding();
+	else if(isInsideBuilding()) {
+		insideBuilding = true;
 	}
 
 	// Texture of the underlying pixel:
-	if (!insidePlayer && !insideEntity && !insideBuilding) {
+	else {
 		gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5);
+		forceWeight = 0.5f;
 	}
 
+	// Apply an effect if the tile has a force applied over it:
+	forceColor = vec4(1,1,1,1);
 	if (tileInfos[currentTileIndex].hasForce == TRUE) {
-		gl_FragColor.b = (cos(2 * PI * fragDrawTilePos.y - float(numFrames) / 10.0f) + 1) / 2.0f;
+		float controller = 0;
+		switch(tileInfos[currentTileIndex].forceDirection) {
+		case 0: controller = dot(vertA, fragDrawTilePos); break;
+		case 1: controller = -dot(vertB, fragDrawTilePos); break;
+		case 2: controller = -dot(vertA, fragDrawTilePos); break;
+		case 3: controller = dot(vertB, fragDrawTilePos); break;
+		}
+		forceWeight *= (cos(2*PI*controller - deltaTime * 4) + 1) / 2.0f;
+		gl_FragColor = mix(gl_FragColor, forceColor, forceWeight);
 	}
 }
 

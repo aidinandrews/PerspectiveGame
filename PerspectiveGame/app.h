@@ -121,7 +121,10 @@ struct App {
 	}
 	
 	void run() {
-		
+		float runningFPS = 0;
+		int counter = 0;
+		int lastFPS = 0;
+
 		while (!glfwWindowShouldClose(window.window)) {
 			auto start = std::chrono::high_resolution_clock::now();
 
@@ -131,7 +134,9 @@ struct App {
 			camera.update();
 			p_tileManager->update();
 
+#ifdef USE_GUI_WINDOW
 			glfwMakeContextCurrent(window.window);
+#endif
 			updateGraphicsAPI();
 			p_guiManager->render();
 			glfwSwapBuffers(window.window);
@@ -144,11 +149,21 @@ struct App {
 #endif
 			
 			auto end = std::chrono::high_resolution_clock::now();
-			FrameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();
+			float thisFrameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();
 			//std::cout << FrameTime << std::endl;
 			Sleep((DWORD)std::max(16.0f - FrameTime, 0.0f));
-			FPS = 1000.0f / FrameTime;
 			NumFrames++;
+
+			counter++;
+			runningFPS += 1000.0f / thisFrameTime;
+			if (counter > 50) {
+				FPS = runningFPS / (float)counter;
+				FrameTime = thisFrameTime;
+				counter = 0;
+				runningFPS = 0;
+			}
+			//FPS = lastFPS;
+			
 		}
 	}
 };

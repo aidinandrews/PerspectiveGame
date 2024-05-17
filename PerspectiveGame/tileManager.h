@@ -27,36 +27,26 @@
 #include"tile.h"
 
 struct TileManager {
-public:
-	/////////
-	//ENUMS//
-	/////////
+
+public: // ENUMS:
+
 	enum RelativeTileOrientation {
 		RELATIVE_TILE_ORIENTATION_UP,
 		RELATIVE_TILE_ORIENTATION_FLAT,
 		RELATIVE_TILE_ORIENTATION_DOWN
 	};
 
-	//////////////////////////
-	//CONST MEMBER VARIABLES//
-	//////////////////////////
+public: // CONST MEMBER VARIABLES:
 
 	static const int MAX_DRAW_TILES = 5000;
 	static const glm::vec2 DRAW_TILE_OFFSETS[4];
-	static glm::vec2 INITIAL_FRUSTUM[3];
-
-
-	const float DRAW_TILE_OPACITY_DECRIMENT_STEP = 0.1f;
-
+	static const glm::vec2 INITIAL_FRUSTUM[3];
+	static const float DRAW_TILE_OPACITY_DECRIMENT_STEP;
 	static const int VERT_INFO_OFFSETS[4];
+	static const int DIR_TO_DIR_MAP[6][6][4];
+	static std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS;
 
-	std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS = {
-		glm::vec2(1, 1), glm::vec2(1, 0), glm::vec2(0, 0), glm::vec2(0, 1),
-	};
-
-	////////////////////////////
-	//DYNAMIC MEMBER VARIABLES//
-	////////////////////////////
+public: // DYNAMIC MEMBER VARIABLES:
 
 	// Other Managers:
 	Camera *p_camera;
@@ -90,7 +80,7 @@ public:
 	glm::vec2 relativePos[5];
 	int relativePosTileIndices[5];
 	// Tile that the flatlander POV 'eye' is stood on:
-	PovTileTarget povTile;
+	TileTarget povTile;
 
 	// Used for lerping between views in the 3D viewer.  If a player goes from one tile to 
 	// another, the view should look directly down on the tile, but there should be a 
@@ -103,7 +93,7 @@ public:
 	glm::vec3 lerpCamPosOffset;
 
 	bool tryingToAddTile;
-	PovTileTarget addTileParentTarget;
+	TileTarget addTileParentTarget;
 	Tile previewTile;
 	int addTileParentSideConnectionIndex;
 	RelativeTileOrientation addTileRelativeOrientation;
@@ -113,23 +103,19 @@ public:
 	GLuint tileInfosBufferID;
 	std::vector<TileGpuInfo> tileGpuInfos;
 
-	////////////////
-	//INITIALIZERS//
-	////////////////
+public: // INITIALIZERS:
 
 	TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindow *window,
 				Framebuffer *p_framebuffer, ButtonManager *bm, InputManager *im);
 
 	~TileManager();
 
-	////////////////////
-	//MEMBER FUNCTIONS//
-	////////////////////
+public: // MEMBER FUNCTIONS:
 
 	void update();
 
 	// Creates a producer which can create any entity and set it inside the tile it is inside.
-	bool createProducer(int tileIndex, Tile::Edge orientation, Tile::Entity::Type producedEntityType);
+	bool createProducer(int tileIndex, Tile::Entity::Type producedEntityType);
 	void updateProducers();
 
 	// Creates a consumer which will destroy any entity at offset 0 inside the tile it is inside.
@@ -141,15 +127,21 @@ public:
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();
-	glm::vec2 getRelativePovPosCentral(PovTileTarget& target);
-	glm::vec2 getRelativePovPosTop(PovTileTarget& target);
-	glm::vec2 getRelativePovPosBottom(PovTileTarget& target);
-	glm::vec2 getRelativePovPosRight(PovTileTarget& target);
-	glm::vec2 getRelativePovPosLeft(PovTileTarget& target);
-	glm::vec2 getRelativePovPosTopRight(PovTileTarget& target);
-	glm::vec2 getRelativePovPosTopLeft(PovTileTarget& target);
-	glm::vec2 getRelativePovPosBottomRight(PovTileTarget& target);
-	glm::vec2 getRelativePovPosBottomLeft(PovTileTarget& target);
+	glm::vec2 getRelativePovPosCentral(TileTarget & target);
+	glm::vec2 getRelativePovPosTop(TileTarget & target);
+	glm::vec2 getRelativePovPosBottom(TileTarget & target);
+	glm::vec2 getRelativePovPosRight(TileTarget & target);
+	glm::vec2 getRelativePovPosLeft(TileTarget & target);
+	glm::vec2 getRelativePovPosTopRight(TileTarget & target);
+	glm::vec2 getRelativePovPosTopLeft(TileTarget & target);
+	glm::vec2 getRelativePovPosBottomRight(TileTarget & target);
+	glm::vec2 getRelativePovPosBottomLeft(TileTarget & target);
+
+	// Returns the direction that faces the 'same way' as the current direction when moving from one tile to another.
+	// This is trivial in cases where the tile types are the same, but less so when moving between tile of different type.
+	const static int transitionDirection(Tile::SubType residingTileType, Tile::SubType destinationTileType, int currentDirection) {
+		return DIR_TO_DIR_MAP[residingTileType][destinationTileType][currentDirection];
+	}
 
 	// The tiles are drawn one by one, and need to know when they are off screen.  This is 
 	// done by translating the edges of the window to scene coordinates, in this function.
@@ -169,11 +161,11 @@ public:
 	// 'crossed,' the player/camera is teleported to the opposite side of this 'meta tile' and the target info is 
 	// updated.  This illusion makes it seem like we are moving from tile to tile when we are not.  povTile updates
 	// its initial vert/side data as needed.
-	void updatePovTileTarget();
+	void updatePovTileTarget ();
 
 	// Given a tile target wrapped around a tile, this function will 'move' the target to a neighboring tile, making
 	// sure to keep the initial vert/side info correct through the transition.
-	PovTileTarget adjustTileTarget(PovTileTarget *currentTarget, int drawTileEdgeIndex);
+	TileTarget adjustTileTarget(TileTarget  *currentTarget, int drawTileEdgeIndex);
 	
 	// It looks better if the camera tilts in such a way that when passing over the edge of a tile, the view
 	// rotates smoothly from looking down on one tile to the next.  This adjustment needs to be calculated here.
@@ -184,7 +176,8 @@ public:
 	// 3D position/where the camera is looking.
 	glm::vec3 getPovTilePos();
 
-	// Each new tile necessitates another tile to act as its backing.  A 2D tile has 2 faces, 
+	// Each 
+	// tile necessitates another tile to act as its backing.  A 2D tile has 2 faces, 
 	// yes?  Thus when making a tile, two must be made, glued together, then added to the 
 	// scene. The 'maxPoint' is the maximum vertex of the new tile pair.  I.e. a tile with 
 	// vertices (0,0,0), (1,0,0), (1,0,1), and (0,0,1) would have a maxPoint of (1,0,1).  This 

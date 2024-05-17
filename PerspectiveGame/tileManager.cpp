@@ -1,12 +1,82 @@
 #include "tileManager.h"
 
+const float TileManager::DRAW_TILE_OPACITY_DECRIMENT_STEP = 0.1f;
+
 const int TileManager::VERT_INFO_OFFSETS[] = { 2,1,0,3 };
+
 const int VERT_INFO_OFFSETS_MIRRORED_EYE_TILE[] = { 1,0,3,2 };
+
 const glm::vec2 TileManager::DRAW_TILE_OFFSETS[] = {
 			glm::vec2(1, 0), glm::vec2(0, -1), glm::vec2(-1, 0), glm::vec2(0, 1)
 };
-glm::vec2 TileManager::INITIAL_FRUSTUM[] = {
+
+const glm::vec2 TileManager::INITIAL_FRUSTUM[] = {
 	glm::vec2(0,0),glm::vec2(0,0),glm::vec2(0,0),
+};
+
+ std::vector<glm::vec2> TileManager::INITIAL_DRAW_TILE_VERTS = {
+		glm::vec2(1, 1), glm::vec2(1, 0), glm::vec2(0, 0), glm::vec2(0, 1),
+};
+
+// This array maps the direction info of entities/forces when moving from one tile to another.
+// The simple case (moving from an XYF -> XYF) is easy (side n -> side n), but mapping differing tile types is more difficult.
+// Hopefully this array will mean lightnig fast queries when moving entities/forces between tiles.
+// Entries 0 - 3 represent sides, -1 represents a movement that should not be possible.  i.e. moving from an XYF side 0 -> XZF tile.
+// Impossible movements are defined as 'X' so things look a little nicer.
+// 
+// Input Key:
+// [Current Tile Type][Destination Tile Type][Exiting side]
+const int TileManager::DIR_TO_DIR_MAP[6][6][4] = {
+#define X -1
+	{ // Current Tile = XYF
+		{ 0, 1, 2, 3 }, // Destination Tile = XYF
+		{ 2, 3, 0, 1 }, // Destination Tile = XYB
+		{ X, 0, X, 2 }, // Destination Tile = XZF
+		{ X, 2, X, 0 }, // Destination Tile = XZB
+		{ 1, X, 3, X },	// Destination Tile = YZF
+		{ 3, X, 1, X }	// Destination Tile = YZB
+	},
+	{ // Current Tile = XYB
+		{ 2, 3, 0, 1 }, // Destination Tile = XYF
+		{ 0, 1, 2, 3 },	// Destination Tile = XYB
+		{ X, 2, X, 0 }, // Destination Tile = XZF
+		{ X, 0, X, 2 },	// Destination Tile = XZB
+		{ 3, X, 1, X },	// Destination Tile = YZF
+		{ 1, X, 3, X }	// Destination Tile = YZB
+	},
+	{ // Current Tile = XZF
+		{ 1, X, 3, X }, // Destination Tile = XYF
+		{ 3, X, 1, X },	// Destination Tile = XYB
+		{ 0, 1, 2, 3 },	// Destination Tile = XZF
+		{ 2, 3, 0, 1 },	// Destination Tile = XZB
+		{ X, 0, X, 2 },	// Destination Tile = YZF
+		{ X, 2, X, 0 }	// Destination Tile = YZB
+	},
+	{ // Current Tile = XZB
+		{ 3, X, 1, X }, // Destination Tile = XYF
+		{ 1, X, 3, X },	// Destination Tile = XYB
+		{ 2, 3, 0, 1 },	// Destination Tile = XZF
+		{ 0, 1, 2, 3 },	// Destination Tile = XZB
+		{ X, 2, X, 0 },	// Destination Tile = YZF
+		{ X, 0, X, 2 }	// Destination Tile = YZB
+	},
+	{ // Current Tile = YZF
+		{ X, 0, X, 2 }, // Destination Tile = XYF
+		{ X, 2, X, 0 },	// Destination Tile = XYB
+		{ 1, X, 3, X },	// Destination Tile = XZF
+		{ 3, X, 1, X },	// Destination Tile = XZB
+		{ 0, 1, 2, 3 },	// Destination Tile = YZF
+		{ 2, 3, 0, 1 }	// Destination Tile = YZB
+	},
+	{ // Current Tile = YZB
+		{ X, 2, X, 0 }, // Destination Tile = XYF
+		{ X, 0, X, 2 },	// Destination Tile = XYB
+		{ 1, X, 3, X },	// Destination Tile = XZF
+		{ 3, X, 1, X },	// Destination Tile = XZB
+		{ 2, 3, 0, 1 },	// Destination Tile = YZF
+		{ 0, 1, 2, 3 }	// Destination Tile = YZB
+	},
+#undef X
 };
 
 TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindow *window,
@@ -21,18 +91,17 @@ TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindo
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
-	//createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 1), glm::vec3(0, 1, 0), glm::vec3(0, 0.5, 0));
+	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	//createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 0, 1), glm::vec3(1, 1, 1), glm::vec3(0.5, 0.5, 0.5));
 
-	//createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 1, 1), glm::vec3(1, 1, 0), glm::vec3(0.5, 0.5, 0));
-	//createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(1, 0, 1), glm::vec3(0.5, 0, 0.5));
-
-	createForceBlock(0, Tile::Edge::UP, 1);
-	createProducer(2, Tile::Edge::UP, Tile::Entity::Type::MATERIAL_A);
-	createConsumer(4);
-
-	//updateTileGpuInfoIndices();
+	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 2, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
 	// by this point there should be two tiles in the scene:
 	povTile.tile = tiles[0];
@@ -40,6 +109,10 @@ TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindo
 	povTile.initialSideIndex = 0;
 	povTile.initialVertIndex = 0;
 	povTile.sideInfosOffset = 1;
+
+	createForceBlock(0, Tile::Edge::RIGHT, 1);
+	createProducer(2, Tile::Entity::Type::MATERIAL_A);
+	createConsumer(4);
 
 	tryingToAddTile = false;
 	tryingToAddTile = true; // TESTING, TEMP!
@@ -62,7 +135,9 @@ TileManager::~TileManager() {
 
 bool TileManager::tileIsUnique(Tile &newTile) {
 	for (Tile *t : tiles) {
-		// Because the only way to make a new tile is by giving it's max point, all tiles 
+		// Because the only way to make a 
+		// 
+		// tile is by giving it's max point, all tiles 
 		// with the same vertices will have those vertices at the same indices.  I.e. it 
 		// is impossible for two tiles that share all verices to share those vertices in a 
 		// differing order, so all that is needed to check if the tile is the same is to 
@@ -605,7 +680,7 @@ void TileManager::updateWindowFrustum() {
 	windowFrustumDiagonalLength = glm::distance(windowFrustum[0], windowFrustum[2]);
 }
 
-PovTileTarget TileManager::adjustTileTarget(PovTileTarget *currentPov, int drawTileSideIndex) {
+TileTarget TileManager::adjustTileTarget(TileTarget *currentPov, int drawTileSideIndex) {
 	int newInitialSideIndex, 
 		newInitialTexIndex,
 		newSideInfosOffset,
@@ -630,7 +705,7 @@ PovTileTarget TileManager::adjustTileTarget(PovTileTarget *currentPov, int drawT
 
 	newTarget = currentPov->tile->sideInfos.connectedTiles[connectionIndex];
 
-	return PovTileTarget(newTarget, newSideInfosOffset, newInitialSideIndex, newInitialTexIndex);
+	return TileTarget(newTarget, newSideInfosOffset, newInitialSideIndex, newInitialTexIndex);
 }
 
 void TileManager::updatePovTileTarget() {
@@ -683,7 +758,7 @@ glm::vec3 TileManager::getPovTilePos() {
 void TileManager::collisionDetectUnsafeCorners() {
 	int cornerIndex1, cornerIndex2;
 	glm::vec2 closestCorner(0, 0);
-	PovTileTarget target = povTile;
+	TileTarget target = povTile;
 	
 	if (p_camera->viewPlanePos.x > 0.5f) {
 		target = adjustTileTarget(&povTile, 0);
@@ -752,7 +827,7 @@ void TileManager::update3dRotationAdj() {
 	glm::vec3 targetNormal = povTileNormal;
 	glm::vec3 targetNormalAdj(0, 0, 0);
 	glm::vec3 flippedNormalAdj(0, 0, 0);
-	PovTileTarget target;
+	TileTarget target;
 	if (p_camera->viewPlanePos.x > 0.5f) {
 		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 0).tile->normal();
 		if (neighborNormal == -povTileNormal) {
@@ -820,8 +895,6 @@ void TileManager::update3dRotationAdj() {
 
 void TileManager::addPreviewTileToScene() {
 	// Find all the verts of the potential new tile:
-	//int targetIndex = (povTile.initialVertIndex + eyeDrawTileSidePointedToIndex * povTile.sideInfosOffset) % 4;
-	//povTile.vertIndex(povTileSidePointedToIndex);
 	glm::ivec3 vertA = addTileParentTarget.tile->getVertPos(addTileParentSideConnectionIndex);
 	glm::ivec3 vertB = addTileParentTarget.tile->getVertPos((addTileParentSideConnectionIndex + addTileParentTarget.sideInfosOffset) % 4);
 	glm::ivec3 vertZ = addTileParentTarget.tile->getVertPos((addTileParentSideConnectionIndex + addTileParentTarget.sideInfosOffset * 3) % 4);
@@ -965,13 +1038,12 @@ void TileManager::update() {
 	getRelativePovPosGpuInfos();
 }
 
-bool TileManager::createProducer(int tileIndex, Tile::Edge orientation, Tile::Entity::Type producedEntityType) {
+bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntityType) {
 	if (tiles[tileIndex]->basis.type != Tile::Basis::Type::EMPTY) {
 		return false;
 	}
 
 	tiles[tileIndex]->basis.type = Tile::Basis::Type::PRODUCER;
-	tiles[tileIndex]->basis.orientation = orientation;
 
 	producers.push_back(Producer(tileIndex, producedEntityType));
 
@@ -1000,6 +1072,21 @@ bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int ma
 	tiles[tileIndex]->entity.orientation = orientation;
 
 	forceBlocks.push_back(ForceBlock(tileIndex, orientation, magnitude));
+
+	// Propogate force to tiles in front of the force block:
+	TileTarget target = adjustTileTarget(&povTile, orientation);
+	int direction = transitionDirection(povTile.tile->type, target.tile->type, orientation);
+
+	while (target.tile->force.magnitude == 0 && target.tile->basis.type != Tile::Basis::Type::DISPERCER) {
+		// Set force info:
+		target.tile->force.direction = direction;
+		target.tile->force.magnitude = magnitude;
+
+		// Move to the next tile/update direction:
+		Tile::SubType currentType = target.tile->type;
+		target = adjustTileTarget(&target, orientation);
+		direction = transitionDirection(currentType, target.tile->type, direction);
+	}
 
 	return true;
 }
@@ -1056,7 +1143,7 @@ void TileManager::updateForceBlocks() {
 // tile it is in, so it queries this info using that index to see if it is actually inside the player, then colors
 // accordingly.
 void TileManager::getRelativePovPosGpuInfos() {
-	PovTileTarget temp;
+	TileTarget temp;
 	
 	// By definition we are always in the povTile:
 	relativePosTileIndices[0] = povTile.tile->index;
@@ -1129,7 +1216,7 @@ void TileManager::getRelativePovPosGpuInfos() {
 	}
 }
 
-glm::vec2 TileManager::getRelativePovPosCentral(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosCentral(TileTarget& target) {
 	// Relative to vert[2] (origin), vert[1] (x+), and vert[3] (y+).
 	glm::vec2 P = p_camera->viewPlanePos;
 
@@ -1155,7 +1242,7 @@ glm::vec2 TileManager::getRelativePovPosCentral(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosTop(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosTop(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1180,7 +1267,7 @@ glm::vec2 TileManager::getRelativePovPosTop(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosBottom(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosBottom(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1205,7 +1292,7 @@ glm::vec2 TileManager::getRelativePovPosBottom(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosRight(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosRight(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1230,7 +1317,7 @@ glm::vec2 TileManager::getRelativePovPosRight(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosLeft(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosLeft(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1255,7 +1342,7 @@ glm::vec2 TileManager::getRelativePovPosLeft(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosTopRight(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosTopRight(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1280,7 +1367,7 @@ glm::vec2 TileManager::getRelativePovPosTopRight(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosTopLeft(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosTopLeft(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1305,7 +1392,7 @@ glm::vec2 TileManager::getRelativePovPosTopLeft(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosBottomRight(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosBottomRight(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1330,7 +1417,7 @@ glm::vec2 TileManager::getRelativePovPosBottomRight(PovTileTarget& target) {
 		}
 	}
 }
-glm::vec2 TileManager::getRelativePovPosBottomLeft(PovTileTarget& target) {
+glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 	glm::vec2 P = (glm::vec2)p_camera->viewPlanePos;
 
 	if (target.woundClockwise()) {
@@ -1601,7 +1688,7 @@ void TileManager::drawAddTilePreview() {
 
 	const int MAX_STEPS = 1000; int stepCount = 0;
 	float currentDist = 0;
-	PovTileTarget target = povTile;
+	TileTarget target = povTile;
 	int connectionIndex = 0, drawSideIndex = 0;
 	glm::vec2 drawTileOffset(0, 0);
 
@@ -1782,7 +1869,7 @@ void TileManager::drawPlayerPos() {
 	drawTile(v, t, glm::vec4(1, 1, 1, 1));
 }
 
-void getProjectedPlayerPosInfo(PovTileTarget &target, glm::vec2 P, int index, float rightOffset, float upOffset,
+void getProjectedPlayerPosInfo(TileTarget &target, glm::vec2 P, int index, float rightOffset, float upOffset,
 							   glm::vec3 *projectedTilePositions, int *tileIndices) {
 	glm::vec3 bottomRight = target.tile->getVertPos(target.vertIndex(2));
 	glm::vec3 rightward = (glm::vec3)target.tile->getVertPos(target.vertIndex(1)) - bottomRight;
@@ -1799,7 +1886,7 @@ void getProjectedPlayerPosInfo(PovTileTarget &target, glm::vec2 P, int index, fl
 glm::mat4 TileManager::packedPlayerPosInfo() {
 	glm::vec3 projectedTilePositions[4];
 	int tileIndices[4];
-	PovTileTarget target;
+	TileTarget target;
 	glm::vec3 P = p_camera->viewPlanePos;
 
 	projectedTilePositions[0] = getPovTilePos();
@@ -1870,6 +1957,11 @@ void TileManager::draw3Dview() {
 	playerPos = glm::vec3(tempMat * glm::vec4(playerPos, 1));
 	GLuint playerPosID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPos");
 	glUniform3f(playerPosID, playerPos.x, playerPos.y, playerPos.z);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 	for (Tile *t : tiles) {
 		draw3DTile(t);

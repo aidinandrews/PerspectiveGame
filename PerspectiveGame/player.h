@@ -15,11 +15,11 @@ struct Player {
 
 	Camera *p_camera;
 
-	PovTileTarget* povTileTarget;
+	TileTarget* povTileTarget;
 	glm::vec2 pos; // Relative to the povTile.
 	PlayerGpuInfo gpuInfo;
 
-	Player(Camera* camera, PovTileTarget* povTileTarget) : p_camera(camera), povTileTarget(povTileTarget) {
+	Player(Camera* camera, TileTarget* povTileTarget) : p_camera(camera), povTileTarget(povTileTarget) {
 
 	}
 
