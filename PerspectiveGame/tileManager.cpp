@@ -14,8 +14,8 @@ const glm::vec2 TileManager::INITIAL_FRUSTUM[] = {
 	glm::vec2(0,0),glm::vec2(0,0),glm::vec2(0,0),
 };
 
- std::vector<glm::vec2> TileManager::INITIAL_DRAW_TILE_VERTS = {
-		glm::vec2(1, 1), glm::vec2(1, 0), glm::vec2(0, 0), glm::vec2(0, 1),
+std::vector<glm::vec2> TileManager::INITIAL_DRAW_TILE_VERTS = {
+	   glm::vec2(1, 1), glm::vec2(1, 0), glm::vec2(0, 0), glm::vec2(0, 1),
 };
 
 // This array maps the direction info of entities/forces when moving from one tile to another.
@@ -79,8 +79,8 @@ const int TileManager::DIR_TO_DIR_MAP[6][6][4] = {
 #undef X
 };
 
-TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindow *window,
-						 Framebuffer *framebuffer, ButtonManager *bm, InputManager *im)
+TileManager::TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
+	Framebuffer* framebuffer, ButtonManager* bm, InputManager* im)
 	: p_camera(camera), p_shaderManager(shaderManager), p_window(window), p_framebuffer(framebuffer),
 	p_buttonManager(bm), p_inputManager(im) {
 
@@ -91,17 +91,18 @@ TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindo
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 4, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(2, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
-	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 0, 1), glm::vec3(1, 1, 1), glm::vec3(0.5, 0.5, 0.5));
+	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 0), glm::vec3(1, 1, 1), glm::vec3(0.5, 0.5, 0.5));
 
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 2, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
 	// by this point there should be two tiles in the scene:
 	povTile.tile = tiles[0];
@@ -110,9 +111,11 @@ TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindo
 	povTile.initialVertIndex = 0;
 	povTile.sideInfosOffset = 1;
 
-	createForceBlock(0, Tile::Edge::RIGHT, 1);
+	//tiles[1]->basis.type = Tile::Basis::Type::DISPERCER;
+	//tiles[6]->basis.type = Tile::Basis::Type::DISPERCER;
+	createForceBlock(0, Tile::Edge::UP, 1);
 	createProducer(2, Tile::Entity::Type::MATERIAL_A);
-	createConsumer(4);
+	createConsumer(3);
 
 	tryingToAddTile = false;
 	tryingToAddTile = true; // TESTING, TEMP!
@@ -128,13 +131,13 @@ TileManager::TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindo
 
 TileManager::~TileManager() {
 	// Make sure to free all the allocated tiles:
-	for (Tile *p : tiles) {
+	for (Tile* p : tiles) {
 		delete p;
 	}
 }
 
-bool TileManager::tileIsUnique(Tile &newTile) {
-	for (Tile *t : tiles) {
+bool TileManager::tileIsUnique(Tile& newTile) {
+	for (Tile* t : tiles) {
 		// Because the only way to make a 
 		// 
 		// tile is by giving it's max point, all tiles 
@@ -150,9 +153,9 @@ bool TileManager::tileIsUnique(Tile &newTile) {
 }
 
 bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
-								 glm::vec3 frontTileColor, glm::vec3 backTileColor) {
-	Tile *frontTile = new Tile(Tile::tileSubType(tileType, true), maxPoint);
-	Tile *backTile = new Tile(Tile::tileSubType(tileType, false), maxPoint);
+	glm::vec3 frontTileColor, glm::vec3 backTileColor) {
+	Tile* frontTile = new Tile(Tile::tileSubType(tileType, true), maxPoint);
+	Tile* backTile = new Tile(Tile::tileSubType(tileType, false), maxPoint);
 
 	// before connecting everything up, it is importand that this new tile pair 
 	// does not overlap another tile pair, as that would be against the rules:
@@ -223,7 +226,7 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 	return true;
 }
 
-void TileManager::connectUpNewTile(Tile *subjectTile) {
+void TileManager::connectUpNewTile(Tile* subjectTile) {
 	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
 	// so each edge (connectableTiles[X][]) gets a list of the types of tiles it can connect to 
 	// (connectableTiles[][X]).
@@ -411,7 +414,7 @@ void TileManager::connectUpNewTile(Tile *subjectTile) {
 		break;
 	}
 
-	for (Tile *otherTile : tiles) {
+	for (Tile* otherTile : tiles) {
 		glm::ivec3 otherTileMaxPoint = otherTile->maxVert;
 		for (int sideIndex = 0; sideIndex < 4; sideIndex++) {
 			for (int connectionType = 0; connectionType < 3; connectionType++) {
@@ -528,7 +531,7 @@ const int TILE_VISIBILITY[6][4][6] = {
 // with the higher visibility will win out.  'sideIndex' is the index to the side who's
 // connection visibility will be queried.  
 // *Note that the index follows Tile (not DrawTile) ordering.
-const int tileVisibility(Tile *tile, int sideIndex) {
+const int tileVisibility(Tile* tile, int sideIndex) {
 	Tile::SubType connectionTileType = tile->sideInfos.connectedTiles[sideIndex]->type;
 	return TILE_VISIBILITY[tile->type][sideIndex][connectionTileType];
 }
@@ -544,8 +547,8 @@ const int tileVisibility(Tile::SubType subjectType, int subjectSideIndex, Tile::
 
 // Returns true if the other tile is more visible than the current 
 // tile connected to the subject's side denoted by subjectSideIndex.
-bool tileIsMoreVisible(Tile *subject, int subjectSideIndex,
-					   Tile *other, int otherSideIndex) {
+bool tileIsMoreVisible(Tile* subject, int subjectSideIndex,
+	Tile* other, int otherSideIndex) {
 
 	const int currentConnectionVisibility
 		= tileVisibility(other, otherSideIndex);
@@ -558,7 +561,7 @@ bool tileIsMoreVisible(Tile *subject, int subjectSideIndex,
 		newConnectionVisibility > subjectConnectionVisibility;
 }
 
-bool TileManager::tryConnect(Tile *subject, Tile *other) {
+bool TileManager::tryConnect(Tile* subject, Tile* other) {
 	int subjectConnections[2]{};
 	int otherConnections[2]{};
 	int connectionsIndex = 0;
@@ -680,16 +683,17 @@ void TileManager::updateWindowFrustum() {
 	windowFrustumDiagonalLength = glm::distance(windowFrustum[0], windowFrustum[2]);
 }
 
-TileTarget TileManager::adjustTileTarget(TileTarget *currentPov, int drawTileSideIndex) {
-	int newInitialSideIndex, 
+TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSideIndex) {
+	int newInitialSideIndex,
 		newInitialTexIndex,
 		newSideInfosOffset,
 		connectionIndex = currentPov->sideIndex(drawTileSideIndex);
-	Tile *newTarget;
+	Tile* newTarget;
 
 	if (currentPov->tile->sideInfos.connectionsMirrored[connectionIndex]) {
 		newSideInfosOffset = (currentPov->sideInfosOffset + 2) % 4;
-	} else {
+	}
+	else {
 		newSideInfosOffset = currentPov->sideInfosOffset;
 	}
 
@@ -699,7 +703,8 @@ TileTarget TileManager::adjustTileTarget(TileTarget *currentPov, int drawTileSid
 
 	if (newSideInfosOffset == 3) {
 		newInitialTexIndex = (newInitialSideIndex + 1) % 4;
-	} else {
+	}
+	else {
 		newInitialTexIndex = newInitialSideIndex;
 	}
 
@@ -721,7 +726,8 @@ void TileManager::updatePovTileTarget() {
 		p_camera->viewPlanePos.x -= 1.0f;
 		povTile = adjustTileTarget(&povTile, 0);
 
-	} else if (p_camera->viewPlanePos.x < 0.0f) {
+	}
+	else if (p_camera->viewPlanePos.x < 0.0f) {
 		lastpovTileTransf = currentpovTileTransf;
 		lastpovTileTransfWeight = 1.0f;
 		lastCamPosOffset = p_camera->viewPlanePos + glm::vec3(1, 0, 0);
@@ -736,7 +742,8 @@ void TileManager::updatePovTileTarget() {
 
 		p_camera->viewPlanePos.y -= 1.0f;
 		povTile = adjustTileTarget(&povTile, 3);
-	} else if (p_camera->viewPlanePos.y < 0.0f) {
+	}
+	else if (p_camera->viewPlanePos.y < 0.0f) {
 		lastpovTileTransf = currentpovTileTransf;
 		lastpovTileTransfWeight = 1.0f;
 		lastCamPosOffset = p_camera->viewPlanePos + glm::vec3(0, 1, 0);
@@ -759,29 +766,33 @@ void TileManager::collisionDetectUnsafeCorners() {
 	int cornerIndex1, cornerIndex2;
 	glm::vec2 closestCorner(0, 0);
 	TileTarget target = povTile;
-	
+
 	if (p_camera->viewPlanePos.x > 0.5f) {
 		target = adjustTileTarget(&povTile, 0);
 		closestCorner += glm::vec2(1, 0);
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&povTile, 2);
 	}
 	if (p_camera->viewPlanePos.y > 0.5f) {
 		target = adjustTileTarget(&target, 3);
 		closestCorner += glm::vec2(0, 1);
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&target, 1);
 	}
 	cornerIndex1 = target.tile->index;
 
 	if (p_camera->viewPlanePos.y > 0.5f) {
 		target = adjustTileTarget(&povTile, 3);
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&povTile, 1);
 	}
 	if (p_camera->viewPlanePos.x > 0.5f) {
 		target = adjustTileTarget(&target, 0);
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&target, 2);
 	}
 	cornerIndex2 = target.tile->index;
@@ -799,8 +810,8 @@ void TileManager::collisionDetectUnsafeCorners() {
 }
 
 void TileManager::update3dRotationAdj() {
-	glm::vec3 upVec = povTile.tile->getVertPos(povTile.vertIndex(0)) 
-					- povTile.tile->getVertPos(povTile.vertIndex(1));
+	glm::vec3 upVec = povTile.tile->getVertPos(povTile.vertIndex(0))
+		- povTile.tile->getVertPos(povTile.vertIndex(1));
 	glm::mat4 rotate(1);
 	switch (povTile.tile->type) {
 	case Tile::TILE_TYPE_XY_FRONT: rotate = glm::mat4(1); break;
@@ -816,9 +827,11 @@ void TileManager::update3dRotationAdj() {
 	upVec = floor(upVec + glm::vec3(0.2, 0.2, 0.2));
 	if (upVec == glm::vec3(1, 0, 0)) {
 		rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(0, 0, 1)) * rotate;
-	} else if (upVec == glm::vec3(-1, 0, 0)) {
+	}
+	else if (upVec == glm::vec3(-1, 0, 0)) {
 		rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(0, 0, 1)) * rotate;
-	} else if (upVec == glm::vec3(0, -1, 0)) {
+	}
+	else if (upVec == glm::vec3(0, -1, 0)) {
 		rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 0, 1)) * rotate;
 	}
 
@@ -833,15 +846,18 @@ void TileManager::update3dRotationAdj() {
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= -((p_camera->viewPlanePos.x - 0.5f) * 2.0f - 1.0f);
 			flippedNormalAdj += glm::vec3(1, 0, 0) * (p_camera->viewPlanePos.x - 0.5f) * 2.0f;
-		} else if (neighborNormal != povTileNormal) {
+		}
+		else if (neighborNormal != povTileNormal) {
 			targetNormalAdj += neighborNormal * (p_camera->viewPlanePos.x - 0.5f) * 2.0f;
 		}
-	} else {
+	}
+	else {
 		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 2).tile->normal();
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= p_camera->viewPlanePos.x * 2.0f;
 			flippedNormalAdj += glm::vec3(-1, 0, 0) * -((p_camera->viewPlanePos.x * 2.0f) - 1.0f);
-		} else if (neighborNormal != povTileNormal) {
+		}
+		else if (neighborNormal != povTileNormal) {
 			targetNormalAdj += neighborNormal * -((p_camera->viewPlanePos.x * 2.0f) - 1.0f);
 		}
 	}
@@ -853,9 +869,11 @@ void TileManager::update3dRotationAdj() {
 				targetNormal = pensive;
 			}
 			flippedNormalAdj += glm::vec3(0, 1, 0) * (p_camera->viewPlanePos.y - 0.5f) * 2.0f;
-		} else if (neighborNormal != povTileNormal)
+		}
+		else if (neighborNormal != povTileNormal)
 			targetNormalAdj += neighborNormal * (p_camera->viewPlanePos.y - 0.5f) * 2.0f;
-	} else {
+	}
+	else {
 		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 1).tile->normal();
 		if (neighborNormal == -povTileNormal) {
 			glm::vec3 pensive = povTileNormal * p_camera->viewPlanePos.y * 2.0f;
@@ -863,7 +881,8 @@ void TileManager::update3dRotationAdj() {
 				targetNormal = pensive;
 			}
 			flippedNormalAdj += glm::vec3(0, -1, 0) * -((p_camera->viewPlanePos.y * 2.0f) - 1.0f);
-		} else if (neighborNormal != povTileNormal)
+		}
+		else if (neighborNormal != povTileNormal)
 			targetNormalAdj += neighborNormal * -((p_camera->viewPlanePos.y * 2.0f) - 1.0f);
 	}
 	targetNormal = glm::normalize(glm::vec3(rotate * glm::vec4(targetNormal + targetNormalAdj, 1)) + flippedNormalAdj);
@@ -880,7 +899,8 @@ void TileManager::update3dRotationAdj() {
 		glm::quat secondQuat = glm::quat_cast(rotate);
 		glm::quat finalQuat = glm::slerp(firstQuat, secondQuat, -(lastpovTileTransfWeight - 1.0f));
 		currentpovTileTransf = glm::mat4_cast(finalQuat);
-	} else {
+	}
+	else {
 		currentpovTileTransf = rotate;
 	}
 
@@ -911,11 +931,11 @@ void TileManager::addPreviewTileToScene() {
 	glm::vec3 tileColor = previewTile.color;
 
 	createTilePair(Tile::superTileType(previewTile.type),
-				   previewTile.maxVert,
-				   previewTileColor, previewTileColor * 0.5f);
+		previewTile.maxVert,
+		previewTileColor, previewTileColor * 0.5f);
 }
 
-void TileManager::deleteBuilding(Tile *tile) {
+void TileManager::deleteBuilding(Tile* tile) {
 	// We dont have to care about manually deleting materials as they are not referenced by anything besides the
 	// tile itsef, which is being deleted anyway.  Some entities are buildings though and have vectors of structs
 	// corrosponding to them.  Those we have to find and delete so they are no longer referencing a tile that 
@@ -955,13 +975,21 @@ void TileManager::deleteBuilding(Tile *tile) {
 	}
 }
 
-void TileManager::deleteTile(Tile *tile) {
+void TileManager::removeForce(Tile* tile) {
+
+}
+
+void TileManager::propogateForce(Tile* tile) {
+
+}
+
+void TileManager::deleteTile(Tile* tile) {
 	// Stuff will break if you delete the tile you are on.  Don't do that:
 	if (tile == povTile.tile || tile->sibling == povTile.tile) {
 		return;
 	}
 
-	Tile *sibling = tile->sibling;
+	Tile* sibling = tile->sibling;
 	if (sibling == nullptr) { // Just in case.
 		std::cout << "NO SIBLING FOUND TO DELETE!" << std::endl;
 		return;
@@ -969,9 +997,11 @@ void TileManager::deleteTile(Tile *tile) {
 
 	deleteBuilding(tile);
 	deleteBuilding(sibling);
+	propogateForce(tile);
+	propogateForce(sibling);
 
 	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
-	Tile *connectedTiles[8];
+	Tile* connectedTiles[8];
 	int connectedTileIndices[8];
 	for (int i = 0; i < 4; i++) {
 		connectedTiles[i] = tile->sideInfos.connectedTiles[i];
@@ -1004,6 +1034,38 @@ void TileManager::deleteTile(Tile *tile) {
 	delete sibling;
 }
 
+// Given two connected tiles, the coordinate systems used to designate the direction/orientations of entities 
+// in both tiles may differ!  The number designating 'up' in one tile may not be the same number designating
+// 'up' in the other.  This is due to the fact that tiles are oriented differently in 3D space, so there is
+// no way (that I know of) to have up/down/left/right designate the same directions in all tile sub-types.
+// Luckily, we can find the new direction easily enough with this function.  Given the tile we start on
+// (initialTile), and the direction we want to go from that tile (intitalDirection), we can find an offset
+// that cause the direction in the new tile to 'match' the old direction (directionToAdjust).
+int adjustToLocalDirectionOffset(Tile* initialTile, int initialDirection) {
+	int orientationOffset = initialDirection 
+		- (initialTile->sideInfos.connectedSideIndices[initialDirection] + 2) % 4;
+	if (orientationOffset < 0) {
+		orientationOffset *= -3;
+	}
+	return orientationOffset;
+}
+
+// If going from one tile to another, the direction headed could change, as the orientation of the tiles
+// themselves have also changed, so in order for the direction to remain constant form one coordinate space to
+// the next, it may have to be altered.  This function does that.  Given a tile and a direction from that tile,
+// it will return the corrisponding direction once translated into the neghboring tile.
+int adjustedDirection(Tile* initialTile, int initialDirection) {
+	int orientationOffset = initialDirection - (initialTile->sideInfos.connectedSideIndices[initialDirection] + 2) % 4;
+	if (orientationOffset < 0) {
+		orientationOffset *= -3;
+	}
+	return (initialDirection + orientationOffset*3) % 4;
+}
+
+int inverseDirection(int dir) {
+	return (dir + 2) % 4;
+}
+
 void TileManager::update() {
 	if (p_inputManager->leftMouseButtonPressed() && CanEditTiles) {
 		addPreviewTileToScene();
@@ -1024,18 +1086,82 @@ void TileManager::update() {
 
 	updateProducers();
 	updateConsumers();
+	updateForces();
 
-	for (Tile *t : tiles) {
-		/*if (t->entityType != Tile::ENTITY_TYPE_NONE && t->entityOffset > 0.0f) {
-			t->entityOffset = std::max(0.0f, t->entityOffset - DeltaTime);
-		}
-		if (t->buildingType == Tile::BUILDING_TYPE_NONE && t->entityOffset == 0.0f) {
-			t->entityType = Tile::ENTITY_TYPE_NONE;
-		}*/
+	for (Tile* t : tiles) {
+		updateEntity(t);
 	}
 
 	updateTileGpuInfoIndices();
 	getRelativePovPosGpuInfos();
+}
+
+void TileManager::updateEntity(Tile* t) {
+	if (!t->hasEntity() || t->force.magnitude == 0) {
+		return;
+	}
+
+	Tile* neighbor = t->sideInfos.connectedTiles[t->force.direction];
+	/*if (neighbor->hasEntity() && neighbor->entity.direction != adjustedDirection(t, t->force.direction)) {
+		return;
+	}*/
+
+	if (t->entity.direction != t->force.direction) {
+		t->entity.offset -= t->getVelocity();
+
+		if (t->entity.offset < 0.0f) {
+			t->entity.offset = 0.0f;
+			t->entity.direction = t->force.direction;
+		}
+		return;
+	}
+
+	t->entity.offset += t->getVelocity();
+	if (neighbor->hasEntity()) {
+		t->entity.offset = std::min(t->entity.offset, neighbor->entity.offset);
+	}
+
+
+	// move entity after reaching max offset:
+	if (t->entity.offset > 1.0f) {
+		neighbor->entity = t->entity;
+		neighbor->entity.offset = t->entity.offset - 1.0f;;
+		neighbor->entity.direction = neighbor->force.direction;
+		neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction) * 3;
+		neighbor->entity.orientation %= 4;
+
+		t->entity.type = Tile::Entity::Type::NONE;
+		t->entity.offset = 0.0f;
+	}
+
+
+	/*if (neighbor->entity.direction == adjustedDirection(t, t->entity.direction) && neighbor->hasEntity()) {
+		t->entity.offset = std::min(t->entity.offset, neighbor->entity.offset);
+	}*/
+
+	// Check if the entity needs to be moved to an adjacent tile:
+	//if (t->entity.offset > 0.0f) {
+
+	//	// Check for collisions:
+	//	// Adjacent tile collision:
+	//	if (neighbor->entity.type != Entity::Type::NONE) {
+	//		t->entity.offset = 0.0f;
+	//		return;
+	//	}
+	//	// Diagonal tile collisions:
+
+	//	// Far tile collision:
+
+	//	// No collisions found, move tile over:
+	//	neighbor->entity = t->entity;
+	//	neighbor->entity.offset = t->entity.offset - 1.0f;;
+	//	neighbor->entity.direction = neighbor->force.direction;
+	//	neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction) * 3;
+	//	neighbor->entity.orientation %= 4;
+
+	//	t->entity.type = Tile::Entity::Type::NONE;
+	//	t->entity.offset = 0.0f;
+	//}
 }
 
 bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntityType) {
@@ -1070,70 +1196,104 @@ bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int ma
 	tiles[tileIndex]->entity.type = Tile::Entity::Type::BUILDING_FORCE_BLOCK;
 	tiles[tileIndex]->entity.offset = 0; // Centered initially.
 	tiles[tileIndex]->entity.orientation = orientation;
-
+	tiles[tileIndex]->entity.direction = (tiles[tileIndex]->force.magnitude > 0) ? tiles[tileIndex]->force.direction : 0;
+	
 	forceBlocks.push_back(ForceBlock(tileIndex, orientation, magnitude));
 
+	Tile* neighborTile = tiles[tiles[tileIndex]->sideInfos.connectedTiles[orientation]->index];
+	int neighborOrientation = ( orientation + 3*adjustToLocalDirectionOffset(tiles[tileIndex], orientation) ) % 4;
+	forcePropagators.push_back(ForcePropagator(neighborTile->index, magnitude, neighborOrientation));
+
 	// Propogate force to tiles in front of the force block:
-	TileTarget target = adjustTileTarget(&povTile, orientation);
-	int direction = transitionDirection(povTile.tile->type, target.tile->type, orientation);
+	/*Tile* currentTile = tiles[tileIndex];
+	int currentOrientation = orientation;
+	Tile* neighborTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
 
-	while (target.tile->force.magnitude == 0 && target.tile->basis.type != Tile::Basis::Type::DISPERCER) {
-		// Set force info:
-		target.tile->force.direction = direction;
-		target.tile->force.magnitude = magnitude;
-
-		// Move to the next tile/update direction:
-		Tile::SubType currentType = target.tile->type;
-		target = adjustTileTarget(&target, orientation);
-		direction = transitionDirection(currentType, target.tile->type, direction);
-	}
+	while (neighborTile->force.magnitude == 0 && neighborTile->basis.type != Tile::Basis::Type::DISPERCER) {
+		
+		Tile* oldTile = currentTile;
+		currentTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
+		currentOrientation = (currentOrientation + 3*adjustToLocalDirectionOffset(oldTile, currentOrientation)) % 4;
+		neighborTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
+		
+		currentTile->force.direction = currentOrientation;
+		currentTile->force.magnitude = magnitude;
+	}*/
 
 	return true;
 }
 
 void TileManager::updateProducers() {
-	for (Producer &producer : producers) {
+	for (Producer& producer : producers) {
 		producer.update();
-		Tile *tile = tiles[producer.tileIndex];
+		Tile* tile = tiles[producer.tileIndex];
 
-		if (producer.cooldown == 0.0f && tile->entity.type == Tile::Entity::Type::NONE) {
+		// check if an entity is coming out of the producer and is in an adjacent tile:
+		bool overlap = false;
+		for (int i = 0; i < 4; i++) {
+			Tile* neighbor = tile->sideInfos.connectedTiles[i];
+			if (neighbor->hasEntity() && neighbor->entity.direction == inverseDirection(adjustedDirection(tile, i))) {
+				overlap = true;
+				break;
+			}
+		}
+			
+		if (!overlap && producer.cooldown == 0.0f && !tile->hasEntity()) {
 			tile->entity.type = (Tile::Entity::Type)producer.producedEntityID;
+			//tile->entity.mass = 1; // TEMP!
+			tile->entity.mass = int(1.0f * rand() / RAND_MAX * 3.0f) + 1;
 			tile->entity.offset = 0.0f; // center
+			tile->entity.direction = tile->force.direction;
+
 			producer.cooldown = 1.0f;
+
 			continue;
 		}
-		//// Pass entity to connected tile:
-		//Tile *neighbor = tile->sideInfos.connectedTiles[tile->entityOffsetSide];
-		//if (neighbor->buildingType != Tile::BUILDING_TYPE_NONE && 
-		//	neighbor->entityType == Tile::ENTITY_TYPE_NONE) {
-
-		//	neighbor->entityType = tile->entityType;
-		//	neighbor->entityOffset = 1.0f;
-		//	neighbor->entityOffsetSide = (Tile::Edge)tile->sideInfos.connectedSideIndices[tile->entityOffsetSide];
-
-		//	tile->entityType = Tile::ENTITY_TYPE_NONE;
-		//}
 	}
 }
 
 void TileManager::updateConsumers() {
-	/*for (Consumer &consumer : consumers) {
+	for (Consumer& consumer : consumers) {
 		consumer.update();
-		Tile *consumerTile = tiles[consumer.tileIndex];
+		Tile* consumerTile = tiles[consumer.tileIndex];
 
-		if (consumer.cooldown == 0.0f) {
-			consumerTile->entityType = Tile::ENTITY_TYPE_NONE;
-			consumer.cooldown = 1.0f;
-			continue;
-		}
-		if (consumerTile->entityOffset > 0.0f) {
-			consumerTile->entityOffset = std::max(0.0f, consumerTile->entityOffset - DeltaTime);
-		}
-	}*/
+		bool ate = consumerTile->entity.type != Tile::Entity::Type::NONE &&
+			consumer.cooldown == 0.0f &&
+			consumerTile->entity.offset + consumerTile->getVelocity() >= 0;
+
+		consumerTile->entity.type = Tile::Entity::Type( (ate * Tile::Entity::Type::NONE) + (!ate * consumerTile->entity.type) );
+		consumer.cooldown = (ate * 1.0f) + (!ate * consumer.cooldown);
+	}
 }
 
 void TileManager::updateForceBlocks() {
 
+}
+
+void TileManager::updateForces() {
+	for (int i = 0; i < forcePropagators.size(); i++) {
+
+
+		Tile* tile = tiles[forcePropagators[i].tileIndex];
+		tile->force.magnitude = forcePropagators[i].forceMagnitude;
+		tile->force.direction = forcePropagators[i].heading;
+
+		// Kys if next tile already has a force in it:
+		if (tile->sideInfos.connectedTiles[forcePropagators[i].heading]->force.magnitude > 0) {
+			forcePropagators.erase(forcePropagators.begin() + i);
+			i--;
+			continue;
+		}
+
+		// go to the next tile:
+		int newHeading = (forcePropagators[i].heading + 3 * adjustToLocalDirectionOffset(tile, forcePropagators[i].heading)) % 4;
+		forcePropagators[i].tileIndex = tile->sideInfos.connectedTiles[forcePropagators[i].heading]->index;
+		forcePropagators[i].heading = newHeading;
+	}
+
+	for (ForceEater fe : forceEaters) {
+
+	}
 }
 
 // In order to show where the player is in the 2D 3rd person POV view, we send some relative positional data
@@ -1144,11 +1304,11 @@ void TileManager::updateForceBlocks() {
 // accordingly.
 void TileManager::getRelativePovPosGpuInfos() {
 	TileTarget temp;
-	
+
 	// By definition we are always in the povTile:
 	relativePosTileIndices[0] = povTile.tile->index;
 	relativePos[0] = getRelativePovPosCentral(povTile);
-	
+
 	// Top/Bottom:
 	if (p_camera->viewPlanePos.y >= 0.5f) {
 		temp = adjustTileTarget(&povTile, 3);
@@ -1160,12 +1320,14 @@ void TileManager::getRelativePovPosGpuInfos() {
 			temp = adjustTileTarget(&temp, 0);
 			relativePosTileIndices[2] = temp.tile->index;
 			relativePos[2] = getRelativePovPosTopRight(temp);
-		} else {
+		}
+		else {
 			temp = adjustTileTarget(&temp, 2);
 			relativePosTileIndices[2] = temp.tile->index;
 			relativePos[2] = getRelativePovPosTopLeft(temp);
 		}
-	} else {
+	}
+	else {
 		temp = adjustTileTarget(&povTile, 1);
 		relativePosTileIndices[1] = temp.tile->index;
 		relativePos[1] = getRelativePovPosBottom(temp);
@@ -1175,7 +1337,8 @@ void TileManager::getRelativePovPosGpuInfos() {
 			temp = adjustTileTarget(&temp, 0);
 			relativePosTileIndices[2] = temp.tile->index;
 			relativePos[2] = getRelativePovPosBottomRight(temp);
-		} else {
+		}
+		else {
 			temp = adjustTileTarget(&temp, 2);
 			relativePosTileIndices[2] = temp.tile->index;
 			relativePos[2] = getRelativePovPosBottomLeft(temp);
@@ -1193,12 +1356,14 @@ void TileManager::getRelativePovPosGpuInfos() {
 			temp = adjustTileTarget(&temp, 3);
 			relativePosTileIndices[4] = temp.tile->index;
 			relativePos[4] = getRelativePovPosTopRight(temp);
-		} else {
+		}
+		else {
 			temp = adjustTileTarget(&temp, 1);
 			relativePosTileIndices[4] = temp.tile->index;
 			relativePos[4] = getRelativePovPosBottomRight(temp);
 		}
-	} else {
+	}
+	else {
 		temp = adjustTileTarget(&povTile, 2);
 		relativePosTileIndices[3] = temp.tile->index;
 		relativePos[3] = getRelativePovPosLeft(temp);
@@ -1208,7 +1373,8 @@ void TileManager::getRelativePovPosGpuInfos() {
 			temp = adjustTileTarget(&temp, 3);
 			relativePosTileIndices[4] = temp.tile->index;
 			relativePos[4] = getRelativePovPosTopLeft(temp);
-		} else {
+		}
+		else {
 			temp = adjustTileTarget(&temp, 1);
 			relativePosTileIndices[4] = temp.tile->index;
 			relativePos[4] = getRelativePovPosBottomLeft(temp);
@@ -1230,7 +1396,8 @@ glm::vec2 TileManager::getRelativePovPosCentral(TileTarget& target) {
 			std::cout << "getRelativePosCentral initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else /*counterclockwise winding*/ {
+	}
+	else /*counterclockwise winding*/ {
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(P.y, P.x);
 		case 1: return glm::vec2(P.x, 1.0f - P.y);
@@ -1251,11 +1418,12 @@ glm::vec2 TileManager::getRelativePovPosTop(TileTarget& target) {
 		case 1: return glm::vec2(P.y - 1, 1.0f - P.x); break;
 		case 2: return glm::vec2(1.0f - P.x, 2.0f - P.y); break;
 		case 3: return glm::vec2(2.0f - P.y, P.x); break;
-		default: 
+		default:
 			std::cout << "getRelativePosTop initialVertIndex out of scope!" << std::endl;
-			return glm::vec2(0, 0); 
+			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(P.y - 1.0f, P.x); break;
 		case 1: return glm::vec2(P.x, 2.0f - P.y); break;
@@ -1280,7 +1448,8 @@ glm::vec2 TileManager::getRelativePovPosBottom(TileTarget& target) {
 			std::cout << "getRelativePosBottom initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(1.0f + P.y, P.x); break;
 		case 1: return glm::vec2(P.x, -P.y); break;
@@ -1305,7 +1474,8 @@ glm::vec2 TileManager::getRelativePovPosRight(TileTarget& target) {
 			std::cout << "getRelativePosRight initialVertIndex out of scope!" << std::endl;
 			return relativePos[2] = glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0:return glm::vec2(P.y, P.x - 1.0f); break;
 		case 1:return glm::vec2(P.x - 1.0f, 1.0f - P.y); break;
@@ -1330,7 +1500,8 @@ glm::vec2 TileManager::getRelativePovPosLeft(TileTarget& target) {
 			std::cout << "getRelativePosLeft initialVertIndex out of scope!" << std::endl;
 			return relativePos[2] = glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0:return glm::vec2(P.y, 1.0f + P.x); break;
 		case 1:return glm::vec2(1.0f + P.x, 1.0f - P.y); break;
@@ -1355,7 +1526,8 @@ glm::vec2 TileManager::getRelativePovPosTopRight(TileTarget& target) {
 			std::cout << "getRelativePosTopRight initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(P.y - 1.0f, P.x - 1.0f); break;
 		case 1: return glm::vec2(P.x - 1.0f, 2.0f - P.y); break;
@@ -1380,7 +1552,8 @@ glm::vec2 TileManager::getRelativePovPosTopLeft(TileTarget& target) {
 			std::cout << "getRelativePosTopLeft initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(P.y - 1.0f, 1.0f + P.x); break;
 		case 1: return glm::vec2(1.0f + P.x, 2.0f - P.y); break;
@@ -1405,7 +1578,8 @@ glm::vec2 TileManager::getRelativePovPosBottomRight(TileTarget& target) {
 			std::cout << "getRelativePosBottomRight initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
 		case 0: return glm::vec2(1.0f + P.y, P.x - 1.0f); break;
 		case 1: return glm::vec2(P.x - 1.0f, -P.y); break;
@@ -1422,20 +1596,21 @@ glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 
 	if (target.woundClockwise()) {
 		switch (target.initialVertIndex) {
-		case 0: return glm::vec2(P.x + 1.0f, P.y + 1.0f); 
-		case 1: return glm::vec2(P.y + 1.0f, -P.x); 
-		case 2: return glm::vec2(-P.x, -P.y); 
-		case 3: return glm::vec2(-P.y, P.x + 1.0f); 
+		case 0: return glm::vec2(P.x + 1.0f, P.y + 1.0f);
+		case 1: return glm::vec2(P.y + 1.0f, -P.x);
+		case 2: return glm::vec2(-P.x, -P.y);
+		case 3: return glm::vec2(-P.y, P.x + 1.0f);
 		default:
 			std::cout << "getRelativePosBottomLeft initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
 		}
-	} else { //Counterclockwise winding:
+	}
+	else { //Counterclockwise winding:
 		switch (target.initialVertIndex) {
-		case 0: return glm::vec2(P.y + 1.0f, P.x + 1.0f); 
-		case 1: return glm::vec2(P.x + 1.0f, -P.y); 
-		case 2: return glm::vec2(-P.y, -P.x); 
-		case 3: return glm::vec2(-P.x, P.y + 1.0f); 
+		case 0: return glm::vec2(P.y + 1.0f, P.x + 1.0f);
+		case 1: return glm::vec2(P.x + 1.0f, -P.y);
+		case 2: return glm::vec2(-P.y, -P.x);
+		case 3: return glm::vec2(-P.x, P.y + 1.0f);
 		default:
 			std::cout << "getRelativePosBottomLeft initialVertIndex out of scope!" << std::endl;
 			return glm::vec2(0, 0);
@@ -1446,7 +1621,7 @@ glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 void TileManager::updateTileGpuInfoIndices() {
 	tileGpuInfos.clear();
 	int i = 0;
-	for (Tile *tile : tiles) {
+	for (Tile* tile : tiles) {
 		tileGpuInfos.push_back(TileGpuInfo(tile));
 		i++;
 	}
@@ -1488,18 +1663,19 @@ void TileManager::draw2D3rdPerson() {
 
 		int newSideOffset, newInitialSideIndex, newInitialTexIndex;
 		int sideIndex = (povTile.initialSideIndex + povTile.sideInfosOffset * drawTileSideIndex) % 4;
-		Tile::SideInfos *currentSideInfo = &povTile.tile->sideInfos;
+		Tile::SideInfos* currentSideInfo = &povTile.tile->sideInfos;
 		// The next draw tile can be either mirrored or unmirrored.  Mirrored tiles are 
 		// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
 		// tiles have the same winding, so no adjustment is necessary.  As the side index 
 		// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
 		if (currentSideInfo->connectionsMirrored[sideIndex]) {
 			newSideOffset = (povTile.sideInfosOffset + 2) % 4;
-		} else { // Current connection is unmirrored:
+		}
+		else { // Current connection is unmirrored:
 			newSideOffset = povTile.sideInfosOffset;
 		}
 		newInitialSideIndex = (currentSideInfo->connectedSideIndices[sideIndex]
-								   + VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
+			+ VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 		newInitialTexIndex = newInitialSideIndex;
 		if (newSideOffset == 3) {
 			// then the next tile will be wound counterclockwise, and it's initial side 
@@ -1517,9 +1693,9 @@ void TileManager::draw2D3rdPerson() {
 		// We want a smooth transition from one tile opacity to another, so
 		// it should fade as you get closer to the next draw tile's edge:
 		float edgeDist = distToLineSeg((glm::vec2)p_camera->viewPlanePos,
-									   INITIAL_DRAW_TILE_VERTS[drawTileSideIndex],
-									   INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
-									   nullptr);
+			INITIAL_DRAW_TILE_VERTS[drawTileSideIndex],
+			INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
+			nullptr);
 		newTileOpacity = INITIAL_OPACITY;
 		if (currentSideInfo->connectedTiles[sideIndex]->type != povTile.tile->type) {
 			newTileOpacity -= DRAW_TILE_OPACITY_DECRIMENT_STEP;
@@ -1530,8 +1706,8 @@ void TileManager::draw2D3rdPerson() {
 
 		// Finally!  We can actually go onto drawing the next tile:
 		drawTiles(currentSideInfo->connectedTiles[sideIndex], newTileVerts,
-				  newInitialSideIndex, newInitialTexIndex, newSideOffset,
-				  newFrustum, newPreviousSides, newTileOpacity);
+			newInitialSideIndex, newInitialTexIndex, newSideOffset,
+			newFrustum, newPreviousSides, newTileOpacity);
 		//break;
 	}
 
@@ -1544,9 +1720,9 @@ void TileManager::draw2D3rdPerson() {
 	drawCleanup();
 }
 
-void TileManager::drawTiles(Tile *tile, std::vector<glm::vec2> &drawTileVerts,
-							int initialSideIndex, int initialTexIndex, int tileVertInfoOffset,
-							glm::vec2 frustum[3], bool previousSides[4], float tileOpacity) {
+void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
+	int initialSideIndex, int initialTexIndex, int tileVertInfoOffset,
+	glm::vec2 frustum[3], bool previousSides[4], float tileOpacity) {
 
 	if (!tileOnScreen(drawTileVerts) || tileOpacity <= 0 || drawnTiles > MAX_DRAW_TILES) {
 		return;
@@ -1607,11 +1783,12 @@ void TileManager::drawTiles(Tile *tile, std::vector<glm::vec2> &drawTileVerts,
 		// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
 		if (tile->sideInfos.connectionsMirrored[sideIndex]) {
 			newSideOffset = (tileVertInfoOffset + 2) % 4;
-		} else { // Current connection is unmirrored:
+		}
+		else { // Current connection is unmirrored:
 			newSideOffset = tileVertInfoOffset;
 		}
 		newInitialSideIndex = (tile->sideInfos.connectedSideIndices[sideIndex]
-								   + VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
+			+ VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 		newInitialTexIndex = newInitialSideIndex;
 		if (newSideOffset == 3) {
 			// then the next tile will be wound counterclockwise, and it's initial side 
@@ -1629,19 +1806,20 @@ void TileManager::drawTiles(Tile *tile, std::vector<glm::vec2> &drawTileVerts,
 		// it should fade as you get closer to the next draw tile's edge:
 		if (tile->sideInfos.connectedTiles[sideIndex]->type != tile->type) {
 			float edgeDist = distToLineSeg((glm::vec2)p_camera->viewPlanePos,
-										   drawTileVerts[drawTileSideIndex],
-										   drawTileVerts[(drawTileSideIndex + 1) % 4], nullptr);
+				drawTileVerts[drawTileSideIndex],
+				drawTileVerts[(drawTileSideIndex + 1) % 4], nullptr);
 			if (edgeDist > 0.5) {
 				newTileOpacity -= DRAW_TILE_OPACITY_DECRIMENT_STEP;
-			} else {
+			}
+			else {
 				newTileOpacity = tileOpacity - (edgeDist * 2) * DRAW_TILE_OPACITY_DECRIMENT_STEP;
 			}
 		}
 
 		// Finally!  We can actually go onto drawing the next tile:
 		drawTiles(tile->sideInfos.connectedTiles[sideIndex], newTileVerts,
-				  newInitialSideIndex, newInitialTexIndex, newSideOffset,
-				  newFrustum, newPreviousSides, newTileOpacity);
+			newInitialSideIndex, newInitialTexIndex, newSideOffset,
+			newFrustum, newPreviousSides, newTileOpacity);
 	}
 }
 
@@ -1661,9 +1839,9 @@ void TileManager::drawAddTilePreview() {
 
 	// find what tile the cursor is hovering over:
 	// This algorithm mirrors the 2D3rdPersonPOV frag shader, which is documented better.
-	Button *sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
+	Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
 	glm::mat4 inWindowToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
-																				(float)sceneView->pixelHeight()));
+		(float)sceneView->pixelHeight()));
 	glm::vec2 cursorWorldPos = glm::vec2(inWindowToWorldSpace * glm::vec4(-CursorScreenPos.x, CursorScreenPos.y, 0, 1));
 
 	// If the cursor is inside the povTile, then we dont have to do the move complex steps:
@@ -1682,9 +1860,11 @@ void TileManager::drawAddTilePreview() {
 	bool goingUp = povPosToPixelPos.y > 0.0f;
 	glm::vec2 runningDist;
 
-	if (goingRight) { runningDist.x = (1.0f - povPos.x) * stepDist.x; } else { runningDist.x = povPos.x * stepDist.x; }
+	if (goingRight) { runningDist.x = (1.0f - povPos.x) * stepDist.x; }
+	else { runningDist.x = povPos.x * stepDist.x; }
 
-	if (goingUp) { runningDist.y = (1.0f - povPos.y) * stepDist.y; } else { runningDist.y = povPos.y * stepDist.y; }
+	if (goingUp) { runningDist.y = (1.0f - povPos.y) * stepDist.y; }
+	else { runningDist.y = povPos.y * stepDist.y; }
 
 	const int MAX_STEPS = 1000; int stepCount = 0;
 	float currentDist = 0;
@@ -1707,12 +1887,14 @@ void TileManager::drawAddTilePreview() {
 				connectionIndex = target.initialSideIndex;
 				drawSideIndex = 0;
 				drawTileOffset += glm::vec2(1, 0);
-			} else { // Going left:
+			}
+			else { // Going left:
 				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 2) % 4;
 				drawSideIndex = 2;
 				drawTileOffset += glm::vec2(-1, 0);
 			}
-		} else { // runningDist.x > runningDist.y
+		}
+		else { // runningDist.x > runningDist.y
 
 			currentDist = runningDist.y;
 			if (currentDist > totalDist) {
@@ -1725,7 +1907,8 @@ void TileManager::drawAddTilePreview() {
 				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 3) % 4;
 				drawSideIndex = 3;
 				drawTileOffset += glm::vec2(0, 1);
-			} else { // Going down:
+			}
+			else { // Going down:
 				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 1) % 4;
 				drawSideIndex = 1;
 				drawTileOffset += glm::vec2(0, -1);
@@ -1736,11 +1919,11 @@ void TileManager::drawAddTilePreview() {
 		stepCount++;
 	}
 
-	for (glm::vec2 &v : previewTileVerts) { v += drawTileOffset; }
+	for (glm::vec2& v : previewTileVerts) { v += drawTileOffset; }
 	drawTile(previewTileVerts, previewTileTexCoords, glm::vec4(0, 1, 0, 1));
 
 	addTileParentSideConnectionIndex = (addTileParentTarget.initialVertIndex
-										+ drawSideIndex * addTileParentTarget.sideInfosOffset)
+		+ drawSideIndex * addTileParentTarget.sideInfosOffset)
 		% 4;
 	hoveredTile = target.tile;
 
@@ -1789,7 +1972,7 @@ void TileManager::drawSetup() {
 	p_shaderManager->POV3D3rdPerson.use();
 }
 
-void TileManager::draw3DTile(Tile *tile) {
+void TileManager::draw3DTile(Tile* tile) {
 	// prepare the tile:
 	verts.clear();
 	indices.clear();
@@ -1822,7 +2005,8 @@ void TileManager::draw3DTile(Tile *tile) {
 		indices.push_back(1);
 		indices.push_back(2);
 		indices.push_back(3);
-	} else {
+	}
+	else {
 		indices.push_back(3);
 		indices.push_back(1);
 		indices.push_back(0);
@@ -1837,7 +2021,7 @@ void TileManager::draw3DTile(Tile *tile) {
 	GLuint colorAlphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inColorAlpha");
 	glUniform1f(colorAlphaID, 0.5f);
 
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texID);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
@@ -1858,7 +2042,7 @@ void TileManager::drawPlayerPos() {
 		glm::vec2(+0.1,+0.1),
 		glm::vec2(-0.1,+0.1)
 	};
-	for (glm::vec2 &vert : v) { vert += (glm::vec2)p_camera->viewPlanePos; }
+	for (glm::vec2& vert : v) { vert += (glm::vec2)p_camera->viewPlanePos; }
 	std::vector<glm::vec2> t = {
 		glm::vec2(0,0),
 		glm::vec2(1,0),
@@ -1869,8 +2053,8 @@ void TileManager::drawPlayerPos() {
 	drawTile(v, t, glm::vec4(1, 1, 1, 1));
 }
 
-void getProjectedPlayerPosInfo(TileTarget &target, glm::vec2 P, int index, float rightOffset, float upOffset,
-							   glm::vec3 *projectedTilePositions, int *tileIndices) {
+void getProjectedPlayerPosInfo(TileTarget& target, glm::vec2 P, int index, float rightOffset, float upOffset,
+	glm::vec3* projectedTilePositions, int* tileIndices) {
 	glm::vec3 bottomRight = target.tile->getVertPos(target.vertIndex(2));
 	glm::vec3 rightward = (glm::vec3)target.tile->getVertPos(target.vertIndex(1)) - bottomRight;
 	glm::vec3 upward = (glm::vec3)target.tile->getVertPos(target.vertIndex(3)) - bottomRight;
@@ -1899,18 +2083,21 @@ glm::mat4 TileManager::packedPlayerPosInfo() {
 		if (p_camera->viewPlanePos.y > 0.5f) {
 			target = adjustTileTarget(&target, Tile::Edge::UP);
 			getProjectedPlayerPosInfo(target, P, 3, -1.0f, -1.0f, projectedTilePositions, tileIndices);
-		} else {
+		}
+		else {
 			target = adjustTileTarget(&target, Tile::Edge::DOWN);
 			getProjectedPlayerPosInfo(target, P, 3, -1.0f, 1.0f, projectedTilePositions, tileIndices);
 		}
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&povTile, Tile::Edge::LEFT);
 		getProjectedPlayerPosInfo(target, P, 1, 1.0f, 0.0f, projectedTilePositions, tileIndices);
 
 		if (p_camera->viewPlanePos.y > 0.5f) {
 			target = adjustTileTarget(&target, Tile::Edge::UP);
 			getProjectedPlayerPosInfo(target, P, 3, 1.0f, -1.0f, projectedTilePositions, tileIndices);
-		} else {
+		}
+		else {
 			target = adjustTileTarget(&target, Tile::Edge::DOWN);
 			getProjectedPlayerPosInfo(target, P, 3, 1.0f, 1.0f, projectedTilePositions, tileIndices);
 		}
@@ -1918,7 +2105,8 @@ glm::mat4 TileManager::packedPlayerPosInfo() {
 	if (p_camera->viewPlanePos.y > 0.5f) {
 		target = adjustTileTarget(&povTile, Tile::Edge::UP);
 		getProjectedPlayerPosInfo(target, P, 2, 0.0f, -1.0f, projectedTilePositions, tileIndices);
-	} else {
+	}
+	else {
 		target = adjustTileTarget(&povTile, Tile::Edge::DOWN);
 		getProjectedPlayerPosInfo(target, P, 2, 0.0f, 1.0f, projectedTilePositions, tileIndices);
 	}
@@ -1940,9 +2128,9 @@ void TileManager::draw3Dview() {
 	glPolygonMode(GL_FRONT, GL_FILL);
 	glEnable(GL_CULL_FACE);
 
-	Button *button = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
+	Button* button = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
 	tempMat = p_camera->getPerspectiveProjectionMatrix((float)button->pixelWidth(),
-													   (float)button->pixelHeight());
+		(float)button->pixelHeight());
 
 	glm::mat4 xMirror(1);
 	xMirror[0][0] = -1;
@@ -1963,15 +2151,15 @@ void TileManager::draw3Dview() {
 
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-	for (Tile *t : tiles) {
+	for (Tile* t : tiles) {
 		draw3DTile(t);
 	}
 
 	drawCleanup();
 }
 
-std::vector<glm::vec2> TileManager::createNewDrawTileVerts(std::vector<glm::vec2> &parent,
-														   glm::vec2 adj) {
+std::vector<glm::vec2> TileManager::createNewDrawTileVerts(std::vector<glm::vec2>& parent,
+	glm::vec2 adj) {
 	std::vector<glm::vec2> newDrawTile;
 	for (int i = 0; i < parent.size(); i++) {
 		newDrawTile.push_back(parent[i] + adj);
@@ -1984,7 +2172,7 @@ bool TileManager::vecInsideVecs(glm::vec2 A, glm::vec2 B, glm::vec2 C) {
 	return (A.y * B.x - A.x * B.y) * (A.y * C.x - A.x * C.y) < 0;
 }
 
-bool TileManager::tileOnScreen(std::vector<glm::vec2> &tileVerts) {
+bool TileManager::tileOnScreen(std::vector<glm::vec2>& tileVerts) {
 	for (glm::vec2 v : tileVerts) {
 		if (point_in_polygon(v, windowFrustum)) {
 			return true;
@@ -1993,7 +2181,7 @@ bool TileManager::tileOnScreen(std::vector<glm::vec2> &tileVerts) {
 	for (int wfi = 0; wfi < 4; wfi++) {
 		for (int ti = 0; ti < tileVerts.size(); ti++) {
 			if (doIntersect(tileVerts[ti], tileVerts[(ti + 1) % 4],
-							windowFrustum[wfi], windowFrustum[(wfi + 1) % 4])) {
+				windowFrustum[wfi], windowFrustum[(wfi + 1) % 4])) {
 				return true;
 			}
 		}

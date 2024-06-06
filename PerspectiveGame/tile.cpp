@@ -130,6 +130,19 @@ glm::ivec3 Tile::getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3
 					  std::max(std::max(std::max(A.z, B.z), C.z), D.z));
 }
 
+float Tile::getVelocity() {
+	// See https://www.desmos.com/calculator/bnp7kfmsgv for function.  
+	// Built such that a velocity greater than 1 tile/tick is impossible.
+#define MAX_OFFSET 5
+	if (force.magnitude < entity.mass) {
+		return (force.magnitude / (2.0f * entity.mass)) * DeltaTime * MAX_OFFSET;
+	}
+	else {
+		return (1.0f - entity.mass / (2.0f * force.magnitude)) * DeltaTime * MAX_OFFSET;
+	}
+#undef MAX_OFFSET
+}
+
 Tile::Tile::Type Tile::superTileType(Tile::SubType subType) {
 	switch (subType) {
 	case TILE_TYPE_XY_FRONT: 

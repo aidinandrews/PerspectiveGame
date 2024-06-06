@@ -203,14 +203,12 @@ public: // STRUCTS
 		// updated, letting the total updated entity count fall below the total entity count in most cases.
 		bool isStatic;
 
-		// Velocity if quantized to 0, 1, 2, 4 tiles/tick for
-		// optimization/simplicitys sake so it can be represented by two bits.
-		unsigned int velocity : 2;
+		// Max velocity is 1 tile/tick, meaning max speed is 60 tiles/sec @ 60 FPS.
+		float velocity;
 
-		// Because velocity is quantized, each sub-tick an object can only go 
-		// incriments of 1/4th of a tile (making the representation only 2 bits 
-		// long), with a maximum of 1 tile/sub tick @ velocity of 4 tiles/tick.
-		unsigned int offset : 2;
+		// Offset is how far away an entity is from the center of the tile.
+		// It follows that max offset is 1, as more would make the entity need to move to a different tile.
+		float offset;
 
 		// Entities can move, so they need a movement direction.  There are only 4 
 		// possible directions of movement, so all directions can be represented 
@@ -317,6 +315,10 @@ public: // MEMBER FUNCTIONS:
 	glm::ivec3 getMaxVert() { return maxVert; }
 
 	glm::ivec3 getVertPos(int index);
+
+	float getVelocity();
+
+	bool hasEntity() { return entity.type != Entity::Type::NONE; }
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
 	static Tile::Type getTileType(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);

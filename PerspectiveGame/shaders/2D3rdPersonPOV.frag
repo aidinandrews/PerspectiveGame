@@ -217,21 +217,76 @@ bool isInsidePlayer() {
 	return false;
 }
 
+bool tryDrawForceBlock(vec2 entityForward, int tileIndex, int tempOrientationOverride) {
+	// Find the vertices of the arrow:
+	vec2 A, B, C;
+	//switch(tileInfos[tileIndex].entityOrientation) {
+	switch(tempOrientationOverride) {
+	case(0):
+		A = vertOrigin + vertB;
+		B = vertOrigin + vertA + vertB/2.0f;
+		C = vertOrigin;
+		break;
+	case(1):
+		A = vertOrigin + vertA + vertB;
+		B = vertOrigin + vertA/2.0f;
+		C = vertOrigin + vertB;
+		break;
+	case(2):
+		A = vertOrigin + vertA;
+		B = vertOrigin + vertB/2.0f;
+		C = vertOrigin + vertA + vertB;
+		break;
+	case(3):
+		A = vertOrigin;
+		B = vertOrigin + vertA/2.0f + vertB;
+		C = vertOrigin + vertA;
+		break;
+	}
+	A += entityForward;
+	B += entityForward;
+	C += entityForward;
+
+	if (pointToLineSegDist(A, B, fragDrawTilePos) < 0.1f ||
+		pointToLineSegDist(B, C, fragDrawTilePos) < 0.1f) {
+		gl_FragColor = vec4(0.937, 0.737, 0.608, 1);
+		return true;
+	} else {
+		gl_FragColor = vec4(0.612, 0.686, 0.667, 1);
+		return true;
+	}
+	return false;
+}
+
+// REFACTOR THIS BULLSHIT:
 bool isInsideEntity() {
-	// check current tile for entity:
-	if (IS_OBJECT[tileInfos[currentTileIndex].entityType]) {
-		int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
-		vec2 entityVert = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
-						+ (tileInfos[currentTileIndex].entityDirection * currentSideOffset)) % 4];
-		vec2 entityVertOther = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
-						+ ((tileInfos[currentTileIndex].entityDirection + 3) * currentSideOffset)) % 4];
+	int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
+	vec2 entityVert = DRAW_TILE_COORDS[((currentInitialVertIndex * inverseOffset) 
+					+ (tileInfos[currentTileIndex].entityDirection * currentSideOffset)) 
+					% 4];	
 
-		vec2 direction = entityVert - entityVertOther;
-		vec2 entityPos = vec2(0.5f, 0.5f) + direction * tileInfos[currentTileIndex].entityOffset;
+	vec2 entityVertOther = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
+							+ ((tileInfos[currentTileIndex].entityDirection + 3) * currentSideOffset)) 
+							% 4];
 
-		if (length(fragDrawTilePos - entityPos) < 0.25f) {
-			return true;
+	vec2 entityForward = entityVert - entityVertOther;
+	vec2 entityPos = vec2(0.5f, 0.5f) + entityForward * tileInfos[currentTileIndex].entityOffset;
+
+	// Since the max size of an entity is the size of a tile, if we are too far away from the entityPos, we must be outside of the entity itself:
+	if(abs(fragDrawTilePos.x - entityPos.x) < 0.5f && abs(fragDrawTilePos.y - entityPos.y) < 0.5f){
+		
+		switch(tileInfos[currentTileIndex].entityType) {
+		case(MATERIAL_A):
+			if (length(fragDrawTilePos - entityPos) < 0.5f) {
+				gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
+				return true;
+			}
+			break;
+
+		case(FORCE_BLOCK):
+			return tryDrawForceBlock(entityForward * tileInfos[currentTileIndex].entityOffset, currentTileIndex, tileInfos[currentTileIndex].entityOrientation);
 		}
+
 	}
 
 	// check adjacent tiles for entities:
@@ -240,14 +295,35 @@ bool isInsideEntity() {
 		int neighborTileIndex = tileInfos[currentTileIndex].neighborIndices[ithIndex];
 		int neighborSideIndex = tileInfos[currentTileIndex].neighborSideIndex[ithIndex];
 
-		if (tileInfos[neighborTileIndex].entityType == NONE ||
-			tileInfos[neighborTileIndex].entityDirection != neighborSideIndex) {
+		entityPos = vec2(0.5f, 0.5f) + ADJACENT_ENTITY_OFFSETS[i] * -(tileInfos[neighborTileIndex].entityOffset - 1.0f);
+		entityForward = ADJACENT_ENTITY_OFFSETS[i] * -(tileInfos[neighborTileIndex].entityOffset - 1.0f);
+
+		// Check we should even try to draw anything:
+		bool neighborHadEntity = tileInfos[neighborTileIndex].entityType == NONE;
+		bool neighborEntityFacingTowardUs = tileInfos[neighborTileIndex].entityDirection) != neighborSideIndex;
+		bool neighborEntityNotTooFarAway = abs(fragDrawTilePos.x - entityPos.x) > 0.5f || abs(fragDrawTilePos.y - entityPos.y) > 0.5f;
+
+		if (neighborHadEntity || neighborEntityFacingTowardUs || neighborEntityNotTooFarAway) {
 			continue;
 		}
+		
+		switch(tileInfos[neighborTileIndex].entityType) {
+		case(MATERIAL_A):
+			if (length(fragDrawTilePos - entityPos) < 0.5f) {
+				gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
+				return true;
+			}
+			return false;
 
-		vec2 entityPos = vec2(0.5f, 0.5f) + ADJACENT_ENTITY_OFFSETS[i] * -(tileInfos[neighborTileIndex].entityOffset - 1.0f);
-		if (length(fragDrawTilePos - entityPos) < 0.5f) {
-			return true;
+		case(FORCE_BLOCK):
+			int orientationOffset = ithIndex - ((neighborSideIndex + 2) % 4);
+			if (orientationOffset < 0) {
+				orientationOffset *= -3;
+			}
+
+			int trueNeighborOrientation = (tileInfos[neighborTileIndex].entityOrientation + orientationOffset) % 4;
+
+			return tryDrawForceBlock(entityForward, neighborTileIndex, trueNeighborOrientation);
 		}
 	}
 
@@ -310,43 +386,11 @@ void findTile() {
 	}
 }
 
-bool isInsideBuilding() {
-	switch(tileInfos[currentTileIndex].entityType) {
-	case(FORCE_BLOCK):
-		// Find the vertices of the arrow:
-		vec2 A, B, C;
-		switch(tileInfos[currentTileIndex].entityOrientation) {
-		case(0):
-			A = vertOrigin + vertB;
-			B = vertOrigin + vertA + vertB / 2.0f;
-			C = vertOrigin;
-			break;
-		case(1):
-			A = vertOrigin + vertA + vertB;
-			B = vertOrigin + vertA / 2.0f;
-			C = vertOrigin + vertB;
-			break;
-		case(2):
-			A = vertOrigin + vertA;
-			B = vertOrigin + vertB / 2.0f;
-			C = vertOrigin + vertA + vertB;
-			break;
-		case(3):
-			A = vertOrigin;
-			B = vertOrigin + vertA / 2.0f + vertB;
-			C = vertOrigin + vertA;
-			break;
-		}
-
-		if (pointToLineSegDist(A, B, fragDrawTilePos) < 0.1f ||
-			pointToLineSegDist(B, C, fragDrawTilePos) < 0.1f) {
-			gl_FragColor = vec4(0.937, 0.737, 0.608, 1);
-			return true;
-		} else {
-			gl_FragColor = vec4(0.612, 0.686, 0.667, 1);
-			return true;
-		}
-	}
+bool isInsideBasis() {
+//	switch(tileInfos[currentTileIndex].entityType) {
+//	case(FORCE_BLOCK):
+//		
+//	}
 
 	switch(tileInfos[currentTileIndex].basisType) {
 		case(PRODUCER):
@@ -375,24 +419,22 @@ void colorPixel() {
 	bool insideBasis    = false;
 	bool insidePlayer   = false;
 	bool insideEntity   = false;
-	bool insideBuilding = false;
 	float forceWeight = 0.5f;
 	vec4 forceColor;
 
 	if (isInsidePlayer()) {
 		insidePlayer = true;
 		gl_FragColor = vec4(0.984, 0.953, 0.835, 1);
+		return;
 	} 
 	else if (isInsideEntity()) {
 		insideEntity = true;
-		gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
+		return;
 	} 
-	else if(isInsideBuilding()) {
-		insideBuilding = true;
+	else if(isInsideBasis()) {
+		insideBasis = true;
 	}
-
-	// Texture of the underlying pixel:
-	else {
+	else /* We are just on the tile somewhere, so key into the texture: */ {
 		gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5);
 		forceWeight = 0.5f;
 	}
@@ -400,15 +442,17 @@ void colorPixel() {
 	// Apply an effect if the tile has a force applied over it:
 	forceColor = vec4(1,1,1,1);
 	if (tileInfos[currentTileIndex].hasForce == TRUE) {
-		float controller = 0;
+		float X = 0, Y = 0;
 		switch(tileInfos[currentTileIndex].forceDirection) {
-		case 0: controller = dot(vertA, fragDrawTilePos); break;
-		case 1: controller = -dot(vertB, fragDrawTilePos); break;
-		case 2: controller = -dot(vertA, fragDrawTilePos); break;
-		case 3: controller = dot(vertB, fragDrawTilePos); break;
+		case 0: X =  dot(vertA, fragDrawTilePos);     Y =  dot(vertB, fragDrawTilePos); break;
+		case 1: X = -dot(vertB, fragDrawTilePos) + 1; Y =  dot(vertA, fragDrawTilePos); break;
+		case 2: X = -dot(vertA, fragDrawTilePos) + 1; Y =  dot(vertB, fragDrawTilePos); break;
+		case 3: X =  dot(vertB, fragDrawTilePos);     Y =  dot(vertA, fragDrawTilePos); break;
 		}
-		forceWeight *= (cos(2*PI*controller - deltaTime * 4) + 1) / 2.0f;
-		gl_FragColor = mix(gl_FragColor, forceColor, forceWeight);
+
+		forceWeight *= (cos(2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 4) + 1) / 2.0f;
+		float offset = (cos(8 * (2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 4)) + 1) / 8.0f;
+		gl_FragColor = mix(gl_FragColor, forceColor, forceWeight + offset);
 	}
 }
 

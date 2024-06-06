@@ -28,6 +28,30 @@
 
 struct TileManager {
 
+public: // MEMBER STRUCTS:
+
+	// When a force block is placed down, it creates a ForcePropagator, which will propagate the force it creates into the tiles
+	// the block is facing toward.  This propogation spreads at 1 tile/tick, as to be visible and maniputate-able by the player.
+	struct ForcePropagator {
+		int tileIndex; // tile currently on.
+		int forceMagnitude;
+		int heading;
+
+		ForcePropagator(int index, int mag, int head) : tileIndex(index), forceMagnitude(mag), heading(head) {
+		}
+	};
+
+	// When a force block is destroyed or a line of force is impeded, the force propogated from that source needs to be destroyed
+	// as well.  The force eater travels along the line of force at 1 tile/tick and 'eats' the force in each tile, if it is headed
+	// in the same direction as the initially impeded force.
+	struct ForceEater {
+		int tileIndex;
+		int heading;
+
+		ForceEater(int index, int head) : tileIndex(index), heading(head) {
+		}
+	};
+
 public: // ENUMS:
 
 	enum RelativeTileOrientation {
@@ -103,16 +127,21 @@ public: // DYNAMIC MEMBER VARIABLES:
 	GLuint tileInfosBufferID;
 	std::vector<TileGpuInfo> tileGpuInfos;
 
+	std::vector<ForcePropagator> forcePropagators;
+	std::vector<ForceEater> forceEaters;
+
 public: // INITIALIZERS:
 
-	TileManager(Camera *camera, ShaderManager *shaderManager, GLFWwindow *window,
-				Framebuffer *p_framebuffer, ButtonManager *bm, InputManager *im);
+	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
+		Framebuffer* framebuffer, ButtonManager* bm, InputManager* im);
 
 	~TileManager();
 
 public: // MEMBER FUNCTIONS:
 
 	void update();
+
+	void updateEntity(Tile* t);
 
 	// Creates a producer which can create any entity and set it inside the tile it is inside.
 	bool createProducer(int tileIndex, Tile::Entity::Type producedEntityType);
@@ -124,6 +153,15 @@ public: // MEMBER FUNCTIONS:
 
 	bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
 	void updateForceBlocks();
+	// If a tile is deleted, the force projected from it must be removed, as the force block no longer has access (can 'see') the
+	// line of tiles leading away from the deleted tile.  This function removes all the now orphaned forces.
+	// If the removed line of force was previously blocking a or many lines of force, they need to be expanded.
+	// Because the exansion has to take place after the tile itself is deleted and its neighbors are reconnected, instead of 
+	// expanding the force lines immediately, a vector of the force lines that need expanding is returend in the form of indices
+	// to the tile array.
+	void removeForce(Tile* tile);
+	void propogateForce(Tile* tile);
+	void updateForces();
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();

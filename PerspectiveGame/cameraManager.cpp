@@ -178,9 +178,12 @@ glm::mat4 Camera::getProjectionMatrix(float windowWidth, float windowHeight) {
 	// scale back to the same dimensions on view ratio changes. 300 is chosen here as the
 	// original window is 600 x 600 and each input to glm::ortho wants the distance from the
 	// center of the screen to the side.  300 == 600 / 2, thus 300 is the anchor.
-	z *= (float)p_framebuffer->height / 600.0f; 
+	z *= (float)windowHeight / 600.0f;
 	float windowAdj = windowWidth / windowHeight;
-	float left = -z * windowAdj, right = z * windowAdj, bottom = z, top = -z;
+	float left = -z * windowAdj;
+	float right = z * windowAdj;
+	float bottom = z;
+	float top = -z;
 	glm::mat4 projectionMatrix = glm::ortho(left, right, bottom, top, -100.0f, 100.0f);
 
 	return projectionMatrix * modelMatrix;
