@@ -31,8 +31,6 @@ extern float rightEdit;
 extern float topEdit;
 extern float bottomEdit;
 
-extern bool CanEditTiles;
-
 inline void updateGlobalVariables(GLFWwindow* window) {
 	glfwGetWindowSize(window, &WindowSize.x, &WindowSize.y);
 	glfwGetWindowPos(window, &WindowPos.x, &WindowPos.y);

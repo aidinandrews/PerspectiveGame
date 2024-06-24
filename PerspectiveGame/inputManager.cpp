@@ -27,6 +27,8 @@ void InputManager::init(GLFWwindow* w) {
 	keys[YAW_LEFT_KEY]		.init(w, keyBinds.yawLeft,		INPUT_TYPE_KEY);
 	keys[ROLL_LEFT_KEY]		.init(w, keyBinds.rollLeft,		INPUT_TYPE_KEY);
 	keys[ROLL_RIGHT_KEY]	.init(w, keyBinds.rollRight,	INPUT_TYPE_KEY);
+	keys[ROTATE_KEY]		.init(w, keyBinds.rotate,		INPUT_TYPE_KEY);
+
 	mouseButtons[LEFT_CLICK_MOUSE_BUTTON].init(w, keyBinds.leftClick, INPUT_TYPE_MOUSE);
 	mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].init(w, keyBinds.rightClick, INPUT_TYPE_MOUSE);
 }

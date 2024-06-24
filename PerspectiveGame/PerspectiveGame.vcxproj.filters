@@ -138,6 +138,9 @@
     <ClInclude Include="calcFunctions.h">
       <Filter>Source Files\Dependancies</Filter>
     </ClInclude>
+    <ClInclude Include="currentSelection.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -264,6 +267,9 @@
     </None>
     <None Include="TilingIn3D.vcxproj.filters">
       <Filter>Source Files\Dependancies\vcxproj</Filter>
+    </None>
+    <None Include="helperFunctions.glsl">
+      <Filter>Resource Files\Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

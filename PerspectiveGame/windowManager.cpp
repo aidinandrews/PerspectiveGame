@@ -14,6 +14,8 @@ void Window::init(const char *windowName) {
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(0); // Disables vsync
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+	glfwSetWindowPos(window, 1300, MonitorSize.y / 2 + WindowSize.y / 2);
 }
 
 void initWindow(GLFWwindow** window, const char *windowName) {

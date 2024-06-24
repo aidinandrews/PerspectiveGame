@@ -30,6 +30,8 @@ struct KeyBindings {
 
 	const int rotation = GLFW_MOUSE_BUTTON_RIGHT;
 	const int translation = GLFW_MOUSE_BUTTON_LEFT;
+
+	const int rotate = GLFW_KEY_R;
 };
 
 #define INPUT_TYPE_KEY		0
@@ -50,6 +52,7 @@ struct KeyBindings {
 #define YAW_LEFT_KEY	11
 #define ROLL_LEFT_KEY	12
 #define ROLL_RIGHT_KEY	13
+#define ROTATE_KEY		14
 
 #define LEFT_CLICK_MOUSE_BUTTON		0
 #define RIGHT_CLICK_MOUSE_BUTTON	1
@@ -105,7 +108,7 @@ struct InputManager {
 	GLFWwindow* p_window;
 	KeyBindings keyBinds;
 
-	InputLatch keys[14];
+	InputLatch keys[15];
 	InputLatch mouseButtons[2];
 
 	glm::dvec2 lastClickCursorPixelPos;

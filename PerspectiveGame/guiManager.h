@@ -35,6 +35,7 @@
 #include "cameraManager.h"
 #include "tileManager.h"
 #include "frameBuffer.h"
+#include "currentSelection.h"
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
@@ -67,6 +68,7 @@ public:
 	TileManager *p_tileManager;
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
+	CurrentSelection* p_currentSelection;
 
 	bool show_demo_window;
 	bool show_another_window;
@@ -81,7 +83,7 @@ public:
 public:
 	void imGuiSetup();
 	GuiManager(GLFWwindow *w, GLFWwindow* imgw, ShaderManager *sm, InputManager *im, Camera *c, TileManager *tm, Framebuffer* fb,
-			   ButtonManager *bm);
+			   ButtonManager *bm, CurrentSelection*cs);
 	~GuiManager();
 
 	void setupFramebufferForButtonRender(int buttonIndex, GLuint textureID);

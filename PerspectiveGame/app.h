@@ -30,6 +30,7 @@
 #include "makeShapes.h"
 #include "portal.h"
 #include "scene.h"
+#include "currentSelection.h"
 #include "tileManager.h"
 #include "frameBuffer.h"
 
@@ -49,6 +50,7 @@ struct App {
 	aaTexture *p_wave;
 
 	TileManager *p_tileManager;
+	CurrentSelection* currentSelection;
 
 	App() {}
 
@@ -93,11 +95,15 @@ struct App {
 
 		p_buttonManager = new ButtonManager(&framebuffer, &shaderManager, window.window, &inputManager);
 
-		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager);
+		currentSelection = new CurrentSelection(&inputManager);
+
+		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, 
+			&inputManager, currentSelection);
 		p_tileManager->texID = p_wave->ID;
 
 #ifdef USE_GUI_WINDOW
-		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
+		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera, 
+			p_tileManager, &framebuffer, p_buttonManager, currentSelection);
 #else
 		p_guiManager = new GuiManager(window.window, nullptr, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
 #endif

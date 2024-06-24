@@ -25,6 +25,7 @@
 #include"frameBuffer.h"
 #include"building.h"
 #include"tile.h"
+#include"currentSelection.h"
 
 struct TileManager {
 
@@ -54,12 +55,6 @@ public: // MEMBER STRUCTS:
 
 public: // ENUMS:
 
-	enum RelativeTileOrientation {
-		RELATIVE_TILE_ORIENTATION_UP,
-		RELATIVE_TILE_ORIENTATION_FLAT,
-		RELATIVE_TILE_ORIENTATION_DOWN
-	};
-
 public: // CONST MEMBER VARIABLES:
 
 	static const int MAX_DRAW_TILES = 5000;
@@ -68,6 +63,7 @@ public: // CONST MEMBER VARIABLES:
 	static const float DRAW_TILE_OPACITY_DECRIMENT_STEP;
 	static const int VERT_INFO_OFFSETS[4];
 	static const int DIR_TO_DIR_MAP[6][6][4];
+	static const int ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4];
 	static std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS;
 
 public: // DYNAMIC MEMBER VARIABLES:
@@ -79,6 +75,7 @@ public: // DYNAMIC MEMBER VARIABLES:
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
+	CurrentSelection* p_currentSelection;
 
 	// OpenGl stuff:
 	GLuint texID;
@@ -89,6 +86,7 @@ public: // DYNAMIC MEMBER VARIABLES:
 	std::vector<Producer> producers;
 	std::vector<Consumer> consumers;
 	std::vector<ForceBlock> forceBlocks;
+	std::vector<ForceSink> forceSinks;
 
 	float TOTAL_TIME = 0;
 
@@ -116,14 +114,6 @@ public: // DYNAMIC MEMBER VARIABLES:
 	glm::vec3 lastCamPosOffset;
 	glm::vec3 lerpCamPosOffset;
 
-	bool tryingToAddTile;
-	TileTarget addTileParentTarget;
-	Tile previewTile;
-	int addTileParentSideConnectionIndex;
-	RelativeTileOrientation addTileRelativeOrientation;
-	Tile *hoveredTile;
-	glm::vec3 previewTileColor;
-
 	GLuint tileInfosBufferID;
 	std::vector<TileGpuInfo> tileGpuInfos;
 
@@ -133,7 +123,7 @@ public: // DYNAMIC MEMBER VARIABLES:
 public: // INITIALIZERS:
 
 	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
-		Framebuffer* framebuffer, ButtonManager* bm, InputManager* im);
+		Framebuffer* framebuffer, ButtonManager* bm, InputManager* im, CurrentSelection* cs);
 
 	~TileManager();
 
@@ -141,17 +131,32 @@ public: // MEMBER FUNCTIONS:
 
 	void update();
 
+	// The hovered tile is the tile that the cursor is hovering over.  This function finds the index of that tile
+	// as well as which tile last 'connected' to it.  This connection is found by drawing a line from the current
+	// player position to the hovered tile, and the last edge that the line went through is the connection.
+	void findHoveredTile();
+	//
+	void findPreviewTile();
+
+	void tryEditWorld();
+
 	void updateEntity(Tile* t);
 
 	// Creates a producer which can create any entity and set it inside the tile it is inside.
-	bool createProducer(int tileIndex, Tile::Entity::Type producedEntityType);
+	bool createProducer(int tileIndex, Tile::Entity::Type producedEntityType, bool override);
+	void deleteProducer(Tile* tile);
 	void updateProducers();
 
 	// Creates a consumer which will destroy any entity at offset 0 inside the tile it is inside.
-	bool createConsumer(int tileIndex);
+	bool createConsumer(int tileIndex, bool override);
+	void deleteConsumer(Tile* tile);
 	void updateConsumers();
 
+	bool createForceSink(int tileIndex, bool override);
+	void deleteForceSink(Tile* tile);
+
 	bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
+	void deleteForceBlock(Tile* tile);
 	void updateForceBlocks();
 	// If a tile is deleted, the force projected from it must be removed, as the force block no longer has access (can 'see') the
 	// line of tiles leading away from the deleted tile.  This function removes all the now orphaned forces.
@@ -162,6 +167,12 @@ public: // MEMBER FUNCTIONS:
 	void removeForce(Tile* tile);
 	void propogateForce(Tile* tile);
 	void updateForces();
+
+	void addBasis(Tile* tile, Tile::Basis::Type basisType);
+	void deleteBasis(Tile* tile);
+
+	void addEntity(Tile* tile, Tile::Entity::Type entityType);
+	void deleteEntity(Tile* tile);
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();
@@ -185,7 +196,6 @@ public: // MEMBER FUNCTIONS:
 	// done by translating the edges of the window to scene coordinates, in this function.
 	void updateWindowFrustum();
 
-	void addPreviewTileToScene();
 	void deleteTile(Tile *tile);
 	void deleteBuilding(Tile *tile);
 	void cyclePreviewTileOrientation();
@@ -214,8 +224,7 @@ public: // MEMBER FUNCTIONS:
 	// 3D position/where the camera is looking.
 	glm::vec3 getPovTilePos();
 
-	// Each 
-	// tile necessitates another tile to act as its backing.  A 2D tile has 2 faces, 
+	// Each tile necessitates another tile to act as its backing.  A 2D tile has 2 faces, 
 	// yes?  Thus when making a tile, two must be made, glued together, then added to the 
 	// scene. The 'maxPoint' is the maximum vertex of the new tile pair.  I.e. a tile with 
 	// vertices (0,0,0), (1,0,0), (1,0,1), and (0,0,1) would have a maxPoint of (1,0,1).  This 

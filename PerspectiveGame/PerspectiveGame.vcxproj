@@ -178,6 +178,7 @@
     <ClInclude Include="buttonManager.h" />
     <ClInclude Include="calcFunctions.h" />
     <ClInclude Include="cameraManager.h" />
+    <ClInclude Include="currentSelection.h" />
     <ClInclude Include="entity.h" />
     <ClInclude Include="frameBuffer.h" />
     <ClInclude Include="glew.h" />
@@ -224,6 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Libraries\include\ImGui\imgui.ini" />
+    <None Include="helperFunctions.glsl" />
     <None Include="imgui.ini" />
     <None Include="shaders\2D3rdPersonPOV.frag" />
     <None Include="shaders\2D3rdPersonPOV.vert" />

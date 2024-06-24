@@ -185,7 +185,6 @@ public: // STRUCTS
 
 			BUILDING_COMPRESSOR,
 			BUILDING_FORCE_BLOCK,
-			BIULDING_DISPERSER,
 			BUILDING_FORCE_MIRROR,
 		};
 
@@ -260,11 +259,10 @@ public: // STRUCTS
 	public: // MEMBER ENUMS:
 
 		enum Type {
-			EMPTY,
+			NONE,
 			PRODUCER,
 			CONSUMER,
-			FORCE,
-			DISPERCER,
+			FORCE_SINK,
 		};
 
 	public: // MEMBER VARIABLES:
@@ -274,7 +272,7 @@ public: // STRUCTS
 
 	public: // MEMBER FUNCTIONS:
 
-		Basis() : type(EMPTY), orientation(0) {}
+		Basis() : type(NONE), orientation(0) {}
 	};
 
 public: // MEMBER VARIABLES:
@@ -429,6 +427,8 @@ struct TileGpuInfo {
 	alignas(4) float entityOffset;
 	alignas(4) int entityDirection;
 	alignas(4) int entityOrientation;
+
+	alignas(4) int tileSubType;
 
 	TileGpuInfo(Tile *tile);
 };

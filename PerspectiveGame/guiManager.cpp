@@ -75,9 +75,9 @@ void GuiManager::imGuiSetup() {
 }
 
 GuiManager::GuiManager(GLFWwindow *w, GLFWwindow *imgw, ShaderManager *sm, InputManager *im, Camera *c, TileManager *tm,
-					   Framebuffer *fb, ButtonManager *bm)
+					   Framebuffer *fb, ButtonManager *bm, CurrentSelection*cs)
 	: p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_tileManager(tm), p_framebuffer(fb),
-	p_buttonManager(bm) {
+	p_buttonManager(bm), p_currentSelection(cs) {
 
 	imGuiSetup();
 
@@ -128,9 +128,36 @@ void GuiManager::renderImGuiDebugWindows() {
 
 		ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
 
-		ImGui::Checkbox("edit tiles", &CanEditTiles);
+		ImGui::Checkbox("edit tiles", &p_currentSelection->canEditTiles);
+		ImGui::Checkbox("edit bases", &p_currentSelection->canEditBases);
+		ImGui::Checkbox("edit entities", &p_currentSelection->canEditEntities);
 
-		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_tileManager->previewTileColor); // Edit 3 floats representing a color
+		const char* basisLabels[] = { 
+			"NONE",
+			"BASIS_PRODUCER",
+			"BASIS_CONSUMER",
+			"BASIS_FORCE_SINK",
+		};
+		static int heldBasisIndex = 2;
+		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
+		p_currentSelection->heldBasis.type = Tile::Basis::Type(heldBasisIndex);
+
+		
+		const char* entityLabels[] = { 
+			"NONE",
+
+			"MATERIAL_OMNI",
+			"MATERIAL_A",
+			"MATERIAL_B",
+
+			"BUILDING_COMPRESSOR",
+			"BUILDING_FORCE_BLOCK",
+			"BUILDING_FORCE_MIRROR", 
+		};
+		static int heldEntityIndex = 5;
+		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
+		p_currentSelection->heldEntity.type = Tile::Entity::Type(heldEntityIndex);
+		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->addTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)
 		if (ImGui::Button("Preview Tile Orientation")) {
@@ -139,13 +166,13 @@ void GuiManager::renderImGuiDebugWindows() {
 		ImGui::SameLine();
 		switch (counter) {
 		case 0: ImGui::Text("UP"); 
-			p_tileManager->addTileRelativeOrientation = TileManager::RELATIVE_TILE_ORIENTATION_UP; 
+			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
 			break;
 		case 1: ImGui::Text("FLAT");
-			p_tileManager->addTileRelativeOrientation = TileManager::RELATIVE_TILE_ORIENTATION_FLAT;
+			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
 			break;
 		case 2: ImGui::Text("DOWN");
-			p_tileManager->addTileRelativeOrientation = TileManager::RELATIVE_TILE_ORIENTATION_DOWN;
+			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 			break;
 		}
 
@@ -423,7 +450,7 @@ void GuiManager::draw2d3rdPerson() {
 	case gpu2dRayCasting: draw2d3rdPersonGpuRaycasting(); break;
 	}
 
-	if (CanEditTiles) {
+	if (p_currentSelection->canEditTiles) {
 		setVertAttribVec3PosVec3NormVec3ColorVec2TextCoord1Index();
 		p_shaderManager->simpleShader.use();
 		p_tileManager->drawAddTilePreview();

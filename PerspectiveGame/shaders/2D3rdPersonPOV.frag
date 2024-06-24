@@ -1,5 +1,32 @@
 #version 430 core // We need 430 for SSBOs.
 
+#define PI				3.1415926535897932384626433832795
+
+// Entity IDs:
+#define NONE			0
+#define OMNI			1
+#define MATERIAL_A		2
+#define MATERIAL_B		3
+#define COMPRESSOR		4
+#define FORCE_BLOCK		5
+#define FORCE_MIRROR	6
+
+// Basis IDs:
+#define EMPTY			0
+#define PRODUCER		1
+#define CONSUMER		2
+#define FORCE_SINK		3
+
+#define TRUE			1
+#define FALSE			0
+
+#define RIGHT			0
+#define DOWN			1
+#define LEFT			2
+#define UP				3
+
+#define MAX_STEPS 1000 // <- Protects against infinite loops.
+
 layout(location = 0) in vec2 fragWorldPos;
 layout(location = 1) in vec2 povPos;
 
@@ -29,51 +56,255 @@ struct tileInfo {
 	float entityOffset; // 2 bits (+ interpolation with delta time)
 	int entityDirection; // 2 bits
 	int entityOrientation; // 2 bits
+
+	int type; // 3 bits (6 options)
 	
 	// alignas is a bastard and scales the struct size by the largest alignas(n) n value for some reason.  
 	// This means we need a buffer in here so the stride length is consistent between OpenGl's definition 
 	// and the shader's struct.
-	// float bufferSpace[]; 
+	float bufferSpace[7]; 
 };
 
 layout (std430, binding = 1) buffer tileInfosBuffer { 
 	tileInfo tileInfos[]; 
 };
 
-#define PI 3.1415926535897932384626433832795
-
-// Entity IDs:
-#define NONE			0
-#define OMNI			1
-#define MATERIAL_A		2
-#define MATERIAL_B		3
-
-#define COMPRESSOR		4
-#define FORCE_BLOCK		5
-#define DISPERSER		6
-#define FORCE_MIRROR	7
-
-// Basis IDs:
-#define EMPTY			0
-#define PRODUCER		1
-#define CONSUMER		2
-#define FORCE			3
-#define DISPERCER		4
-
-#define TRUE 1
-#define FALSE 0
-
-#define RIGHT			0
-#define DOWN			1
-#define LEFT			2
-#define UP				3
-// Protect against infinite loops.
-#define MAX_STEPS 1000 
-
 const int VERT_INFO_OFFSETS[] = { 2,1,0,3 };
 const vec2 DRAW_TILE_COORDS[] = { vec2(1, 1), vec2(1, 0), vec2(0, 0), vec2(0, 1) };
 const bool IS_OBJECT[] = { false, true, true, true, false, false, false, false, };
 const vec2 ADJACENT_ENTITY_OFFSETS[] = { vec2(1, 0), vec2(0, -1), vec2(-1, 0), vec2(0, 1) };
+const int ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4] = {
+#define X -1
+	{ // Current Tile = XYF
+		{ // Destination Tile = XYF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XYB
+		{ // Destination Tile = XYF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XZF
+		{ // Destination Tile = XYF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XZB
+		{ // Destination Tile = XYF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = YZF
+		{ // Destination Tile = XYF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = YZB
+		{ // Destination Tile = XYF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 1, 2, 3, 4 }, // Exiting Side 0
+			{ 1, 2, 3, 4 }, // Exiting Side 1
+			{ 1, 2, 3, 4 }, // Exiting Side 2
+			{ 1, 2, 3, 4 }  // Exiting Side 3
+		}
+	},
+#undef X
+};
 
 const vec2 povPosToPixelPos = fragWorldPos - povPos;
 const float totalDist = length(povPosToPixelPos);
@@ -111,6 +342,11 @@ vec2 fragDrawTilePos; // Lies in domain { (x, y) | 0 <= x <= 1, 0 <= y <= 1 }.
 vec2 vertOrigin;
 vec2 vertA;
 vec2 vertB;
+
+float signedDistanceBox(vec2 point, vec2 box) {
+    vec2 d = abs(point) - box;
+    return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
+}
 
 // connectionIndex is the side index of the side of the current tile we are passing over.
 // drawTileSideIndex is the side index of that same side but from the perspective of screen space.
@@ -300,7 +536,7 @@ bool isInsideEntity() {
 
 		// Check we should even try to draw anything:
 		bool neighborHadEntity = tileInfos[neighborTileIndex].entityType == NONE;
-		bool neighborEntityFacingTowardUs = tileInfos[neighborTileIndex].entityDirection) != neighborSideIndex;
+		bool neighborEntityFacingTowardUs = tileInfos[neighborTileIndex].entityDirection != neighborSideIndex;
 		bool neighborEntityNotTooFarAway = abs(fragDrawTilePos.x - entityPos.x) > 0.5f || abs(fragDrawTilePos.y - entityPos.y) > 0.5f;
 
 		if (neighborHadEntity || neighborEntityFacingTowardUs || neighborEntityNotTooFarAway) {
@@ -322,6 +558,12 @@ bool isInsideEntity() {
 			}
 
 			int trueNeighborOrientation = (tileInfos[neighborTileIndex].entityOrientation + orientationOffset) % 4;
+
+			trueNeighborOrientation = ORIENTATION_TO_ORIENTATION_MAP
+				[tileInfos[neighborTileIndex].type]
+				[tileInfos[currentTileIndex].type]
+				[neighborSideIndex]
+				[tileInfos[neighborTileIndex].entityOrientation];
 
 			return tryDrawForceBlock(entityForward, neighborTileIndex, trueNeighborOrientation);
 		}
@@ -387,23 +629,41 @@ void findTile() {
 }
 
 bool isInsideBasis() {
-//	switch(tileInfos[currentTileIndex].entityType) {
-//	case(FORCE_BLOCK):
-//		
-//	}
 
 	switch(tileInfos[currentTileIndex].basisType) {
-		case(PRODUCER):
+		case PRODUCER:
 			if (pointToLineSegDist(vec2(0.5, 0), vec2(0.5, 1), fragDrawTilePos) < 0.1f ||
 				pointToLineSegDist(vec2(0, 0.5), vec2(1, 0.5), fragDrawTilePos) < 0.1f) {
 				gl_FragColor = vec4(0.69, 0.773, 0.643, 1);
 				return true;
 			} 
 			break;
-		case(CONSUMER):
+		case CONSUMER:
 			if (pointToLineSegDist(vec2(0, 0), vec2(1, 1), fragDrawTilePos) < 0.1f ||
 				pointToLineSegDist(vec2(0, 1), vec2(1, 0), fragDrawTilePos) < 0.1f) {
 				gl_FragColor = vec4(0.827, 0.463, 0.463, 1);
+				return true;
+			}
+			break;
+		case FORCE_SINK:
+
+			if (pointToLineSegDist(vec2(0.05, 0.05), vec2(0.05, 0.95), fragDrawTilePos) < 0.1f ||
+				pointToLineSegDist(vec2(0.05, 0.05), vec2(0.95, 0.05), fragDrawTilePos) < 0.1f ||
+				pointToLineSegDist(vec2(0.95, 0.95), vec2(0.05, 0.95), fragDrawTilePos) < 0.1f ||
+				pointToLineSegDist(vec2(0.95, 0.95), vec2(0.95, 0.05), fragDrawTilePos) < 0.1f) {
+				gl_FragColor = vec4(0.34, 0.44, 0.45, 1);
+				return true;
+			}
+			else {
+				float dist = signedDistanceBox(fragDrawTilePos - vec2(0.5, 0.5), vec2(0.25, 0.25));
+				vec4 dark = vec4(0.34, 0.44, 0.45, 1);
+				vec4 light = vec4(0.49, 0.62, 0.61, 1);
+				float amount = dist / 0.5f;
+				//amount = sqrt(amount);
+				gl_FragColor = mix(light, dark, amount);
+				return true;
+
+				gl_FragColor = vec4(0.49, 0.62, 0.61, 1);
 				return true;
 			}
 			break;
@@ -413,12 +673,12 @@ bool isInsideBasis() {
 }
 
 void colorPixel() {
-	// Rendering heierarchy (first prio to last prio): 
+	// Rendering heierarchy (player 'drawn last'): 
 	// player > entity > basis > force
 	
-	bool insideBasis    = false;
-	bool insidePlayer   = false;
-	bool insideEntity   = false;
+	bool insideBasis  = false;
+	bool insidePlayer = false;
+	bool insideEntity = false;
 	float forceWeight = 0.5f;
 	vec4 forceColor;
 

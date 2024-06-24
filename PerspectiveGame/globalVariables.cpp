@@ -18,5 +18,3 @@ float FrameTime = 0;
 int NumFrames = 0;
 
 float leftEdit = -1, rightEdit = 1, topEdit = 1, bottomEdit = -1;
-
-bool CanEditTiles = true;

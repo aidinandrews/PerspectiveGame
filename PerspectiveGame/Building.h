@@ -69,14 +69,24 @@ struct Consumer {
 
 struct ForceBlock {
 	int tileIndex;
-	int orientation;
+	//int orientation;
 	int magnitude;
 
 	ForceBlock(int tileIndex, int orientation, int magnitude) : 
-		tileIndex(tileIndex), orientation(orientation), magnitude(magnitude) 
+		tileIndex(tileIndex),/* orientation(orientation),*/ magnitude(magnitude) 
 	{}
 
 	void update() {
 
 	}
+};
+
+struct ForceSink {
+	int tileIndex;
+
+	ForceSink(int tileIndex) :
+		tileIndex(tileIndex) 
+	{}
+
+	void update();
 };

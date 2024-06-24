@@ -79,30 +79,271 @@ const int TileManager::DIR_TO_DIR_MAP[6][6][4] = {
 #undef X
 };
 
+// Input Key:
+// [Current Tile Type][Destination Tile Type][Exiting side][Current Orientation]
+const int TileManager::ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4] = {
+#define X -1
+	{ // Current Tile = XYF
+		{ // Destination Tile = XYF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XYB
+		{ // Destination Tile = XYF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XZF
+		{ // Destination Tile = XYF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = XZB
+		{ // Destination Tile = XYF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = YZF
+		{ // Destination Tile = XYF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 0, 1, 2, 3 }, // Exiting Side 0
+			{ 0, 1, 2, 3 }, // Exiting Side 1
+			{ 0, 1, 2, 3 }, // Exiting Side 2
+			{ 0, 1, 2, 3 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		}
+	},
+	{ // Current Tile = YZB
+		{ // Destination Tile = XYF
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 2, 1, 0 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 2, 1, 0 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XYB
+			{ X, X, X, X }, // Exiting Side 0
+			{ 3, 0, 1, 2 }, // Exiting Side 1
+			{ X, X, X, X }, // Exiting Side 2
+			{ 3, 0, 1, 2 }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZF
+			{ 3, 2, 1, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 3, 2, 1, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = XZB
+			{ 1, 2, 3, 0 }, // Exiting Side 0
+			{ X, X, X, X }, // Exiting Side 1
+			{ 1, 2, 3, 0 }, // Exiting Side 2
+			{ X, X, X, X }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZF
+			{ 2, 1, 0, 3 }, // Exiting Side 0
+			{ 0, 3, 2, 1 }, // Exiting Side 1
+			{ 2, 1, 0, 3 }, // Exiting Side 2
+			{ 0, 3, 2, 1 }  // Exiting Side 3
+		},
+		{ // Destination Tile = YZB
+			{ 1, 2, 3, 4 }, // Exiting Side 0
+			{ 1, 2, 3, 4 }, // Exiting Side 1
+			{ 1, 2, 3, 4 }, // Exiting Side 2
+			{ 1, 2, 3, 4 }  // Exiting Side 3
+		}
+	},
+#undef X
+};
+
 TileManager::TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
-	Framebuffer* framebuffer, ButtonManager* bm, InputManager* im)
+	Framebuffer* framebuffer, ButtonManager* bm, InputManager* im, CurrentSelection* cs)
 	: p_camera(camera), p_shaderManager(shaderManager), p_window(window), p_framebuffer(framebuffer),
-	p_buttonManager(bm), p_inputManager(im) {
+	p_buttonManager(bm), p_inputManager(im), p_currentSelection(cs) {
 
 	// make sure the camera is in the middle of the starting draw tile:
 	p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
 
 	// This is the initial two tiles that must exist for the player to even move around at all:
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 4, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	for (int w = 0; w < 4; w++) {
+		for (int h = 0; h < 4; h++) {
+			createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+		}
+	}
+	
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 4, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(2, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(2, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
-	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	/*createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 0), glm::vec3(1, 1, 1), glm::vec3(0.5, 0.5, 0.5));
 
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 2, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
+	*///createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 
 	// by this point there should be two tiles in the scene:
 	povTile.tile = tiles[0];
@@ -114,19 +355,21 @@ TileManager::TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindo
 	//tiles[1]->basis.type = Tile::Basis::Type::DISPERCER;
 	//tiles[6]->basis.type = Tile::Basis::Type::DISPERCER;
 	createForceBlock(0, Tile::Edge::UP, 1);
-	createProducer(2, Tile::Entity::Type::MATERIAL_A);
-	createConsumer(3);
+	createForceBlock(2, Tile::Edge::RIGHT, 1);
+	//createProducer(2, Tile::Entity::Type::MATERIAL_A, true);
+	//createConsumer(3, true);
+	//createForceSink(2, false);
 
-	tryingToAddTile = false;
-	tryingToAddTile = true; // TESTING, TEMP!
+	p_currentSelection->tryingToAddTile = false;
+	p_currentSelection->tryingToAddTile = true; // TESTING, TEMP!
 
 	lastCamPosOffset = glm::vec3(0, 0, 0);
 
 	glGenBuffers(1, &tileInfosBufferID);
 
-	addTileRelativeOrientation = RELATIVE_TILE_ORIENTATION_DOWN;
+	p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 
-	previewTileColor = glm::vec3(1, 0, 0);
+	p_currentSelection->addTileColor = glm::vec3(1, 0, 0);
 }
 
 TileManager::~TileManager() {
@@ -913,28 +1156,6 @@ void TileManager::update3dRotationAdj() {
 		* tilePosToOrigin;
 }
 
-void TileManager::addPreviewTileToScene() {
-	// Find all the verts of the potential new tile:
-	glm::ivec3 vertA = addTileParentTarget.tile->getVertPos(addTileParentSideConnectionIndex);
-	glm::ivec3 vertB = addTileParentTarget.tile->getVertPos((addTileParentSideConnectionIndex + addTileParentTarget.sideInfosOffset) % 4);
-	glm::ivec3 vertZ = addTileParentTarget.tile->getVertPos((addTileParentSideConnectionIndex + addTileParentTarget.sideInfosOffset * 3) % 4);
-	glm::ivec3 offset = vertA - vertZ;
-	glm::ivec3 vertC = vertA + offset;
-	glm::ivec3 vertD = vertB + offset;
-
-	// Find the max vert for tile pair creation:
-	glm::ivec3 maxPoint = vertA;
-	if (maxPoint.x < vertB.x || maxPoint.y < vertB.y || maxPoint.z < vertB.z) { maxPoint = vertB; }
-	if (maxPoint.x < vertC.x || maxPoint.y < vertC.y || maxPoint.z < vertC.z) { maxPoint = vertC; }
-	if (maxPoint.x < vertD.x || maxPoint.y < vertD.y || maxPoint.z < vertD.z) { maxPoint = vertD; }
-
-	glm::vec3 tileColor = previewTile.color;
-
-	createTilePair(Tile::superTileType(previewTile.type),
-		previewTile.maxVert,
-		previewTileColor, previewTileColor * 0.5f);
-}
-
 void TileManager::deleteBuilding(Tile* tile) {
 	// We dont have to care about manually deleting materials as they are not referenced by anything besides the
 	// tile itsef, which is being deleted anyway.  Some entities are buildings though and have vectors of structs
@@ -945,9 +1166,6 @@ void TileManager::deleteBuilding(Tile* tile) {
 
 		break;
 	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
-
-		break;
-	case Tile::Entity::Type::BIULDING_DISPERSER:
 
 		break;
 	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
@@ -1067,12 +1285,11 @@ int inverseDirection(int dir) {
 }
 
 void TileManager::update() {
-	if (p_inputManager->leftMouseButtonPressed() && CanEditTiles) {
-		addPreviewTileToScene();
-	}
-	if (p_inputManager->rightMouseButtonClicked() && CanEditTiles) {
-		deleteTile(hoveredTile);
-	}
+
+	findHoveredTile();
+	findPreviewTile();
+	p_currentSelection->update();
+	tryEditWorld();
 
 	collisionDetectUnsafeCorners();
 	updatePovTileTarget();
@@ -1086,7 +1303,9 @@ void TileManager::update() {
 
 	updateProducers();
 	updateConsumers();
-	updateForces();
+	
+	if (NumFrames % 10 == 0)
+		updateForces();
 
 	for (Tile* t : tiles) {
 		updateEntity(t);
@@ -1094,6 +1313,115 @@ void TileManager::update() {
 
 	updateTileGpuInfoIndices();
 	getRelativePovPosGpuInfos();
+}
+
+void TileManager::tryEditWorld() {
+	if (p_currentSelection->canEditTiles) {
+		if (p_inputManager->leftMouseButtonPressed()) {
+			createTilePair(
+				Tile::superTileType(p_currentSelection->addTile.type),
+				p_currentSelection->addTile.maxVert,
+				p_currentSelection->addTileColor,
+				p_currentSelection->addTileColor * 0.5f);
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			deleteTile(p_currentSelection->hoveredTile);
+		}
+	}
+	else if (p_currentSelection->canEditBases) {
+		if (p_inputManager->leftMouseButtonPressed()) {
+			addBasis(p_currentSelection->hoveredTile, p_currentSelection->heldBasis.type);
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			deleteBasis(p_currentSelection->hoveredTile);
+		}
+	}
+	else if (p_currentSelection->canEditEntities) {
+		if (p_inputManager->leftMouseButtonPressed()) {
+			addEntity(p_currentSelection->hoveredTile, p_currentSelection->heldEntity.type);
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			deleteEntity(p_currentSelection->hoveredTile);
+		}
+	}
+}
+
+void TileManager::addBasis(Tile* tile, Tile::Basis::Type basisType) {
+	switch (basisType) {
+	case Tile::Basis::Type::NONE:
+		deleteBasis(tile);
+		break;
+	case Tile::Basis::Type::PRODUCER:
+		createProducer(tile->index, Tile::Entity::Type::MATERIAL_A, false);
+		break;
+	case Tile::Basis::Type::CONSUMER:
+		createConsumer(tile->index, false);
+		break;
+	case Tile::Basis::Type::FORCE_SINK:
+		createForceSink(tile->index, false);
+		break;
+	}
+}
+void TileManager::deleteBasis(Tile* tile) {
+	switch (tile->basis.type) {
+	case Tile::Basis::Type::PRODUCER:
+		deleteProducer(tile);
+		break;
+	case Tile::Basis::Type::CONSUMER:
+		deleteConsumer(tile);
+		break;
+	case Tile::Basis::Type::FORCE_SINK:
+		deleteForceSink(tile);
+		break;
+	}
+}
+
+void TileManager::addEntity(Tile* tile, Tile::Entity::Type entityType) {
+	switch (entityType) {
+	case Tile::Entity::Type::NONE:
+		tile->entity.type = Tile::Entity::Type::NONE;
+		break;
+	case Tile::Entity::Type::MATERIAL_OMNI:
+
+		break;
+	case Tile::Entity::Type::MATERIAL_A:
+		tile->entity.type = Tile::Entity::Type::MATERIAL_A;
+		break;
+	case Tile::Entity::Type::MATERIAL_B:
+		tile->entity.type = Tile::Entity::Type::MATERIAL_B;
+		break;
+	case Tile::Entity::Type::BUILDING_COMPRESSOR:
+
+		break;
+	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
+		createForceBlock(tile->index, (Tile::Edge)p_currentSelection->heldEntity.orientation, 1);
+		break;
+	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
+
+		break;
+	}
+}
+void TileManager::deleteEntity(Tile* tile) {
+	switch (tile->entity.type) {
+	case Tile::Entity::Type::MATERIAL_OMNI:
+
+		break;
+	case Tile::Entity::Type::MATERIAL_A:
+
+		break;
+	case Tile::Entity::Type::MATERIAL_B:
+
+		break;
+	case Tile::Entity::Type::BUILDING_COMPRESSOR:
+
+		break;
+	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
+		deleteForceBlock(tile);
+		break;
+	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
+
+		break;
+	}
 }
 
 void TileManager::updateEntity(Tile* t) {
@@ -1116,6 +1444,11 @@ void TileManager::updateEntity(Tile* t) {
 		return;
 	}
 
+	if (neighbor->basis.type == Tile::Basis::Type::FORCE_SINK) {
+		t->entity.offset = 0;
+		return;
+	}
+
 	t->entity.offset += t->getVelocity();
 	if (neighbor->hasEntity()) {
 		t->entity.offset = std::min(t->entity.offset, neighbor->entity.offset);
@@ -1127,11 +1460,23 @@ void TileManager::updateEntity(Tile* t) {
 		neighbor->entity = t->entity;
 		neighbor->entity.offset = t->entity.offset - 1.0f;;
 		neighbor->entity.direction = neighbor->force.direction;
-		neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction) * 3;
-		neighbor->entity.orientation %= 4;
+		/*neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction);
+		neighbor->entity.orientation %= 4;*/
+
+		neighbor->entity.orientation = ORIENTATION_TO_ORIENTATION_MAP[t->type][neighbor->type][t->force.direction][t->entity.orientation];
 
 		t->entity.type = Tile::Entity::Type::NONE;
 		t->entity.offset = 0.0f;
+
+		if (neighbor->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK) {
+			for (int i = 0; i < forceBlocks.size(); i++) {
+
+				if (forceBlocks[i].tileIndex == t->index) {
+					forceBlocks[i].tileIndex = neighbor->index;
+					break;
+				}
+			}
+		}
 	}
 
 
@@ -1164,8 +1509,8 @@ void TileManager::updateEntity(Tile* t) {
 	//}
 }
 
-bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntityType) {
-	if (tiles[tileIndex]->basis.type != Tile::Basis::Type::EMPTY) {
+bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntityType, bool override) {
+	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
 		return false;
 	}
 
@@ -1176,8 +1521,18 @@ bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntit
 	return true;
 }
 
-bool TileManager::createConsumer(int tileIndex) {
-	if (tiles[tileIndex]->basis.type != Tile::Basis::Type::EMPTY) {
+void TileManager::deleteProducer(Tile* tile) {
+	for (int i = 0; i < producers.size(); i++) {
+		if (producers[i].tileIndex == tile->index) {
+			producers.erase(producers.begin() + i);
+			tile->basis.type = Tile::Basis::Type::NONE;
+			return;
+		}
+	}
+}
+
+bool TileManager::createConsumer(int tileIndex, bool override) {
+	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
 		return false;
 	}
 
@@ -1186,6 +1541,75 @@ bool TileManager::createConsumer(int tileIndex) {
 	consumers.push_back(Consumer(tileIndex));
 
 	return true;
+}
+
+void TileManager::deleteConsumer(Tile* tile) {
+	for (int i = 0; i < consumers.size(); i++) {
+		if (consumers[i].tileIndex == tile->index) {
+			consumers.erase(consumers.begin() + i);
+			tile->basis.type = Tile::Basis::Type::NONE;
+			return;
+		}
+	}
+}
+
+bool TileManager::createForceSink(int tileIndex, bool override) {
+	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
+		return false;
+	}
+
+	Tile* tile = tiles[tileIndex];
+
+	tile->basis.type = Tile::Basis::Type::FORCE_SINK;
+	tile->entity.type = Tile::Entity::Type::NONE;
+	tile->force.magnitude = 0.0f;
+
+	// The creation of a force sink may cut off a line of force from its 
+	// force block, so we need to spawn a force eater to take care of it now:
+	for (int i = 0; i < 4; i++) {
+		Tile* neighbor = tile->sideInfos.connectedTiles[i];
+		int adjDir = DIR_TO_DIR_MAP[tile->type][neighbor->type][i];
+
+		if (neighbor->force.direction == adjDir) {
+			forceEaters.push_back(ForceEater(neighbor->index, adjDir));
+		}
+	}
+}
+
+void TileManager::deleteForceSink(Tile* tile) {
+
+	tile->basis.type = Tile::Basis::Type::NONE;
+
+	// When deleting a force sink, it may be that the sink was blocking a line of force.
+	// Now that the sink is not blocking it, that line of force has to be propogated out:
+	for (int i = 0; i < 4; i++) {
+		Tile* neighbor = tile->sideInfos.connectedTiles[i];
+
+		int adjDir = (DIR_TO_DIR_MAP[tile->type][neighbor->type][i] + 2) % 4;
+
+		bool nextToForceBlock = (neighbor->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK)
+			&& (neighbor->entity.orientation == adjDir);
+
+		if (nextToForceBlock) {
+
+			std::cout << "next to force block" << std::endl;
+			std::cout << "[" << tile->type << "][" << neighbor->type << "][" << i << "]" << std::endl;
+
+			// gotta find out what the force mag is:
+			for (int j = 0; j < forceBlocks.size(); j++) {
+				std::cout << "i check" << forceBlocks[j].tileIndex << " " << neighbor->index << std::endl;
+				if (forceBlocks[j].tileIndex == neighbor->index) {
+					std::cout << "found ya" << std::endl;
+					forcePropagators.push_back(ForcePropagator(tile->index, forceBlocks[j].magnitude, (i + 2) % 4));
+					std::cout << ((i + 2) % 4) << std::endl;
+					break;
+				}
+			}
+		}
+		else if ((neighbor->force.direction == adjDir)) {
+			forcePropagators.push_back(ForcePropagator(tile->index, neighbor->force.magnitude, (i + 2) % 4));
+		}
+	}
 }
 
 bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude) {
@@ -1197,11 +1621,13 @@ bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int ma
 	tiles[tileIndex]->entity.offset = 0; // Centered initially.
 	tiles[tileIndex]->entity.orientation = orientation;
 	tiles[tileIndex]->entity.direction = (tiles[tileIndex]->force.magnitude > 0) ? tiles[tileIndex]->force.direction : 0;
-	
+	tiles[tileIndex]->entity.mass = 3;
+
 	forceBlocks.push_back(ForceBlock(tileIndex, orientation, magnitude));
 
 	Tile* neighborTile = tiles[tiles[tileIndex]->sideInfos.connectedTiles[orientation]->index];
-	int neighborOrientation = ( orientation + 3*adjustToLocalDirectionOffset(tiles[tileIndex], orientation) ) % 4;
+	//int neighborOrientation = ( orientation + 3*adjustToLocalDirectionOffset(tiles[tileIndex], orientation) ) % 4;
+	int neighborOrientation = DIR_TO_DIR_MAP[tiles[tileIndex]->type][neighborTile->type][orientation];
 	forcePropagators.push_back(ForcePropagator(neighborTile->index, magnitude, neighborOrientation));
 
 	// Propogate force to tiles in front of the force block:
@@ -1221,6 +1647,21 @@ bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int ma
 	}*/
 
 	return true;
+}
+
+void TileManager::deleteForceBlock(Tile* tile) {
+	for (int i = 0; i < forceBlocks.size(); i++) {
+		if (forceBlocks[i].tileIndex == tile->index) {
+
+			// Catch 'loops' of force.  We don't want to remove those because they need no block to persist:
+			if (tile->force.magnitude == 0 || tile->force.direction != tile->entity.direction) {
+				forceEaters.push_back(ForceEater(tile->index, tile->entity.orientation));
+			}
+			forceBlocks.erase(forceBlocks.begin() + i);
+			tile->entity.type = Tile::Entity::Type::NONE;
+			return;
+		}
+	}
 }
 
 void TileManager::updateProducers() {
@@ -1257,12 +1698,13 @@ void TileManager::updateConsumers() {
 		consumer.update();
 		Tile* consumerTile = tiles[consumer.tileIndex];
 
-		bool ate = consumerTile->entity.type != Tile::Entity::Type::NONE &&
+		bool eat = 
+			consumerTile->entity.type != Tile::Entity::Type::NONE &&
 			consumer.cooldown == 0.0f &&
 			consumerTile->entity.offset + consumerTile->getVelocity() >= 0;
 
-		consumerTile->entity.type = Tile::Entity::Type( (ate * Tile::Entity::Type::NONE) + (!ate * consumerTile->entity.type) );
-		consumer.cooldown = (ate * 1.0f) + (!ate * consumer.cooldown);
+		consumerTile->entity.type = Tile::Entity::Type( (!eat * consumerTile->entity.type) );
+		consumer.cooldown = (eat * 1.0f) + (!eat * consumer.cooldown);
 	}
 }
 
@@ -1273,26 +1715,49 @@ void TileManager::updateForceBlocks() {
 void TileManager::updateForces() {
 	for (int i = 0; i < forcePropagators.size(); i++) {
 
-
 		Tile* tile = tiles[forcePropagators[i].tileIndex];
-		tile->force.magnitude = forcePropagators[i].forceMagnitude;
-		tile->force.direction = forcePropagators[i].heading;
-
+		
 		// Kys if next tile already has a force in it:
-		if (tile->sideInfos.connectedTiles[forcePropagators[i].heading]->force.magnitude > 0) {
+		if (tile->force.magnitude > 0 || tile->basis.type == Tile::Basis::Type::FORCE_SINK) {
 			forcePropagators.erase(forcePropagators.begin() + i);
 			i--;
 			continue;
 		}
 
+		int heading = forcePropagators[i].heading;
+		Tile* neighbor = tile->sideInfos.connectedTiles[heading];
+		tile->force.magnitude = forcePropagators[i].forceMagnitude;
+		tile->force.direction = heading;
+
+		Tile* nextTile = tile->sideInfos.connectedTiles[heading];
+
 		// go to the next tile:
-		int newHeading = (forcePropagators[i].heading + 3 * adjustToLocalDirectionOffset(tile, forcePropagators[i].heading)) % 4;
-		forcePropagators[i].tileIndex = tile->sideInfos.connectedTiles[forcePropagators[i].heading]->index;
-		forcePropagators[i].heading = newHeading;
+		//int newHeading = (forcePropagators[i].heading + 3 * adjustToLocalDirectionOffset(tile, forcePropagators[i].heading)) % 4;
+		forcePropagators[i].tileIndex = neighbor->index;
+		forcePropagators[i].heading = DIR_TO_DIR_MAP[tile->type][neighbor->type][heading];
 	}
 
-	for (ForceEater fe : forceEaters) {
+	for (int i = 0; i < forceEaters.size(); i++) {
+		Tile* tile = tiles[forceEaters[i].tileIndex];
 
+		// Eat:
+		tile->force.magnitude = 0;
+
+		// Go to next tile:
+		int newHeading = (forceEaters[i].heading + 3 * adjustToLocalDirectionOffset(tile, forceEaters[i].heading)) % 4;
+		forceEaters[i].tileIndex = tile->sideInfos.connectedTiles[forceEaters[i].heading]->index;
+		forceEaters[i].heading = newHeading;
+
+		Tile*newTile = tiles[forceEaters[i].tileIndex];
+
+		// Kys if there is no more force to eat/we jumped to a new line of force:
+		if (forceEaters[i].heading != newTile->force.direction || newTile->force.magnitude == 0
+			|| tile->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK) {
+
+			forceEaters.erase(forceEaters.begin() + i);
+			i--;
+			continue;
+		}
 	}
 }
 
@@ -1823,22 +2288,9 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 	}
 }
 
-void TileManager::drawAddTilePreview() {
-	std::vector<glm::vec2> previewTileVerts = {
-		glm::vec2(0, 0),
-		glm::vec2(1, 0),
-		glm::vec2(1, 1),
-		glm::vec2(0, 1)
-	};
-	std::vector<glm::vec2> previewTileTexCoords = {
-		glm::vec2(0,0),
-		glm::vec2(1,0),
-		glm::vec2(1,1),
-		glm::vec2(0,1)
-	};
-
+void TileManager::findHoveredTile() {
 	// find what tile the cursor is hovering over:
-	// This algorithm mirrors the 2D3rdPersonPOV frag shader, which is documented better.
+	// This algorithm mirrors the on in 2D3rdPersonPOV frag shader, which is documented better.
 	Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
 	glm::mat4 inWindowToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
 		(float)sceneView->pixelHeight()));
@@ -1846,7 +2298,8 @@ void TileManager::drawAddTilePreview() {
 
 	// If the cursor is inside the povTile, then we dont have to do the move complex steps:
 	if (cursorWorldPos.x > 0 && cursorWorldPos.x < 1 && cursorWorldPos.y > 0 && cursorWorldPos.y < 1) {
-		// make the povTile green or something idk
+		p_currentSelection->hoveredTile = povTile.tile;
+
 		return;
 	}
 
@@ -1869,7 +2322,8 @@ void TileManager::drawAddTilePreview() {
 	const int MAX_STEPS = 1000; int stepCount = 0;
 	float currentDist = 0;
 	TileTarget target = povTile;
-	int connectionIndex = 0, drawSideIndex = 0;
+	p_currentSelection->hoveredTileConnectionIndex = 0;
+	int drawSideIndex = 0;
 	glm::vec2 drawTileOffset(0, 0);
 
 	while (stepCount < MAX_STEPS) {
@@ -1884,12 +2338,12 @@ void TileManager::drawAddTilePreview() {
 
 			// Shift tile target left/right depending on goingRight:
 			if (goingRight) {
-				connectionIndex = target.initialSideIndex;
+				p_currentSelection->hoveredTileConnectionIndex = target.initialSideIndex;
 				drawSideIndex = 0;
 				drawTileOffset += glm::vec2(1, 0);
 			}
 			else { // Going left:
-				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 2) % 4;
+				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 2) % 4;
 				drawSideIndex = 2;
 				drawTileOffset += glm::vec2(-1, 0);
 			}
@@ -1904,57 +2358,77 @@ void TileManager::drawAddTilePreview() {
 
 			// Shift tile target up/down depending on goingUp:
 			if (goingUp) {
-				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 3) % 4;
+				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 3) % 4;
 				drawSideIndex = 3;
 				drawTileOffset += glm::vec2(0, 1);
 			}
 			else { // Going down:
-				connectionIndex = (target.initialSideIndex + target.sideInfosOffset * 1) % 4;
+				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 1) % 4;
 				drawSideIndex = 1;
 				drawTileOffset += glm::vec2(0, -1);
 			}
 		}
-		addTileParentTarget = target;
+		p_currentSelection->addTileParentTarget = target;
 		target = adjustTileTarget(&target, drawSideIndex);
 		stepCount++;
 	}
 
-	for (glm::vec2& v : previewTileVerts) { v += drawTileOffset; }
-	drawTile(previewTileVerts, previewTileTexCoords, glm::vec4(0, 1, 0, 1));
+	p_currentSelection->hoveredTile = target.tile;
 
-	addTileParentSideConnectionIndex = (addTileParentTarget.initialVertIndex
-		+ drawSideIndex * addTileParentTarget.sideInfosOffset)
+	p_currentSelection->addTileParentSideConnectionIndex = (p_currentSelection->addTileParentTarget.initialVertIndex
+		+ drawSideIndex * p_currentSelection->addTileParentTarget.sideInfosOffset)
 		% 4;
-	hoveredTile = target.tile;
+}
 
+void TileManager::findPreviewTile() {
 	// Figure out the preview tile's type:
-	int infosOffset = connectionIndex - addTileParentTarget.initialSideIndex;
-	if (infosOffset < 0)
+	int infosOffset = p_currentSelection->hoveredTileConnectionIndex - p_currentSelection->addTileParentTarget.initialSideIndex;
+	if (infosOffset < 0) {
 		infosOffset = abs(infosOffset) * 3 % 4;
-	int v1Index = (addTileParentTarget.initialVertIndex + infosOffset) % 4;
-	glm::ivec3 v1 = addTileParentTarget.tile->getVertPos(v1Index);
-	glm::ivec3 v2 = addTileParentTarget.tile->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset) % 4);
+	}
+	int v1Index = (p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset) % 4;
+	glm::ivec3 v1 = p_currentSelection->addTileParentTarget.tile->getVertPos(v1Index);
+	glm::ivec3 v2 = p_currentSelection->addTileParentTarget.tile->getVertPos((p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset + p_currentSelection->addTileParentTarget.sideInfosOffset) % 4);
 	glm::ivec3 v3, v4;
 
-	switch (addTileRelativeOrientation) {
-	case RELATIVE_TILE_ORIENTATION_DOWN:
-		v3 = v1 - addTileParentTarget.tile->normal();
-		v4 = v2 - addTileParentTarget.tile->normal();
+	switch (p_currentSelection->addTileRelativeOrientation) {
+	case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
+		v3 = v1 - p_currentSelection->addTileParentTarget.tile->normal();
+		v4 = v2 - p_currentSelection->addTileParentTarget.tile->normal();
 		break;
-	case RELATIVE_TILE_ORIENTATION_FLAT:
-		glm::ivec3 offset = v1 - addTileParentTarget.tile->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset * 3) % 4);
+	case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
+		glm::ivec3 offset = v1 - p_currentSelection->addTileParentTarget.tile->getVertPos((p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset + p_currentSelection->addTileParentTarget.sideInfosOffset * 3) % 4);
 		v3 = v1 + offset;
 		v4 = v2 + offset;
 		break;
 	default: /*case RELATIVE_TILE_ORIENTATION_UP:*/
-		v3 = v1 + addTileParentTarget.tile->normal();
-		v4 = v2 + addTileParentTarget.tile->normal();
+		v3 = v1 + p_currentSelection->addTileParentTarget.tile->normal();
+		v4 = v2 + p_currentSelection->addTileParentTarget.tile->normal();
 		break;
 	}
 	Tile::Type tileType = Tile::getTileType(v1, v2, v3, v4);
 	Tile::SubType tileSubype = Tile::tileSubType(tileType, true);
 	glm::ivec3 maxVert = Tile::getMaxVert(v1, v2, v3, v4);
-	previewTile = Tile(tileSubype, maxVert);
+	p_currentSelection->addTile = Tile(tileSubype, maxVert);
+}
+
+// DOESN'T DO SHIT FOR NOW, I BROKE IT:
+void TileManager::drawAddTilePreview() {
+	std::vector<glm::vec2> previewTileVerts = {
+		glm::vec2(0, 0),
+		glm::vec2(1, 0),
+		glm::vec2(1, 1),
+		glm::vec2(0, 1)
+	};
+	std::vector<glm::vec2> previewTileTexCoords = {
+		glm::vec2(0,0),
+		glm::vec2(1,0),
+		glm::vec2(1,1),
+		glm::vec2(0,1)
+	};
+
+	/*for (glm::vec2& v : previewTileVerts) { v += drawTileOffset; }
+	drawTile(previewTileVerts, previewTileTexCoords, glm::vec4(0, 1, 0, 1));*/
 }
 
 void TileManager::drawSetup() {
@@ -2196,15 +2670,15 @@ void TileManager::drawCleanup() {
 }
 
 void TileManager::cyclePreviewTileOrientation() {
-	switch (addTileRelativeOrientation) {
-	case RELATIVE_TILE_ORIENTATION_DOWN:
-		addTileRelativeOrientation = RELATIVE_TILE_ORIENTATION_FLAT;
+	switch (p_currentSelection->addTileRelativeOrientation) {
+	case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
+		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
 		return;
-	case RELATIVE_TILE_ORIENTATION_FLAT:
-		addTileRelativeOrientation = RELATIVE_TILE_ORIENTATION_UP;
+	case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
+		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
 		return;
 	default: /*RELATIVE_TILE_ORIENTATION_UP*/
-		addTileRelativeOrientation = RELATIVE_TILE_ORIENTATION_DOWN;
+		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 		return;
 	}
 }

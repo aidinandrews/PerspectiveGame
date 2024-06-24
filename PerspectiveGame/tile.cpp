@@ -87,7 +87,7 @@ glm::ivec3 Tile::getVertPos(int index) {
 		case 2: return maxVert - glm::ivec3(1, 1, 0);
 		case 3: return maxVert - glm::ivec3(1, 0, 0);
 		default: 
-			std::cout << "getVertPos() index out of scope!" << std::endl; 
+			std::cout << "getVertPos() index out of scope! index: " <<index<< std::endl; 
 			return glm::ivec3(0, 0, 0);
 		}
 	case TILE_TYPE_XZ:
@@ -96,7 +96,7 @@ glm::ivec3 Tile::getVertPos(int index) {
 		case 2: return maxVert - glm::ivec3(1, 0, 1);
 		case 3: return maxVert - glm::ivec3(0, 0, 1);
 		default: 
-			std::cout << "getVertPos() index out of scope!" << std::endl; 
+			std::cout << "getVertPos() index out of scope! index: " << index << std::endl;
 			return glm::ivec3(0, 0, 0);
 		}
 	case TILE_TYPE_YZ:
@@ -105,7 +105,7 @@ glm::ivec3 Tile::getVertPos(int index) {
 		case 2: return maxVert - glm::ivec3(0, 1, 1);
 		case 3: return maxVert - glm::ivec3(0, 1, 0);
 		default: 
-			std::cout << "getVertPos() index out of scope!" << std::endl; 
+			std::cout << "getVertPos() index out of scope! index: " << index << std::endl;
 			return glm::ivec3(0, 0, 0);
 		}
 	default:
@@ -219,6 +219,8 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 	entityOffset = tile->entity.offset;
 	entityDirection = tile->entity.direction;
 	entityOrientation = tile->entity.orientation;
+
+	tileSubType = (int)tile->type;
 
 	for (int i = 0; i < 4; i++) {
 		neighborIndices[i] = tile->sideInfos.connectedTiles[i]->index;
