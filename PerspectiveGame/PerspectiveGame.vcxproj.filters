@@ -141,6 +141,24 @@
     <ClInclude Include="currentSelection.h">
       <Filter>Source Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="playground.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="entityManager.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="forceManager.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="forceBlockManager.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="basisManager.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tileNavigation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -211,6 +229,18 @@
     </ClCompile>
     <ClCompile Include="vectorHelperFunctions.cpp">
       <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="entityManager.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="entity.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="forceManager.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="tileNavigation.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

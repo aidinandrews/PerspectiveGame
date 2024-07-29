@@ -23,35 +23,11 @@
 #include"shaderManager.h"
 #include"vertexManager.h"
 #include"frameBuffer.h"
-#include"building.h"
 #include"tile.h"
-#include"currentSelection.h"
 
 struct TileManager {
 
 public: // MEMBER STRUCTS:
-
-	// When a force block is placed down, it creates a ForcePropagator, which will propagate the force it creates into the tiles
-	// the block is facing toward.  This propogation spreads at 1 tile/tick, as to be visible and maniputate-able by the player.
-	struct ForcePropagator {
-		int tileIndex; // tile currently on.
-		int forceMagnitude;
-		int heading;
-
-		ForcePropagator(int index, int mag, int head) : tileIndex(index), forceMagnitude(mag), heading(head) {
-		}
-	};
-
-	// When a force block is destroyed or a line of force is impeded, the force propogated from that source needs to be destroyed
-	// as well.  The force eater travels along the line of force at 1 tile/tick and 'eats' the force in each tile, if it is headed
-	// in the same direction as the initially impeded force.
-	struct ForceEater {
-		int tileIndex;
-		int heading;
-
-		ForceEater(int index, int head) : tileIndex(index), heading(head) {
-		}
-	};
 
 public: // ENUMS:
 
@@ -62,8 +38,6 @@ public: // CONST MEMBER VARIABLES:
 	static const glm::vec2 INITIAL_FRUSTUM[3];
 	static const float DRAW_TILE_OPACITY_DECRIMENT_STEP;
 	static const int VERT_INFO_OFFSETS[4];
-	static const int DIR_TO_DIR_MAP[6][6][4];
-	static const int ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4];
 	static std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS;
 
 public: // DYNAMIC MEMBER VARIABLES:
@@ -75,7 +49,8 @@ public: // DYNAMIC MEMBER VARIABLES:
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
-	CurrentSelection* p_currentSelection;
+
+	float lastUpdateTime = 0;
 
 	// OpenGl stuff:
 	GLuint texID;
@@ -83,10 +58,9 @@ public: // DYNAMIC MEMBER VARIABLES:
 	std::vector<GLuint> indices;
 
 	std::vector<Tile *> tiles;
-	std::vector<Producer> producers;
+	/*std::vector<Producer> producers;
 	std::vector<Consumer> consumers;
-	std::vector<ForceBlock> forceBlocks;
-	std::vector<ForceSink> forceSinks;
+	std::vector<ForceSink> forceSinks;*/
 
 	float TOTAL_TIME = 0;
 
@@ -117,13 +91,48 @@ public: // DYNAMIC MEMBER VARIABLES:
 	GLuint tileInfosBufferID;
 	std::vector<TileGpuInfo> tileGpuInfos;
 
-	std::vector<ForcePropagator> forcePropagators;
-	std::vector<ForceEater> forceEaters;
+	std::vector<int> movedTiles;
+	std::vector<Tile*> entityLeaders;
 
 public: // INITIALIZERS:
 
-	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
-		Framebuffer* framebuffer, ButtonManager* bm, InputManager* im, CurrentSelection* cs);
+	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window, Framebuffer* framebuffer, ButtonManager* bm, InputManager* im) {
+
+		currentpovTileTransf = glm::mat4(1);
+		lastpovTileTransf = glm::mat4(1);
+		lerpCamPosOffset = glm::vec3(0);
+
+
+		p_camera = camera;
+		p_shaderManager = shaderManager;
+		p_window = window;
+		p_framebuffer = framebuffer;
+		p_buttonManager = bm;
+		p_inputManager = im;
+
+		// make sure the camera is in the middle of the starting draw tile:
+		p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
+
+		// by this point there should be two tiles in the scene:
+		createTilePair(Tile::Type::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.8));
+		povTile.tile = tiles[0];
+		povPos = glm::vec3(0.5f, 0.5f, 0.0f);
+		povTile.initialSideIndex = 0;
+		povTile.initialVertIndex = 0;
+		povTile.sideInfosOffset = 1;
+
+		//createEntity(tiles[0], Entity::Type::BUILDING_FORCE_BLOCK, Tile::Edge::UP);
+		//createForceBlock(2, Tile::Edge::RIGHT, 1);
+		//createProducer(0, Entity::Type::MATERIAL_A, true);
+		//createConsumer(1, true);
+		//createForceSink(2, false);
+
+
+
+		lastCamPosOffset = glm::vec3(0, 0, 0);
+
+		glGenBuffers(1, &tileInfosBufferID);
+	}
 
 	~TileManager();
 
@@ -131,48 +140,32 @@ public: // MEMBER FUNCTIONS:
 
 	void update();
 
-	// The hovered tile is the tile that the cursor is hovering over.  This function finds the index of that tile
-	// as well as which tile last 'connected' to it.  This connection is found by drawing a line from the current
-	// player position to the hovered tile, and the last edge that the line went through is the connection.
-	void findHoveredTile();
-	//
-	void findPreviewTile();
-
-	void tryEditWorld();
-
-	void updateEntity(Tile* t);
-
 	// Creates a producer which can create any entity and set it inside the tile it is inside.
-	bool createProducer(int tileIndex, Tile::Entity::Type producedEntityType, bool override);
+	/*bool createProducer(int tileIndex, Entity::Type producedEntityType, bool override);
 	void deleteProducer(Tile* tile);
-	void updateProducers();
+	void updateProducers();*/
 
 	// Creates a consumer which will destroy any entity at offset 0 inside the tile it is inside.
-	bool createConsumer(int tileIndex, bool override);
+	/*bool createConsumer(int tileIndex, bool override);
 	void deleteConsumer(Tile* tile);
-	void updateConsumers();
+	void updateConsumers();*/
 
-	bool createForceSink(int tileIndex, bool override);
-	void deleteForceSink(Tile* tile);
+	/*bool createForceSink(int tileIndex, bool override);
+	void deleteForceSink(Tile* tile);*/
 
-	bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
+	/*static bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
 	void deleteForceBlock(Tile* tile);
-	void updateForceBlocks();
-	// If a tile is deleted, the force projected from it must be removed, as the force block no longer has access (can 'see') the
-	// line of tiles leading away from the deleted tile.  This function removes all the now orphaned forces.
-	// If the removed line of force was previously blocking a or many lines of force, they need to be expanded.
-	// Because the exansion has to take place after the tile itself is deleted and its neighbors are reconnected, instead of 
-	// expanding the force lines immediately, a vector of the force lines that need expanding is returend in the form of indices
-	// to the tile array.
-	void removeForce(Tile* tile);
-	void propogateForce(Tile* tile);
-	void updateForces();
+	void updateForceBlocks();*/
 
-	void addBasis(Tile* tile, Tile::Basis::Type basisType);
-	void deleteBasis(Tile* tile);
-
-	void addEntity(Tile* tile, Tile::Entity::Type entityType);
+	/*void createEntity(Tile* tile, Entity::Type entityType, Tile::Edge entityOrientation);
 	void deleteEntity(Tile* tile);
+	void updateEntity(Tile* t);*/
+
+	/*void addLeader(Tile* tile);
+	void removeLeader(int leaderIndex);
+	bool tryAddFollower(Tile* tile);
+	void updateEntityLeader(Tile* t, int leaderIndex);
+	void demoteLeader(int entityLeaderIndex);*/
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();
@@ -186,19 +179,12 @@ public: // MEMBER FUNCTIONS:
 	glm::vec2 getRelativePovPosBottomRight(TileTarget & target);
 	glm::vec2 getRelativePovPosBottomLeft(TileTarget & target);
 
-	// Returns the direction that faces the 'same way' as the current direction when moving from one tile to another.
-	// This is trivial in cases where the tile types are the same, but less so when moving between tile of different type.
-	const static int transitionDirection(Tile::SubType residingTileType, Tile::SubType destinationTileType, int currentDirection) {
-		return DIR_TO_DIR_MAP[residingTileType][destinationTileType][currentDirection];
-	}
-
 	// The tiles are drawn one by one, and need to know when they are off screen.  This is 
 	// done by translating the edges of the window to scene coordinates, in this function.
 	void updateWindowFrustum();
 
 	void deleteTile(Tile *tile);
 	void deleteBuilding(Tile *tile);
-	void cyclePreviewTileOrientation();
 
 	// Because of space wrapping, there are times when going over a corner of a tile would actually rip or stretch
 	// an object in a way that is unacceptable.  These corners are 'unsafe' corners, and should not be traversable.
@@ -213,7 +199,7 @@ public: // MEMBER FUNCTIONS:
 
 	// Given a tile target wrapped around a tile, this function will 'move' the target to a neighboring tile, making
 	// sure to keep the initial vert/side info correct through the transition.
-	TileTarget adjustTileTarget(TileTarget  *currentTarget, int drawTileEdgeIndex);
+	static TileTarget adjustTileTarget(TileTarget  *currentTarget, int drawTileEdgeIndex);
 	
 	// It looks better if the camera tilts in such a way that when passing over the edge of a tile, the view
 	// rotates smoothly from looking down on one tile to the next.  This adjustment needs to be calculated here.

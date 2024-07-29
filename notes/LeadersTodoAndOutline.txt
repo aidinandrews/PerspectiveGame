@@ -1,0 +1,41 @@
+Leaders TODO
+
+How it works:
+
+leaders (may be) created/promoted when:
+	1) block is created (and promoted)
+	2) force is propagated (static block promoted)
+	3) block is moved (old left/right neighbors promoted)
+	4) block is destroyed (follower promoted)
+
+leaders (may be) destroyed/demoted when:
+	1) block is destroyed (and demoted first)
+	2) force is eaten (leader on eaten tile demoted)
+	3) block is moved (new left/right neighbors demoted)
+
+details:
+
+ON CREATE BLOCK:
+
+if new block tile has no force:
+|	new block = static
+|	return
+
+if has no neighbors in direction of force:
+|	new block = leader
+|	return
+
+if neighbor has no followers:
+|	neighbor follower = new block
+|	return
+
+if new block direction higher priority than follower direction
+|	neighbor follower = new block
+|	return
+else
+|	new block = static
+|	return
+
+
+	
+	

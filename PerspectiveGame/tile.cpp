@@ -8,6 +8,11 @@ Tile::Tile() {
 	sibling = nullptr;
 	this->maxVert = glm::ivec3(0, 0, 0);
 
+	for (int i = 0; i < 9; i++) {
+		entityIndices[i] = -1;
+	}
+	//entity = nullptr;
+
 	/*buildingType = BUILDING_TYPE_NONE;
 	buildingOrientation = Tile::Edge::UP;
 	entityType = ENTITY_TYPE_NONE;
@@ -15,7 +20,7 @@ Tile::Tile() {
 	entityOffset = 0.0f;*/
 }
 
-Tile::Tile(Tile::SubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), maxVert(maxVert) {
+Tile::Tile(TileSubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), maxVert(maxVert) {
 
 	glm::vec2 A(1, 1);
 	glm::vec2 B(1, 0);
@@ -31,10 +36,10 @@ Tile::Tile(Tile::SubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), m
 		sideInfos.texCoords[3] = D;
 		break;
 	case TILE_TYPE_XZ:
-		sideInfos.texCoords[0] = D;
-		sideInfos.texCoords[1] = C;
-		sideInfos.texCoords[2] = B;
-		sideInfos.texCoords[3] = A;
+		sideInfos.texCoords[3] = D;
+		sideInfos.texCoords[2] = C;
+		sideInfos.texCoords[1] = B;
+		sideInfos.texCoords[0] = A;
 		break;
 	default: /*TILE_TYPE_YZ*/
 		sideInfos.texCoords[0] = A;
@@ -42,6 +47,11 @@ Tile::Tile(Tile::SubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), m
 		sideInfos.texCoords[2] = C;
 		sideInfos.texCoords[3] = D;
 	}
+
+	for (int i = 0; i < 9; i++) {
+		entityIndices[i] = -1;
+	}
+	//entity = nullptr;
 
 	/*buildingType = BUILDING_TYPE_NONE;
 	buildingOrientation = Tile::Edge::UP;
@@ -130,20 +140,7 @@ glm::ivec3 Tile::getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3
 					  std::max(std::max(std::max(A.z, B.z), C.z), D.z));
 }
 
-float Tile::getVelocity() {
-	// See https://www.desmos.com/calculator/bnp7kfmsgv for function.  
-	// Built such that a velocity greater than 1 tile/tick is impossible.
-#define MAX_OFFSET 5
-	if (force.magnitude < entity.mass) {
-		return (force.magnitude / (2.0f * entity.mass)) * DeltaTime * MAX_OFFSET;
-	}
-	else {
-		return (1.0f - entity.mass / (2.0f * force.magnitude)) * DeltaTime * MAX_OFFSET;
-	}
-#undef MAX_OFFSET
-}
-
-Tile::Tile::Type Tile::superTileType(Tile::SubType subType) {
+Tile::Tile::Type Tile::superTileType(TileSubType subType) {
 	switch (subType) {
 	case TILE_TYPE_XY_FRONT: 
 		return TILE_TYPE_XY;
@@ -160,7 +157,7 @@ Tile::Tile::Type Tile::superTileType(Tile::SubType subType) {
 	}
 }
 
-Tile::SubType Tile::tileSubType(Tile::Type tileType, bool isFront) {
+TileSubType Tile::tileSubType(Tile::Type tileType, bool isFront) {
 	switch (tileType) {
 	case TILE_TYPE_XY:
 		if (isFront) 
@@ -182,7 +179,7 @@ Tile::SubType Tile::tileSubType(Tile::Type tileType, bool isFront) {
 	}
 }
 
-Tile::SubType Tile::inverseTileType(Tile::SubType type) {
+TileSubType Tile::inverseTileType(TileSubType type) {
 	switch (type) {
 	case TILE_TYPE_XY_FRONT: return TILE_TYPE_XY_BACK;
 	case TILE_TYPE_XY_BACK: return TILE_TYPE_XY_FRONT;
@@ -193,7 +190,7 @@ Tile::SubType Tile::inverseTileType(Tile::SubType type) {
 	}
 }
 
-Tile::TileRelation Tile::getRelation(Tile::SubType A, Tile::SubType B) {
+Tile::TileRelation Tile::getRelation(TileSubType A, TileSubType B) {
 	if (A == B) { return TILE_RELATION_FLAT; }
 	
 	switch (A) {
@@ -215,10 +212,15 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 	hasForce = (int)tile->force.magnitude > 0;
 	forceDirection = tile->force.direction;
 
-	entityType = (int)tile->entity.type;
-	entityOffset = tile->entity.offset;
-	entityDirection = tile->entity.direction;
-	entityOrientation = tile->entity.orientation;
+	entityEdge0Index = tile->entityIndices[0];
+	entityEdge1Index = tile->entityIndices[1];
+	entityEdge2Index = tile->entityIndices[2];
+	entityEdge3Index = tile->entityIndices[3];
+	entityEdge4Index = tile->entityIndices[4];
+	entityEdge5Index = tile->entityIndices[5];
+	entityEdge6Index = tile->entityIndices[6];
+	entityEdge7Index = tile->entityIndices[7];
+	entityEdge8Index = tile->entityIndices[8];
 
 	tileSubType = (int)tile->type;
 

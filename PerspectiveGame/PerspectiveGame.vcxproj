@@ -173,6 +173,7 @@
     <ClInclude Include="..\Libraries\include\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\Libraries\include\ImGui\imstb_truetype.h" />
     <ClInclude Include="app.h" />
+    <ClInclude Include="basisManager.h" />
     <ClInclude Include="Building.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="buttonManager.h" />
@@ -180,6 +181,9 @@
     <ClInclude Include="cameraManager.h" />
     <ClInclude Include="currentSelection.h" />
     <ClInclude Include="entity.h" />
+    <ClInclude Include="entityManager.h" />
+    <ClInclude Include="forceBlockManager.h" />
+    <ClInclude Include="forceManager.h" />
     <ClInclude Include="frameBuffer.h" />
     <ClInclude Include="glew.h" />
     <ClInclude Include="globalVariables.h" />
@@ -188,12 +192,14 @@
     <ClInclude Include="makeShapes.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="player.h" />
+    <ClInclude Include="playground.h" />
     <ClInclude Include="portal.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaderManager.h" />
     <ClInclude Include="textureManager.h" />
     <ClInclude Include="tile.h" />
     <ClInclude Include="tileManager.h" />
+    <ClInclude Include="tileNavigation.h" />
     <ClInclude Include="vectorHelperFunctions.h" />
     <ClInclude Include="vertexManager.h" />
     <ClInclude Include="windowManager.h" />
@@ -209,6 +215,9 @@
     <ClCompile Include="..\Libraries\include\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="building.cpp" />
     <ClCompile Include="cameraManager.cpp" />
+    <ClCompile Include="entity.cpp" />
+    <ClCompile Include="entityManager.cpp" />
+    <ClCompile Include="forceManager.cpp" />
     <ClCompile Include="frameBuffer.cpp" />
     <ClCompile Include="globalVariables.cpp" />
     <ClCompile Include="guiManager.cpp" />
@@ -219,6 +228,7 @@
     <ClCompile Include="textureManager.cpp" />
     <ClCompile Include="tile.cpp" />
     <ClCompile Include="tileManager.cpp" />
+    <ClCompile Include="tileNavigation.cpp" />
     <ClCompile Include="vectorHelperFunctions.cpp" />
     <ClCompile Include="vertexManager.cpp" />
     <ClCompile Include="windowManager.cpp" />

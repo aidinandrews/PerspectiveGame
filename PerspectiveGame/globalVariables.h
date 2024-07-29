@@ -9,6 +9,8 @@
 #include <math.h>
 #include <chrono>
 
+#define RUN_DEBUG true
+
 extern glm::ivec2 WindowSize;
 extern glm::ivec2 MonitorSize;
 extern glm::ivec2 WindowPos;
@@ -19,6 +21,7 @@ extern std::chrono::steady_clock::time_point ProgramStart;
 extern std::chrono::steady_clock::time_point FrameStart;
 extern float DeltaTime;
 extern float TimeSinceProgramStart;
+extern float UpdateTime;
 
 extern int PixelsPerGuiGridUnit;
 
@@ -30,6 +33,8 @@ extern float leftEdit;
 extern float rightEdit;
 extern float topEdit;
 extern float bottomEdit;
+
+extern bool CanEditSubWindows;
 
 inline void updateGlobalVariables(GLFWwindow* window) {
 	glfwGetWindowSize(window, &WindowSize.x, &WindowSize.y);

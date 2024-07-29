@@ -22,11 +22,16 @@
 #include <stb_image.h>
 #endif
 
+#include "globalVariables.h"
 #include "cameraManager.h"
 #include "shaderManager.h"
 #include "vertexManager.h"
 #include "frameBuffer.h"
-//#include "entity.h"
+#include "tileNavigation.h"
+
+enum ENTITYPOSTEST {
+
+};
 
 // Represents a square tile in 3D space.  Can be oriented such that it is parallel with one of the x, y, or z axes.  Tiles can connect to each other and shuffle items between them.
 struct Tile {
@@ -40,17 +45,6 @@ public: // ENUMS
 		TILE_TYPE_XY = 0,
 		TILE_TYPE_XZ = 1,
 		TILE_TYPE_YZ = 2,
-	};
-
-	// Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
-	// should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
-	enum SubType {
-		TILE_TYPE_XY_FRONT = 0,
-		TILE_TYPE_XY_BACK = 1,
-		TILE_TYPE_XZ_FRONT = 2,
-		TILE_TYPE_XZ_BACK = 3,
-		TILE_TYPE_YZ_FRONT = 4,
-		TILE_TYPE_YZ_BACK = 5,
 	};
 
 	// Inside each tile are four edges.  Each edge will be parallel to an axis of R3 (X, Y, or Z). 
@@ -73,26 +67,6 @@ public: // ENUMS
 		TILE_DIHEDRAL_270,
 	};
 
-	// Tiles exist in 3D space, and thus can be described with cartesian coordinates x, y, and z. 
-	// Thus, there are 6 primary directions: left, right, forward, back, up, and down. 
-	// Less relative are: x+, x-, y+, y-, z+, z-.  
-	// The latter is what has been used for a naming convention in this enum.
-	enum TileDirection {
-		TILE_DIR_X_POS,
-		TILE_DIR_X_NEG,
-		TILE_DIR_Y_POS,
-		TILE_DIR_Y_NEG,
-		TILE_DIR_Z_POS,
-		TILE_DIR_Z_NEG,
-	};
-
-	enum Edge {
-		RIGHT,
-		DOWN,
-		LEFT,
-		UP
-	};
-
 	enum TileRelation {
 		TILE_RELATION_FLAT,
 		TILE_RELATION_UP,
@@ -104,11 +78,6 @@ public: // ENUMS
 		BUILDING_TYPE_NONE,
 		BUILDING_TYPE_PRODUCER,
 		BUILDING_TYPE_CONSUMER,
-	};
-
-	enum EntityType {
-		ENTITY_TYPE_NONE,
-		ENTITY_TYPE_RED_CIRCLE,
 	};
 
 public: // STRUCTS
@@ -157,95 +126,11 @@ public: // STRUCTS
 
 		// Since there are only 4 directions force can be applied, 
 		// only two bits are needed to store the direction.
-		unsigned int direction : 2;
+		unsigned int direction;
 
 	public: // MEMBER FUNCTIONS:
 
 		Force() : magnitude(0), direction(0) {}
-	};
-
-	// Each tile has the ability to 'hold' one entity.  These entities can be shuffled between tiles.  Entities
-	// can be either simple materials that are processed by buildings/machines or the machines themselves.
-	// Entities are moved with the application of force (supplied by a force block which is another entity).
-	// Entities consume force on movement based on their mass.  Continuous movement does not obec Newton's II.
-	// Movement is quantized to 0, 1, 2, and 4 tiles/tick with 0, 1/4, 1/2, 3/4, and 1 tiles/sub tick moved.
-	// This allows for much more straight forward and mechanic-driven collisions.  Overall, tiles are the space
-	// and entities are the objects inside that space.
-	struct Entity {
-	public: // MEMBER ENUMS AND MEMBER STRUCTS:
-
-		// All objects can be moved, so buildings and materials
-		// both fall under the 'entity' struct.
-		enum Type {
-			NONE,
-
-			MATERIAL_OMNI,
-			MATERIAL_A,
-			MATERIAL_B,
-
-			BUILDING_COMPRESSOR,
-			BUILDING_FORCE_BLOCK,
-			BUILDING_FORCE_MIRROR,
-		};
-
-	public: // MEMBER VARIABLES:
-
-		Type type;
-
-		// This flag will help when updating entities.  On creation, all entities start static.  If the tile's 
-		// force changes from 0 -> non-0, the entity inside the tile must check if it can move to the next tile.
-		// If it can, isStatic is set to false and it is moved.  After it is moved, the tile in the opposite 
-		// direction of movement must be updated (this is to make sure lines of entities move at once on update).
-		// All dynamic entities (entites that had an 'open' tile in their direction of movement and enough force
-		// to move last update) will be swept through on an update, and if they can move again, their dynamic status
-		// will be propogated backwards.  This makes sure that only the entities that could possibly be moving are
-		// updated, letting the total updated entity count fall below the total entity count in most cases.
-		bool isStatic;
-
-		// Max velocity is 1 tile/tick, meaning max speed is 60 tiles/sec @ 60 FPS.
-		float velocity;
-
-		// Offset is how far away an entity is from the center of the tile.
-		// It follows that max offset is 1, as more would make the entity need to move to a different tile.
-		float offset;
-
-		// Entities can move, so they need a movement direction.  There are only 4 
-		// possible directions of movement, so all directions can be represented 
-		// by 2 bits.  This direction is relative to the tileType, so comparing 
-		// directions of entities onside tiles of different tileTypes will require 
-		// a conversion function.
-		unsigned int direction : 2;
-
-		// Material entities do not need orientation but building entities need
-		// them for rendering correctly.
-		unsigned int orientation : 2;
-
-		// Force blocks let tiles give force to entities, and this given force is 
-		// kept track of this this variable.  Force is consumed on movement, so 
-		// this variable will be incremented by force tiles and decremented by 
-		// entity movement.  Max value is 3 * mass as velocity of 4 tiles/tick is 
-		// max velocity.
-		int storedForce;
-
-		// Entities have mass.  This mass determines how much force is required 
-		// for them to move.  Each tick, each entity will consume an amount of 
-		// storedForce equal to n times its mass, allowing the entity to move k 
-		// tiles between ticks.
-		int mass;
-
-		// Opacity is used on creation/destruction of objects (and maybe 2D 
-		// lighting simulation if I get to that).  On creation, an entity will 
-		// slowly increase its opacity until fully opaque.  On destruction, an 
-		// entuty will slowly decrease its opacity until full transparent, then 
-		// delete itself.  This transition is for visual purposes as popping in 
-		// and out of existance looks bad.
-		float opacity;
-
-	public: // MEMBER FUNCTIONS
-
-		Entity() : type(NONE), isStatic(true), velocity(0), offset(0), 
-			direction(0), orientation(0), storedForce(0), mass(0), opacity(0) 
-		{}
 	};
 
 	// Each tile can have an underlying ans immoveable (basis) structure if necessary for its action.
@@ -268,7 +153,7 @@ public: // STRUCTS
 	public: // MEMBER VARIABLES:
 
 		Type type;
-		unsigned int orientation : 2;
+		unsigned int orientation;
 
 	public: // MEMBER FUNCTIONS:
 
@@ -276,13 +161,15 @@ public: // STRUCTS
 	};
 
 public: // MEMBER VARIABLES:
-
 	int index = 0;
 	Tile *sibling;
 
-	SubType type;
+	TileSubType type;
 	Force force;
-	Entity entity;
+
+	int entityIndices[9];
+	uint16_t entityObstructionMap = 0;
+
 	Basis basis;
 
 	SideInfos sideInfos;
@@ -295,15 +182,32 @@ public: // MEMBER VARIABLES:
 	// Colors the tile a certain color/pattern.	
 	glm::fvec3 color;
 
+private:
+	// This array maps the orientation/direction info of entities/forces/bases when moving from one tile to another.
+	// The simple case (moving from an XYF -> XYF) is easy (side n -> side n), but mapping differing tile types is more 
+	// difficult!  Hopefully this array will mean lightnig fast queries when moving entities/forces between tiles.
+	// Entries 0 - 3 represent sides, -1 represents a movement that should not be possible.  i.e. moving from an XYF 
+	// side 0 -> XZF tile.  Impossible movements are defined as 'X' so things look a little nicer.
+	// Input Key:
+	// [Current Tile Type][Destination Tile Type][Exiting side][Current Orientation]
+	static const LocalDirection ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4];
+
+	// Given a local direction relative to a tile, will return it's global direction relative to 3D euclidean coordinates:
+	static const GlobalDirection LOCAL_DIR_TO_GLOBAL_DIR[6][4];
+
 public: // MEMBER FUNCTIONS:
 
 	Tile();
 
 	// Tile initializer.
-	// - Tile::SubType: One of three Tile::Types (XY, XZ, YZ) and two directions (FRONT/BACK) -> 6 options.
+	// - TileSubType: One of three Tile::Types (XY, XZ, YZ) and two directions (FRONT/BACK) -> 6 options.
 	// - maxPoint: Vertex with the largest cartesian coordinates.  Other vertices will be defined through it.
 	//			   This vertex will always be in pos[0].
-	Tile(Tile::SubType tileSubType, glm::ivec3 maxVert);
+	Tile(TileSubType tileSubType, glm::ivec3 maxVert);
+
+	~Tile() {
+		//delete entity;
+	}
 
 	// Returns the normal of the tile.
 	glm::ivec3 normal();
@@ -314,9 +218,20 @@ public: // MEMBER FUNCTIONS:
 
 	glm::ivec3 getVertPos(int index);
 
-	float getVelocity();
+	static LocalDirection oppositeDirection(LocalDirection currentDirection) { return LocalDirection((int)currentDirection + 2 % 4); }
 
-	bool hasEntity() { return entity.type != Entity::Type::NONE; }
+	bool hasForce() { return force.magnitude != 0; }
+	bool hasNoForce() { return !hasForce(); }
+
+	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
+
+	bool isObstructed(LocalPosition position) {
+		return entityObstructionMap & ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[position];
+	}
+
+	bool hasBasis() { return basis.type != Tile::Basis::Type::NONE; }
+
+	Tile* getNeighbor(int sideIndex) { return sideInfos.connectedTiles[sideIndex]; }
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
 	static Tile::Type getTileType(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);
@@ -325,15 +240,21 @@ public: // MEMBER FUNCTIONS:
 	// Meant for use finding the maxVert of four vertices that will make up a tile.
 	static glm::ivec3 getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);
 	
-	// Converts a Tile::SubType to a Tile::Type.
-	static Tile::Type superTileType(Tile::SubType subType);
+	// Converts a TileSubType to a Tile::Type.
+	static Tile::Type superTileType(TileSubType subType);
 
-	// Converts a Tile::Type to a Tile::SubType.
-	static Tile::SubType tileSubType(Tile::Type tileType, bool isFront);
+	// Converts a Tile::Type to a TileSubType.
+	static TileSubType tileSubType(Tile::Type tileType, bool isFront);
 
-	// Returns the 'opposite' Tile::SubType.  Front gets changed to back.
+	// Returns the 'opposite' TileSubType.  Front gets changed to back.
 	// Ex: TILE_SUB_TYPE_XY_FRONT -> TILE_SUB_TYPE_XY_BACK
-	static Tile::SubType inverseTileType(Tile::SubType type);
+	static TileSubType inverseTileType(TileSubType type);
+
+	// True if tile faces 'frontwards,' false if tile faces 'backwards.'
+	bool isFrontFacing() { return type % 2 == 0; }
+
+	// Returns the connected tile in the direction of neighborTileIndex:
+	Tile* neighbor(int neighborIndex) { return sideInfos.connectedTiles[neighborIndex]; }
 
 	// Given two tiles, will return the 'relationship' between both.
 	// 
@@ -348,7 +269,9 @@ public: // MEMBER FUNCTIONS:
 	//     TILE_RELATION_UP      == 90 degrees 
 	//     TILE_RELATION_DOWN    == 270 degrees 
 	//     TILE_RELATION_FLIPPED == 360 degrees
-	static Tile::TileRelation getRelation(Tile::SubType A, Tile::SubType B);
+	static Tile::TileRelation getRelation(TileSubType A, TileSubType B);
+
+	static const int oppositeLocalDirection(int direction) { return (direction + 2) % 4; }
 };
 
 // This struct acts as a wrapper for a tile, giving it more information that is useful when
@@ -423,10 +346,15 @@ struct TileGpuInfo {
 	alignas(4) int hasForce;
 	alignas(4) int forceDirection;
 
-	alignas(4) int entityType;
-	alignas(4) float entityOffset;
-	alignas(4) int entityDirection;
-	alignas(4) int entityOrientation;
+	alignas(4) int entityEdge0Index;
+	alignas(4) int entityEdge1Index;
+	alignas(4) int entityEdge2Index;
+	alignas(4) int entityEdge3Index;
+	alignas(4) int entityEdge4Index;
+	alignas(4) int entityEdge5Index;
+	alignas(4) int entityEdge6Index;
+	alignas(4) int entityEdge7Index;
+	alignas(4) int entityEdge8Index;
 
 	alignas(4) int tileSubType;
 

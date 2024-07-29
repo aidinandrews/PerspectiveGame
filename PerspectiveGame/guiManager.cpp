@@ -131,6 +131,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		ImGui::Checkbox("edit tiles", &p_currentSelection->canEditTiles);
 		ImGui::Checkbox("edit bases", &p_currentSelection->canEditBases);
 		ImGui::Checkbox("edit entities", &p_currentSelection->canEditEntities);
+		ImGui::Checkbox("edit sub-windows", &CanEditSubWindows);
 
 		const char* basisLabels[] = { 
 			"NONE",
@@ -142,7 +143,6 @@ void GuiManager::renderImGuiDebugWindows() {
 		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
 		p_currentSelection->heldBasis.type = Tile::Basis::Type(heldBasisIndex);
 
-		
 		const char* entityLabels[] = { 
 			"NONE",
 
@@ -156,7 +156,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldEntityIndex = 5;
 		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
-		p_currentSelection->heldEntity.type = Tile::Entity::Type(heldEntityIndex);
+		p_currentSelection->heldEntity.type = Entity::Type(heldEntityIndex);
 		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->addTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)
@@ -392,6 +392,9 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 
 	GLuint deltaTimeID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "deltaTime");
 	glUniform1f(deltaTimeID, TimeSinceProgramStart);
+
+	GLuint updateProgressID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "updateProgress");
+	glUniform1f(updateProgressID, float(TimeSinceProgramStart - p_tileManager->lastUpdateTime) / UpdateTime);
 
 	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
 	glUniform1i(initialTileIndexID, p_tileManager->povTile.tile->index);

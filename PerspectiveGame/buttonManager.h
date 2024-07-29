@@ -185,7 +185,10 @@ public:
 			targetButtonArea = BUTTON_AREA_OUTSIDE;
 		}
 		if (findTargetButton() == false) { return; }
-		adjustTargetButtonSize();
+
+		if (CanEditSubWindows) {
+			adjustTargetButtonSize();
+		}
 	}
 
 	void renderButton(Button &button, GLuint texId) {

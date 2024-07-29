@@ -18,360 +18,6 @@ std::vector<glm::vec2> TileManager::INITIAL_DRAW_TILE_VERTS = {
 	   glm::vec2(1, 1), glm::vec2(1, 0), glm::vec2(0, 0), glm::vec2(0, 1),
 };
 
-// This array maps the direction info of entities/forces when moving from one tile to another.
-// The simple case (moving from an XYF -> XYF) is easy (side n -> side n), but mapping differing tile types is more difficult.
-// Hopefully this array will mean lightnig fast queries when moving entities/forces between tiles.
-// Entries 0 - 3 represent sides, -1 represents a movement that should not be possible.  i.e. moving from an XYF side 0 -> XZF tile.
-// Impossible movements are defined as 'X' so things look a little nicer.
-// 
-// Input Key:
-// [Current Tile Type][Destination Tile Type][Exiting side]
-const int TileManager::DIR_TO_DIR_MAP[6][6][4] = {
-#define X -1
-	{ // Current Tile = XYF
-		{ 0, 1, 2, 3 }, // Destination Tile = XYF
-		{ 2, 3, 0, 1 }, // Destination Tile = XYB
-		{ X, 0, X, 2 }, // Destination Tile = XZF
-		{ X, 2, X, 0 }, // Destination Tile = XZB
-		{ 1, X, 3, X },	// Destination Tile = YZF
-		{ 3, X, 1, X }	// Destination Tile = YZB
-	},
-	{ // Current Tile = XYB
-		{ 2, 3, 0, 1 }, // Destination Tile = XYF
-		{ 0, 1, 2, 3 },	// Destination Tile = XYB
-		{ X, 2, X, 0 }, // Destination Tile = XZF
-		{ X, 0, X, 2 },	// Destination Tile = XZB
-		{ 3, X, 1, X },	// Destination Tile = YZF
-		{ 1, X, 3, X }	// Destination Tile = YZB
-	},
-	{ // Current Tile = XZF
-		{ 1, X, 3, X }, // Destination Tile = XYF
-		{ 3, X, 1, X },	// Destination Tile = XYB
-		{ 0, 1, 2, 3 },	// Destination Tile = XZF
-		{ 2, 3, 0, 1 },	// Destination Tile = XZB
-		{ X, 0, X, 2 },	// Destination Tile = YZF
-		{ X, 2, X, 0 }	// Destination Tile = YZB
-	},
-	{ // Current Tile = XZB
-		{ 3, X, 1, X }, // Destination Tile = XYF
-		{ 1, X, 3, X },	// Destination Tile = XYB
-		{ 2, 3, 0, 1 },	// Destination Tile = XZF
-		{ 0, 1, 2, 3 },	// Destination Tile = XZB
-		{ X, 2, X, 0 },	// Destination Tile = YZF
-		{ X, 0, X, 2 }	// Destination Tile = YZB
-	},
-	{ // Current Tile = YZF
-		{ X, 0, X, 2 }, // Destination Tile = XYF
-		{ X, 2, X, 0 },	// Destination Tile = XYB
-		{ 1, X, 3, X },	// Destination Tile = XZF
-		{ 3, X, 1, X },	// Destination Tile = XZB
-		{ 0, 1, 2, 3 },	// Destination Tile = YZF
-		{ 2, 3, 0, 1 }	// Destination Tile = YZB
-	},
-	{ // Current Tile = YZB
-		{ X, 2, X, 0 }, // Destination Tile = XYF
-		{ X, 0, X, 2 },	// Destination Tile = XYB
-		{ 1, X, 3, X },	// Destination Tile = XZF
-		{ 3, X, 1, X },	// Destination Tile = XZB
-		{ 2, 3, 0, 1 },	// Destination Tile = YZF
-		{ 0, 1, 2, 3 }	// Destination Tile = YZB
-	},
-#undef X
-};
-
-// Input Key:
-// [Current Tile Type][Destination Tile Type][Exiting side][Current Orientation]
-const int TileManager::ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4] = {
-#define X -1
-	{ // Current Tile = XYF
-		{ // Destination Tile = XYF
-			{ 0, 1, 2, 3 }, // Exiting Side 0
-			{ 0, 1, 2, 3 }, // Exiting Side 1
-			{ 0, 1, 2, 3 }, // Exiting Side 2
-			{ 0, 1, 2, 3 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		}
-	},
-	{ // Current Tile = XYB
-		{ // Destination Tile = XYF
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ 0, 1, 2, 3 }, // Exiting Side 0
-			{ 0, 1, 2, 3 }, // Exiting Side 1
-			{ 0, 1, 2, 3 }, // Exiting Side 2
-			{ 0, 1, 2, 3 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		}
-	},
-	{ // Current Tile = XZF
-		{ // Destination Tile = XYF
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ 0, 1, 2, 3 }, // Exiting Side 0
-			{ 0, 1, 2, 3 }, // Exiting Side 1
-			{ 0, 1, 2, 3 }, // Exiting Side 2
-			{ 0, 1, 2, 3 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		}
-	},
-	{ // Current Tile = XZB
-		{ // Destination Tile = XYF
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ 0, 1, 2, 3 }, // Exiting Side 0
-			{ 0, 1, 2, 3 }, // Exiting Side 1
-			{ 0, 1, 2, 3 }, // Exiting Side 2
-			{ 0, 1, 2, 3 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		}
-	},
-	{ // Current Tile = YZF
-		{ // Destination Tile = XYF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ 0, 1, 2, 3 }, // Exiting Side 0
-			{ 0, 1, 2, 3 }, // Exiting Side 1
-			{ 0, 1, 2, 3 }, // Exiting Side 2
-			{ 0, 1, 2, 3 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		}
-	},
-	{ // Current Tile = YZB
-		{ // Destination Tile = XYF
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 2, 1, 0 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 2, 1, 0 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XYB
-			{ X, X, X, X }, // Exiting Side 0
-			{ 3, 0, 1, 2 }, // Exiting Side 1
-			{ X, X, X, X }, // Exiting Side 2
-			{ 3, 0, 1, 2 }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZF
-			{ 3, 2, 1, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 3, 2, 1, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = XZB
-			{ 1, 2, 3, 0 }, // Exiting Side 0
-			{ X, X, X, X }, // Exiting Side 1
-			{ 1, 2, 3, 0 }, // Exiting Side 2
-			{ X, X, X, X }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZF
-			{ 2, 1, 0, 3 }, // Exiting Side 0
-			{ 0, 3, 2, 1 }, // Exiting Side 1
-			{ 2, 1, 0, 3 }, // Exiting Side 2
-			{ 0, 3, 2, 1 }  // Exiting Side 3
-		},
-		{ // Destination Tile = YZB
-			{ 1, 2, 3, 4 }, // Exiting Side 0
-			{ 1, 2, 3, 4 }, // Exiting Side 1
-			{ 1, 2, 3, 4 }, // Exiting Side 2
-			{ 1, 2, 3, 4 }  // Exiting Side 3
-		}
-	},
-#undef X
-};
-
-TileManager::TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window,
-	Framebuffer* framebuffer, ButtonManager* bm, InputManager* im, CurrentSelection* cs)
-	: p_camera(camera), p_shaderManager(shaderManager), p_window(window), p_framebuffer(framebuffer),
-	p_buttonManager(bm), p_inputManager(im), p_currentSelection(cs) {
-
-	// make sure the camera is in the middle of the starting draw tile:
-	p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
-
-	// This is the initial two tiles that must exist for the player to even move around at all:
-	for (int w = 0; w < 4; w++) {
-		for (int h = 0; h < 4; h++) {
-			createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-		}
-	}
-	
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 3, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(1, 4, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(0, 2, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	//createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(2, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-
-	/*createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_XZ, glm::ivec3(1, 1, 0), glm::vec3(1, 1, 1), glm::vec3(0.5, 0.5, 0.5));
-
-	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 2, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(1, 3, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-	*///createTilePair(Tile::TILE_TYPE_YZ, glm::ivec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-
-	// by this point there should be two tiles in the scene:
-	povTile.tile = tiles[0];
-	povPos = glm::vec3(0.5f, 0.5f, 0.0f);
-	povTile.initialSideIndex = 0;
-	povTile.initialVertIndex = 0;
-	povTile.sideInfosOffset = 1;
-
-	//tiles[1]->basis.type = Tile::Basis::Type::DISPERCER;
-	//tiles[6]->basis.type = Tile::Basis::Type::DISPERCER;
-	createForceBlock(0, Tile::Edge::UP, 1);
-	createForceBlock(2, Tile::Edge::RIGHT, 1);
-	//createProducer(2, Tile::Entity::Type::MATERIAL_A, true);
-	//createConsumer(3, true);
-	//createForceSink(2, false);
-
-	p_currentSelection->tryingToAddTile = false;
-	p_currentSelection->tryingToAddTile = true; // TESTING, TEMP!
-
-	lastCamPosOffset = glm::vec3(0, 0, 0);
-
-	glGenBuffers(1, &tileInfosBufferID);
-
-	p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
-
-	p_currentSelection->addTileColor = glm::vec3(1, 0, 0);
-}
-
 TileManager::~TileManager() {
 	// Make sure to free all the allocated tiles:
 	for (Tile* p : tiles) {
@@ -411,16 +57,16 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 
 	switch (tileType) {
 	case Tile::TILE_TYPE_XY:
-		frontTile->type = Tile::TILE_TYPE_XY_FRONT;
-		backTile->type = Tile::TILE_TYPE_XY_BACK;
+		frontTile->type = TileSubType::TILE_TYPE_XY_FRONT;
+		backTile->type = TileSubType::TILE_TYPE_XY_BACK;
 		break;
 	case Tile::TILE_TYPE_XZ:
-		frontTile->type = Tile::TILE_TYPE_XZ_FRONT;
-		backTile->type = Tile::TILE_TYPE_XZ_BACK;
+		frontTile->type = TileSubType::TILE_TYPE_XZ_FRONT;
+		backTile->type = TileSubType::TILE_TYPE_XZ_BACK;
 		break;
 	case Tile::TILE_TYPE_YZ:
-		frontTile->type = Tile::TILE_TYPE_YZ_FRONT;
-		backTile->type = Tile::TILE_TYPE_YZ_BACK;
+		frontTile->type = TileSubType::TILE_TYPE_YZ_FRONT;
+		backTile->type = TileSubType::TILE_TYPE_YZ_BACK;
 		break;
 	}
 
@@ -457,10 +103,6 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 	tiles.push_back(frontTile);
 	tiles.push_back(backTile);
 
-	//std::cout << frontTile->sideInfos[0].connection.tile << std::endl;
-	//std::cout << frontTile->sideInfos[1].connection.tile << std::endl;
-	//std::cout << frontTile->sideInfos[2].connection.tile << std::endl;
-	//std::cout << frontTile->sideInfos[3].connection.tile << std::endl;
 	tileGpuInfos.push_back(TileGpuInfo(frontTile));
 	tileGpuInfos.push_back(TileGpuInfo(backTile));
 
@@ -473,184 +115,185 @@ void TileManager::connectUpNewTile(Tile* subjectTile) {
 	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
 	// so each edge (connectableTiles[X][]) gets a list of the types of tiles it can connect to 
 	// (connectableTiles[][X]).
-	Tile::SubType connectableTilesSubType[4][3];
+	TileSubType connectableTilesSubType[4][3];
 	glm::ivec3 connectableTilesMaxPoint[4][3]; // tile.sideInfos[0].pos is always the max vert.
 	const int SIDE_A = 0, SIDE_B = 1, SIDE_C = 2, SIDE_D = 3;
 	glm::ivec3 subjectTileMaxPoint = subjectTile->maxVert;
+	
 	// Big honkin' list of all the possible tiles that can connect to this tile, depending on what tile sub 
 	// type this new tile is.  Index into it to get the exact position that the connected tile's 1st vertex 
 	// (max vertex) must have to actually be connected to it.
 	switch (subjectTile->type) {
-	case Tile::TILE_TYPE_XY_FRONT:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_YZ_BACK;
+	case TileSubType::TILE_TYPE_XY_FRONT:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		break;
-	case Tile::TILE_TYPE_XY_BACK:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_YZ_BACK;
+	case TileSubType::TILE_TYPE_XY_BACK:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 1);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 1);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		break;
-	case Tile::TILE_TYPE_XZ_FRONT:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_XY_BACK;
+	case TileSubType::TILE_TYPE_XZ_FRONT:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(-1, 1, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, 1, -1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		break;
-	case Tile::TILE_TYPE_XZ_BACK:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_XY_BACK;
+	case TileSubType::TILE_TYPE_XZ_BACK:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(-1, 1, 0);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, 1, -1);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZ_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		break;
-	case Tile::TILE_TYPE_YZ_FRONT:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_XZ_BACK;
+	case TileSubType::TILE_TYPE_YZ_FRONT:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(1, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(1, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZ_FRONT;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		break;
-	case Tile::TILE_TYPE_YZ_BACK:
-		connectableTilesSubType[SIDE_A][0] = Tile::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_A][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = Tile::TILE_TYPE_XZ_BACK;
+	case TileSubType::TILE_TYPE_YZ_BACK:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = Tile::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_B][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(1, 0, -1);
 
-		connectableTilesSubType[SIDE_C][0] = Tile::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_C][1] = Tile::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = Tile::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZ_FRONT;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZ_BACK;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(1, -1, 0);
 
-		connectableTilesSubType[SIDE_D][0] = Tile::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_D][1] = Tile::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][2] = Tile::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XY_FRONT;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XY_BACK;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
@@ -680,8 +323,8 @@ void TileManager::connectUpNewTile(Tile* subjectTile) {
 // TILE_TYPE_XY_BACK  = 1,
 // TILE_TYPE_XZ_FRONT = 2,
 // TILE_TYPE_XZ_BACK  = 3,
-// TILE_TYPE_YZ_FRONT = 4,
-// TILE_TYPE_YZ_BACK  = 5,
+// TileSubType::TILE_TYPE_YZ_FRONT = 4,
+// TileSubType::TILE_TYPE_YZ_BACK  = 5,
 const int TILE_VISIBILITY[6][4][6] = {
 	{ // TILE_TYPE_XY_FRONT:
 		{ // SIDE A (SideInfo index 0 -> 1):
@@ -739,7 +382,7 @@ const int TILE_VISIBILITY[6][4][6] = {
 			0, 0, 1, 3, 2, 4, // <- Levels of visibility
 		},
 	},
-	{ // TILE_TYPE_YZ_FRONT:
+	{ // TileSubType::TILE_TYPE_YZ_FRONT:
 		{ // SIDE A (SideInfo index 0 -> 1):
 			0, 0, 2, 4, 3, 1, // <- Levels of visibility
 		},
@@ -753,7 +396,7 @@ const int TILE_VISIBILITY[6][4][6] = {
 			2, 4, 0, 0, 3, 1, // <- Levels of visibility
 		},
 	},
-	{ // TILE_TYPE_YZ_BACK:
+	{ // TileSubType::TILE_TYPE_YZ_BACK:
 		{ // SIDE A (SideInfo index 0 -> 1):
 			0, 0, 2, 4, 1, 3, // <- Levels of visibility
 		},
@@ -775,7 +418,7 @@ const int TILE_VISIBILITY[6][4][6] = {
 // connection visibility will be queried.  
 // *Note that the index follows Tile (not DrawTile) ordering.
 const int tileVisibility(Tile* tile, int sideIndex) {
-	Tile::SubType connectionTileType = tile->sideInfos.connectedTiles[sideIndex]->type;
+	TileSubType connectionTileType = tile->sideInfos.connectedTiles[sideIndex]->type;
 	return TILE_VISIBILITY[tile->type][sideIndex][connectionTileType];
 }
 
@@ -784,7 +427,7 @@ const int tileVisibility(Tile* tile, int sideIndex) {
 // the one with the higher visibility will win out.  subjectType/subjectSideIndex corrospond
 // to one tile, and otherType is the tile type of the other tile being connected to subject.
 // *Note that the index follows Tile (not DrawTile) ordering.
-const int tileVisibility(Tile::SubType subjectType, int subjectSideIndex, Tile::SubType otherType) {
+const int tileVisibility(TileSubType subjectType, int subjectSideIndex, TileSubType otherType) {
 	return TILE_VISIBILITY[subjectType][subjectSideIndex][otherType];
 }
 
@@ -1057,12 +700,12 @@ void TileManager::update3dRotationAdj() {
 		- povTile.tile->getVertPos(povTile.vertIndex(1));
 	glm::mat4 rotate(1);
 	switch (povTile.tile->type) {
-	case Tile::TILE_TYPE_XY_FRONT: rotate = glm::mat4(1); break;
-	case Tile::TILE_TYPE_XY_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 1, 0)); break;
-	case Tile::TILE_TYPE_XZ_FRONT: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
-	case Tile::TILE_TYPE_XZ_BACK: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
-	case Tile::TILE_TYPE_YZ_FRONT: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
-	case Tile::TILE_TYPE_YZ_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_XY_FRONT: rotate = glm::mat4(1); break;
+	case TileSubType::TILE_TYPE_XY_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_XZ_FRONT: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
+	case TileSubType::TILE_TYPE_XZ_BACK: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
+	case TileSubType::TILE_TYPE_YZ_FRONT: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_YZ_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
 	default: std::cout << "updatePovTile tile type enum out of scope!" << std::endl;
 	}
 
@@ -1161,14 +804,17 @@ void TileManager::deleteBuilding(Tile* tile) {
 	// tile itsef, which is being deleted anyway.  Some entities are buildings though and have vectors of structs
 	// corrosponding to them.  Those we have to find and delete so they are no longer referencing a tile that 
 	// doesn't exist.
-	switch (tile->entity.type) {
-	case Tile::Entity::Type::BUILDING_COMPRESSOR:
+	/*if (tile->hasEntity() == false) {
+		return;
+	}
+	switch (tile->entity->type) {
+	case Entity::Type::BUILDING_COMPRESSOR:
 
 		break;
-	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
+	case Entity::Type::BUILDING_FORCE_BLOCK:
 
 		break;
-	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
+	case Entity::Type::BUILDING_FORCE_MIRROR:
 
 		break;
 	}
@@ -1190,16 +836,10 @@ void TileManager::deleteBuilding(Tile* tile) {
 			}
 		}
 		break;
-	}
+	}*/
 }
 
-void TileManager::removeForce(Tile* tile) {
 
-}
-
-void TileManager::propogateForce(Tile* tile) {
-
-}
 
 void TileManager::deleteTile(Tile* tile) {
 	// Stuff will break if you delete the tile you are on.  Don't do that:
@@ -1215,8 +855,6 @@ void TileManager::deleteTile(Tile* tile) {
 
 	deleteBuilding(tile);
 	deleteBuilding(sibling);
-	propogateForce(tile);
-	propogateForce(sibling);
 
 	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
 	Tile* connectedTiles[8];
@@ -1252,22 +890,6 @@ void TileManager::deleteTile(Tile* tile) {
 	delete sibling;
 }
 
-// Given two connected tiles, the coordinate systems used to designate the direction/orientations of entities 
-// in both tiles may differ!  The number designating 'up' in one tile may not be the same number designating
-// 'up' in the other.  This is due to the fact that tiles are oriented differently in 3D space, so there is
-// no way (that I know of) to have up/down/left/right designate the same directions in all tile sub-types.
-// Luckily, we can find the new direction easily enough with this function.  Given the tile we start on
-// (initialTile), and the direction we want to go from that tile (intitalDirection), we can find an offset
-// that cause the direction in the new tile to 'match' the old direction (directionToAdjust).
-int adjustToLocalDirectionOffset(Tile* initialTile, int initialDirection) {
-	int orientationOffset = initialDirection 
-		- (initialTile->sideInfos.connectedSideIndices[initialDirection] + 2) % 4;
-	if (orientationOffset < 0) {
-		orientationOffset *= -3;
-	}
-	return orientationOffset;
-}
-
 // If going from one tile to another, the direction headed could change, as the orientation of the tiles
 // themselves have also changed, so in order for the direction to remain constant form one coordinate space to
 // the next, it may have to be altered.  This function does that.  Given a tile and a direction from that tile,
@@ -1285,480 +907,35 @@ int inverseDirection(int dir) {
 }
 
 void TileManager::update() {
-
-	findHoveredTile();
-	findPreviewTile();
-	p_currentSelection->update();
-	tryEditWorld();
-
 	collisionDetectUnsafeCorners();
 	updatePovTileTarget();
 	update3dRotationAdj();
 	updateWindowFrustum();
+
 	verts.clear();
 	indices.clear();
 
 	drawnTiles = 0;
 	TOTAL_TIME = 0;
-
-	updateProducers();
-	updateConsumers();
 	
-	if (NumFrames % 10 == 0)
-		updateForces();
+	if ((TimeSinceProgramStart - lastUpdateTime) > UpdateTime) {
+		lastUpdateTime = TimeSinceProgramStart;
 
-	for (Tile* t : tiles) {
-		updateEntity(t);
+		for (int i : movedTiles) {
+			//tiles[i]->hadEntity = false;
+		}
+		movedTiles.clear();
+		/*for (Tile* t : tiles) {
+			updateEntity(t);
+		}*/
+
+		/*updateEntities();
+		updateConsumers();
+		updateProducers();*/
 	}
-
+	
 	updateTileGpuInfoIndices();
 	getRelativePovPosGpuInfos();
-}
-
-void TileManager::tryEditWorld() {
-	if (p_currentSelection->canEditTiles) {
-		if (p_inputManager->leftMouseButtonPressed()) {
-			createTilePair(
-				Tile::superTileType(p_currentSelection->addTile.type),
-				p_currentSelection->addTile.maxVert,
-				p_currentSelection->addTileColor,
-				p_currentSelection->addTileColor * 0.5f);
-		}
-		else if (p_inputManager->rightMouseButtonClicked()) {
-			deleteTile(p_currentSelection->hoveredTile);
-		}
-	}
-	else if (p_currentSelection->canEditBases) {
-		if (p_inputManager->leftMouseButtonPressed()) {
-			addBasis(p_currentSelection->hoveredTile, p_currentSelection->heldBasis.type);
-		}
-		else if (p_inputManager->rightMouseButtonClicked()) {
-			deleteBasis(p_currentSelection->hoveredTile);
-		}
-	}
-	else if (p_currentSelection->canEditEntities) {
-		if (p_inputManager->leftMouseButtonPressed()) {
-			addEntity(p_currentSelection->hoveredTile, p_currentSelection->heldEntity.type);
-		}
-		else if (p_inputManager->rightMouseButtonClicked()) {
-			deleteEntity(p_currentSelection->hoveredTile);
-		}
-	}
-}
-
-void TileManager::addBasis(Tile* tile, Tile::Basis::Type basisType) {
-	switch (basisType) {
-	case Tile::Basis::Type::NONE:
-		deleteBasis(tile);
-		break;
-	case Tile::Basis::Type::PRODUCER:
-		createProducer(tile->index, Tile::Entity::Type::MATERIAL_A, false);
-		break;
-	case Tile::Basis::Type::CONSUMER:
-		createConsumer(tile->index, false);
-		break;
-	case Tile::Basis::Type::FORCE_SINK:
-		createForceSink(tile->index, false);
-		break;
-	}
-}
-void TileManager::deleteBasis(Tile* tile) {
-	switch (tile->basis.type) {
-	case Tile::Basis::Type::PRODUCER:
-		deleteProducer(tile);
-		break;
-	case Tile::Basis::Type::CONSUMER:
-		deleteConsumer(tile);
-		break;
-	case Tile::Basis::Type::FORCE_SINK:
-		deleteForceSink(tile);
-		break;
-	}
-}
-
-void TileManager::addEntity(Tile* tile, Tile::Entity::Type entityType) {
-	switch (entityType) {
-	case Tile::Entity::Type::NONE:
-		tile->entity.type = Tile::Entity::Type::NONE;
-		break;
-	case Tile::Entity::Type::MATERIAL_OMNI:
-
-		break;
-	case Tile::Entity::Type::MATERIAL_A:
-		tile->entity.type = Tile::Entity::Type::MATERIAL_A;
-		break;
-	case Tile::Entity::Type::MATERIAL_B:
-		tile->entity.type = Tile::Entity::Type::MATERIAL_B;
-		break;
-	case Tile::Entity::Type::BUILDING_COMPRESSOR:
-
-		break;
-	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
-		createForceBlock(tile->index, (Tile::Edge)p_currentSelection->heldEntity.orientation, 1);
-		break;
-	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
-
-		break;
-	}
-}
-void TileManager::deleteEntity(Tile* tile) {
-	switch (tile->entity.type) {
-	case Tile::Entity::Type::MATERIAL_OMNI:
-
-		break;
-	case Tile::Entity::Type::MATERIAL_A:
-
-		break;
-	case Tile::Entity::Type::MATERIAL_B:
-
-		break;
-	case Tile::Entity::Type::BUILDING_COMPRESSOR:
-
-		break;
-	case Tile::Entity::Type::BUILDING_FORCE_BLOCK:
-		deleteForceBlock(tile);
-		break;
-	case Tile::Entity::Type::BUILDING_FORCE_MIRROR:
-
-		break;
-	}
-}
-
-void TileManager::updateEntity(Tile* t) {
-	if (!t->hasEntity() || t->force.magnitude == 0) {
-		return;
-	}
-
-	Tile* neighbor = t->sideInfos.connectedTiles[t->force.direction];
-	/*if (neighbor->hasEntity() && neighbor->entity.direction != adjustedDirection(t, t->force.direction)) {
-		return;
-	}*/
-
-	if (t->entity.direction != t->force.direction) {
-		t->entity.offset -= t->getVelocity();
-
-		if (t->entity.offset < 0.0f) {
-			t->entity.offset = 0.0f;
-			t->entity.direction = t->force.direction;
-		}
-		return;
-	}
-
-	if (neighbor->basis.type == Tile::Basis::Type::FORCE_SINK) {
-		t->entity.offset = 0;
-		return;
-	}
-
-	t->entity.offset += t->getVelocity();
-	if (neighbor->hasEntity()) {
-		t->entity.offset = std::min(t->entity.offset, neighbor->entity.offset);
-	}
-
-
-	// move entity after reaching max offset:
-	if (t->entity.offset > 1.0f) {
-		neighbor->entity = t->entity;
-		neighbor->entity.offset = t->entity.offset - 1.0f;;
-		neighbor->entity.direction = neighbor->force.direction;
-		/*neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction);
-		neighbor->entity.orientation %= 4;*/
-
-		neighbor->entity.orientation = ORIENTATION_TO_ORIENTATION_MAP[t->type][neighbor->type][t->force.direction][t->entity.orientation];
-
-		t->entity.type = Tile::Entity::Type::NONE;
-		t->entity.offset = 0.0f;
-
-		if (neighbor->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK) {
-			for (int i = 0; i < forceBlocks.size(); i++) {
-
-				if (forceBlocks[i].tileIndex == t->index) {
-					forceBlocks[i].tileIndex = neighbor->index;
-					break;
-				}
-			}
-		}
-	}
-
-
-	/*if (neighbor->entity.direction == adjustedDirection(t, t->entity.direction) && neighbor->hasEntity()) {
-		t->entity.offset = std::min(t->entity.offset, neighbor->entity.offset);
-	}*/
-
-	// Check if the entity needs to be moved to an adjacent tile:
-	//if (t->entity.offset > 0.0f) {
-
-	//	// Check for collisions:
-	//	// Adjacent tile collision:
-	//	if (neighbor->entity.type != Entity::Type::NONE) {
-	//		t->entity.offset = 0.0f;
-	//		return;
-	//	}
-	//	// Diagonal tile collisions:
-
-	//	// Far tile collision:
-
-	//	// No collisions found, move tile over:
-	//	neighbor->entity = t->entity;
-	//	neighbor->entity.offset = t->entity.offset - 1.0f;;
-	//	neighbor->entity.direction = neighbor->force.direction;
-	//	neighbor->entity.orientation += adjustToLocalDirectionOffset(t, t->force.direction) * 3;
-	//	neighbor->entity.orientation %= 4;
-
-	//	t->entity.type = Tile::Entity::Type::NONE;
-	//	t->entity.offset = 0.0f;
-	//}
-}
-
-bool TileManager::createProducer(int tileIndex, Tile::Entity::Type producedEntityType, bool override) {
-	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
-		return false;
-	}
-
-	tiles[tileIndex]->basis.type = Tile::Basis::Type::PRODUCER;
-
-	producers.push_back(Producer(tileIndex, producedEntityType));
-
-	return true;
-}
-
-void TileManager::deleteProducer(Tile* tile) {
-	for (int i = 0; i < producers.size(); i++) {
-		if (producers[i].tileIndex == tile->index) {
-			producers.erase(producers.begin() + i);
-			tile->basis.type = Tile::Basis::Type::NONE;
-			return;
-		}
-	}
-}
-
-bool TileManager::createConsumer(int tileIndex, bool override) {
-	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
-		return false;
-	}
-
-	tiles[tileIndex]->basis.type = Tile::Basis::Type::CONSUMER;
-
-	consumers.push_back(Consumer(tileIndex));
-
-	return true;
-}
-
-void TileManager::deleteConsumer(Tile* tile) {
-	for (int i = 0; i < consumers.size(); i++) {
-		if (consumers[i].tileIndex == tile->index) {
-			consumers.erase(consumers.begin() + i);
-			tile->basis.type = Tile::Basis::Type::NONE;
-			return;
-		}
-	}
-}
-
-bool TileManager::createForceSink(int tileIndex, bool override) {
-	if (!override && tiles[tileIndex]->basis.type != Tile::Basis::Type::NONE) {
-		return false;
-	}
-
-	Tile* tile = tiles[tileIndex];
-
-	tile->basis.type = Tile::Basis::Type::FORCE_SINK;
-	tile->entity.type = Tile::Entity::Type::NONE;
-	tile->force.magnitude = 0.0f;
-
-	// The creation of a force sink may cut off a line of force from its 
-	// force block, so we need to spawn a force eater to take care of it now:
-	for (int i = 0; i < 4; i++) {
-		Tile* neighbor = tile->sideInfos.connectedTiles[i];
-		int adjDir = DIR_TO_DIR_MAP[tile->type][neighbor->type][i];
-
-		if (neighbor->force.direction == adjDir) {
-			forceEaters.push_back(ForceEater(neighbor->index, adjDir));
-		}
-	}
-}
-
-void TileManager::deleteForceSink(Tile* tile) {
-
-	tile->basis.type = Tile::Basis::Type::NONE;
-
-	// When deleting a force sink, it may be that the sink was blocking a line of force.
-	// Now that the sink is not blocking it, that line of force has to be propogated out:
-	for (int i = 0; i < 4; i++) {
-		Tile* neighbor = tile->sideInfos.connectedTiles[i];
-
-		int adjDir = (DIR_TO_DIR_MAP[tile->type][neighbor->type][i] + 2) % 4;
-
-		bool nextToForceBlock = (neighbor->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK)
-			&& (neighbor->entity.orientation == adjDir);
-
-		if (nextToForceBlock) {
-
-			std::cout << "next to force block" << std::endl;
-			std::cout << "[" << tile->type << "][" << neighbor->type << "][" << i << "]" << std::endl;
-
-			// gotta find out what the force mag is:
-			for (int j = 0; j < forceBlocks.size(); j++) {
-				std::cout << "i check" << forceBlocks[j].tileIndex << " " << neighbor->index << std::endl;
-				if (forceBlocks[j].tileIndex == neighbor->index) {
-					std::cout << "found ya" << std::endl;
-					forcePropagators.push_back(ForcePropagator(tile->index, forceBlocks[j].magnitude, (i + 2) % 4));
-					std::cout << ((i + 2) % 4) << std::endl;
-					break;
-				}
-			}
-		}
-		else if ((neighbor->force.direction == adjDir)) {
-			forcePropagators.push_back(ForcePropagator(tile->index, neighbor->force.magnitude, (i + 2) % 4));
-		}
-	}
-}
-
-bool TileManager::createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude) {
-	if (tiles[tileIndex]->entity.type != Tile::Entity::Type::NONE) {
-		return false;
-	}
-
-	tiles[tileIndex]->entity.type = Tile::Entity::Type::BUILDING_FORCE_BLOCK;
-	tiles[tileIndex]->entity.offset = 0; // Centered initially.
-	tiles[tileIndex]->entity.orientation = orientation;
-	tiles[tileIndex]->entity.direction = (tiles[tileIndex]->force.magnitude > 0) ? tiles[tileIndex]->force.direction : 0;
-	tiles[tileIndex]->entity.mass = 3;
-
-	forceBlocks.push_back(ForceBlock(tileIndex, orientation, magnitude));
-
-	Tile* neighborTile = tiles[tiles[tileIndex]->sideInfos.connectedTiles[orientation]->index];
-	//int neighborOrientation = ( orientation + 3*adjustToLocalDirectionOffset(tiles[tileIndex], orientation) ) % 4;
-	int neighborOrientation = DIR_TO_DIR_MAP[tiles[tileIndex]->type][neighborTile->type][orientation];
-	forcePropagators.push_back(ForcePropagator(neighborTile->index, magnitude, neighborOrientation));
-
-	// Propogate force to tiles in front of the force block:
-	/*Tile* currentTile = tiles[tileIndex];
-	int currentOrientation = orientation;
-	Tile* neighborTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
-
-	while (neighborTile->force.magnitude == 0 && neighborTile->basis.type != Tile::Basis::Type::DISPERCER) {
-		
-		Tile* oldTile = currentTile;
-		currentTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
-		currentOrientation = (currentOrientation + 3*adjustToLocalDirectionOffset(oldTile, currentOrientation)) % 4;
-		neighborTile = tiles[currentTile->sideInfos.connectedTiles[currentOrientation]->index];
-		
-		currentTile->force.direction = currentOrientation;
-		currentTile->force.magnitude = magnitude;
-	}*/
-
-	return true;
-}
-
-void TileManager::deleteForceBlock(Tile* tile) {
-	for (int i = 0; i < forceBlocks.size(); i++) {
-		if (forceBlocks[i].tileIndex == tile->index) {
-
-			// Catch 'loops' of force.  We don't want to remove those because they need no block to persist:
-			if (tile->force.magnitude == 0 || tile->force.direction != tile->entity.direction) {
-				forceEaters.push_back(ForceEater(tile->index, tile->entity.orientation));
-			}
-			forceBlocks.erase(forceBlocks.begin() + i);
-			tile->entity.type = Tile::Entity::Type::NONE;
-			return;
-		}
-	}
-}
-
-void TileManager::updateProducers() {
-	for (Producer& producer : producers) {
-		producer.update();
-		Tile* tile = tiles[producer.tileIndex];
-
-		// check if an entity is coming out of the producer and is in an adjacent tile:
-		bool overlap = false;
-		for (int i = 0; i < 4; i++) {
-			Tile* neighbor = tile->sideInfos.connectedTiles[i];
-			if (neighbor->hasEntity() && neighbor->entity.direction == inverseDirection(adjustedDirection(tile, i))) {
-				overlap = true;
-				break;
-			}
-		}
-			
-		if (!overlap && producer.cooldown == 0.0f && !tile->hasEntity()) {
-			tile->entity.type = (Tile::Entity::Type)producer.producedEntityID;
-			//tile->entity.mass = 1; // TEMP!
-			tile->entity.mass = int(1.0f * rand() / RAND_MAX * 3.0f) + 1;
-			tile->entity.offset = 0.0f; // center
-			tile->entity.direction = tile->force.direction;
-
-			producer.cooldown = 1.0f;
-
-			continue;
-		}
-	}
-}
-
-void TileManager::updateConsumers() {
-	for (Consumer& consumer : consumers) {
-		consumer.update();
-		Tile* consumerTile = tiles[consumer.tileIndex];
-
-		bool eat = 
-			consumerTile->entity.type != Tile::Entity::Type::NONE &&
-			consumer.cooldown == 0.0f &&
-			consumerTile->entity.offset + consumerTile->getVelocity() >= 0;
-
-		consumerTile->entity.type = Tile::Entity::Type( (!eat * consumerTile->entity.type) );
-		consumer.cooldown = (eat * 1.0f) + (!eat * consumer.cooldown);
-	}
-}
-
-void TileManager::updateForceBlocks() {
-
-}
-
-void TileManager::updateForces() {
-	for (int i = 0; i < forcePropagators.size(); i++) {
-
-		Tile* tile = tiles[forcePropagators[i].tileIndex];
-		
-		// Kys if next tile already has a force in it:
-		if (tile->force.magnitude > 0 || tile->basis.type == Tile::Basis::Type::FORCE_SINK) {
-			forcePropagators.erase(forcePropagators.begin() + i);
-			i--;
-			continue;
-		}
-
-		int heading = forcePropagators[i].heading;
-		Tile* neighbor = tile->sideInfos.connectedTiles[heading];
-		tile->force.magnitude = forcePropagators[i].forceMagnitude;
-		tile->force.direction = heading;
-
-		Tile* nextTile = tile->sideInfos.connectedTiles[heading];
-
-		// go to the next tile:
-		//int newHeading = (forcePropagators[i].heading + 3 * adjustToLocalDirectionOffset(tile, forcePropagators[i].heading)) % 4;
-		forcePropagators[i].tileIndex = neighbor->index;
-		forcePropagators[i].heading = DIR_TO_DIR_MAP[tile->type][neighbor->type][heading];
-	}
-
-	for (int i = 0; i < forceEaters.size(); i++) {
-		Tile* tile = tiles[forceEaters[i].tileIndex];
-
-		// Eat:
-		tile->force.magnitude = 0;
-
-		// Go to next tile:
-		int newHeading = (forceEaters[i].heading + 3 * adjustToLocalDirectionOffset(tile, forceEaters[i].heading)) % 4;
-		forceEaters[i].tileIndex = tile->sideInfos.connectedTiles[forceEaters[i].heading]->index;
-		forceEaters[i].heading = newHeading;
-
-		Tile*newTile = tiles[forceEaters[i].tileIndex];
-
-		// Kys if there is no more force to eat/we jumped to a new line of force:
-		if (forceEaters[i].heading != newTile->force.direction || newTile->force.magnitude == 0
-			|| tile->entity.type == Tile::Entity::Type::BUILDING_FORCE_BLOCK) {
-
-			forceEaters.erase(forceEaters.begin() + i);
-			i--;
-			continue;
-		}
-	}
 }
 
 // In order to show where the player is in the 2D 3rd person POV view, we send some relative positional data
@@ -2288,130 +1465,6 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 	}
 }
 
-void TileManager::findHoveredTile() {
-	// find what tile the cursor is hovering over:
-	// This algorithm mirrors the on in 2D3rdPersonPOV frag shader, which is documented better.
-	Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
-	glm::mat4 inWindowToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
-		(float)sceneView->pixelHeight()));
-	glm::vec2 cursorWorldPos = glm::vec2(inWindowToWorldSpace * glm::vec4(-CursorScreenPos.x, CursorScreenPos.y, 0, 1));
-
-	// If the cursor is inside the povTile, then we dont have to do the move complex steps:
-	if (cursorWorldPos.x > 0 && cursorWorldPos.x < 1 && cursorWorldPos.y > 0 && cursorWorldPos.y < 1) {
-		p_currentSelection->hoveredTile = povTile.tile;
-
-		return;
-	}
-
-	// Welp, here goes the more complex steps:
-	glm::vec2 povPos = (glm::vec2)p_camera->viewPlanePos;
-	glm::vec2 povPosToPixelPos = cursorWorldPos - povPos;
-	float totalDist = glm::length(povPosToPixelPos);
-	glm::vec2 stepDist = totalDist / abs(povPosToPixelPos);
-
-	bool goingRight = povPosToPixelPos.x > 0.0f;
-	bool goingUp = povPosToPixelPos.y > 0.0f;
-	glm::vec2 runningDist;
-
-	if (goingRight) { runningDist.x = (1.0f - povPos.x) * stepDist.x; }
-	else { runningDist.x = povPos.x * stepDist.x; }
-
-	if (goingUp) { runningDist.y = (1.0f - povPos.y) * stepDist.y; }
-	else { runningDist.y = povPos.y * stepDist.y; }
-
-	const int MAX_STEPS = 1000; int stepCount = 0;
-	float currentDist = 0;
-	TileTarget target = povTile;
-	p_currentSelection->hoveredTileConnectionIndex = 0;
-	int drawSideIndex = 0;
-	glm::vec2 drawTileOffset(0, 0);
-
-	while (stepCount < MAX_STEPS) {
-
-		if (runningDist.x < runningDist.y) {
-
-			currentDist = runningDist.x;
-			if (currentDist > totalDist) {
-				break; // We have arrived!
-			}
-			runningDist.x += stepDist.x;
-
-			// Shift tile target left/right depending on goingRight:
-			if (goingRight) {
-				p_currentSelection->hoveredTileConnectionIndex = target.initialSideIndex;
-				drawSideIndex = 0;
-				drawTileOffset += glm::vec2(1, 0);
-			}
-			else { // Going left:
-				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 2) % 4;
-				drawSideIndex = 2;
-				drawTileOffset += glm::vec2(-1, 0);
-			}
-		}
-		else { // runningDist.x > runningDist.y
-
-			currentDist = runningDist.y;
-			if (currentDist > totalDist) {
-				break; // We have arrived!
-			}
-			runningDist.y += stepDist.y;
-
-			// Shift tile target up/down depending on goingUp:
-			if (goingUp) {
-				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 3) % 4;
-				drawSideIndex = 3;
-				drawTileOffset += glm::vec2(0, 1);
-			}
-			else { // Going down:
-				p_currentSelection->hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 1) % 4;
-				drawSideIndex = 1;
-				drawTileOffset += glm::vec2(0, -1);
-			}
-		}
-		p_currentSelection->addTileParentTarget = target;
-		target = adjustTileTarget(&target, drawSideIndex);
-		stepCount++;
-	}
-
-	p_currentSelection->hoveredTile = target.tile;
-
-	p_currentSelection->addTileParentSideConnectionIndex = (p_currentSelection->addTileParentTarget.initialVertIndex
-		+ drawSideIndex * p_currentSelection->addTileParentTarget.sideInfosOffset)
-		% 4;
-}
-
-void TileManager::findPreviewTile() {
-	// Figure out the preview tile's type:
-	int infosOffset = p_currentSelection->hoveredTileConnectionIndex - p_currentSelection->addTileParentTarget.initialSideIndex;
-	if (infosOffset < 0) {
-		infosOffset = abs(infosOffset) * 3 % 4;
-	}
-	int v1Index = (p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset) % 4;
-	glm::ivec3 v1 = p_currentSelection->addTileParentTarget.tile->getVertPos(v1Index);
-	glm::ivec3 v2 = p_currentSelection->addTileParentTarget.tile->getVertPos((p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset + p_currentSelection->addTileParentTarget.sideInfosOffset) % 4);
-	glm::ivec3 v3, v4;
-
-	switch (p_currentSelection->addTileRelativeOrientation) {
-	case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
-		v3 = v1 - p_currentSelection->addTileParentTarget.tile->normal();
-		v4 = v2 - p_currentSelection->addTileParentTarget.tile->normal();
-		break;
-	case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
-		glm::ivec3 offset = v1 - p_currentSelection->addTileParentTarget.tile->getVertPos((p_currentSelection->addTileParentTarget.initialVertIndex + infosOffset + p_currentSelection->addTileParentTarget.sideInfosOffset * 3) % 4);
-		v3 = v1 + offset;
-		v4 = v2 + offset;
-		break;
-	default: /*case RELATIVE_TILE_ORIENTATION_UP:*/
-		v3 = v1 + p_currentSelection->addTileParentTarget.tile->normal();
-		v4 = v2 + p_currentSelection->addTileParentTarget.tile->normal();
-		break;
-	}
-	Tile::Type tileType = Tile::getTileType(v1, v2, v3, v4);
-	Tile::SubType tileSubype = Tile::tileSubType(tileType, true);
-	glm::ivec3 maxVert = Tile::getMaxVert(v1, v2, v3, v4);
-	p_currentSelection->addTile = Tile(tileSubype, maxVert);
-}
-
 // DOESN'T DO SHIT FOR NOW, I BROKE IT:
 void TileManager::drawAddTilePreview() {
 	std::vector<glm::vec2> previewTileVerts = {
@@ -2470,9 +1523,9 @@ void TileManager::draw3DTile(Tile* tile) {
 		verts.push_back((GLfloat)tile->index);
 	}
 
-	if (tile->type == Tile::TILE_TYPE_XY_BACK ||
-		tile->type == Tile::TILE_TYPE_XZ_BACK ||
-		tile->type == Tile::TILE_TYPE_YZ_BACK) {
+	if (tile->type == TileSubType::TILE_TYPE_XY_BACK ||
+		tile->type == TileSubType::TILE_TYPE_XZ_BACK ||
+		tile->type == TileSubType::TILE_TYPE_YZ_BACK) {
 		indices.push_back(0);
 		indices.push_back(1);
 		indices.push_back(3);
@@ -2551,37 +1604,37 @@ glm::mat4 TileManager::packedPlayerPosInfo() {
 	tileIndices[0] = povTile.tile->index;
 
 	if (p_camera->viewPlanePos.x > 0.5f) {
-		target = adjustTileTarget(&povTile, Tile::Edge::RIGHT);
+		target = adjustTileTarget(&povTile, LocalDirection::LOCAL_DIRECTION_0);
 		getProjectedPlayerPosInfo(target, P, 1, -1.0f, 0.0f, projectedTilePositions, tileIndices);
 
 		if (p_camera->viewPlanePos.y > 0.5f) {
-			target = adjustTileTarget(&target, Tile::Edge::UP);
+			target = adjustTileTarget(&target, LocalDirection::LOCAL_DIRECTION_3);
 			getProjectedPlayerPosInfo(target, P, 3, -1.0f, -1.0f, projectedTilePositions, tileIndices);
 		}
 		else {
-			target = adjustTileTarget(&target, Tile::Edge::DOWN);
+			target = adjustTileTarget(&target, LocalDirection::LOCAL_DIRECTION_1);
 			getProjectedPlayerPosInfo(target, P, 3, -1.0f, 1.0f, projectedTilePositions, tileIndices);
 		}
 	}
 	else {
-		target = adjustTileTarget(&povTile, Tile::Edge::LEFT);
+		target = adjustTileTarget(&povTile, LocalDirection::LOCAL_DIRECTION_2);
 		getProjectedPlayerPosInfo(target, P, 1, 1.0f, 0.0f, projectedTilePositions, tileIndices);
 
 		if (p_camera->viewPlanePos.y > 0.5f) {
-			target = adjustTileTarget(&target, Tile::Edge::UP);
+			target = adjustTileTarget(&target, LocalDirection::LOCAL_DIRECTION_3);
 			getProjectedPlayerPosInfo(target, P, 3, 1.0f, -1.0f, projectedTilePositions, tileIndices);
 		}
 		else {
-			target = adjustTileTarget(&target, Tile::Edge::DOWN);
+			target = adjustTileTarget(&target, LocalDirection::LOCAL_DIRECTION_1);
 			getProjectedPlayerPosInfo(target, P, 3, 1.0f, 1.0f, projectedTilePositions, tileIndices);
 		}
 	}
 	if (p_camera->viewPlanePos.y > 0.5f) {
-		target = adjustTileTarget(&povTile, Tile::Edge::UP);
+		target = adjustTileTarget(&povTile, LocalDirection::LOCAL_DIRECTION_3);
 		getProjectedPlayerPosInfo(target, P, 2, 0.0f, -1.0f, projectedTilePositions, tileIndices);
 	}
 	else {
-		target = adjustTileTarget(&povTile, Tile::Edge::DOWN);
+		target = adjustTileTarget(&povTile, LocalDirection::LOCAL_DIRECTION_1);
 		getProjectedPlayerPosInfo(target, P, 2, 0.0f, 1.0f, projectedTilePositions, tileIndices);
 	}
 
@@ -2667,18 +1720,4 @@ void TileManager::drawCleanup() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-}
-
-void TileManager::cyclePreviewTileOrientation() {
-	switch (p_currentSelection->addTileRelativeOrientation) {
-	case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
-		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
-		return;
-	case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
-		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
-		return;
-	default: /*RELATIVE_TILE_ORIENTATION_UP*/
-		p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
-		return;
-	}
 }
