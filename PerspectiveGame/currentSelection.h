@@ -45,13 +45,15 @@ struct CurrentSelection {
 	
 	CurrentSelection(InputManager*im,TileManager*tm,EntityManager*em,ButtonManager*bm,Camera*(cam),BasisManager*bam) : p_inputManager(im),p_tileManager(tm),p_entityManager(em),p_buttonManager(bm),p_camera(cam),p_basisManager(bam) {
 		hoveredTile = nullptr;
+		hoveredTileConnectionIndex = 0;
+
 		canEditEntities = false;
 		canEditBases = false;
 		canEditTiles = false;
 
 		canEditEntities = true;
 		heldEntity.type = Entity::Type::BUILDING_FORCE_BLOCK;
-		heldBasis.type = Tile::Basis::Type::FORCE_SINK;
+		heldBasis.type = BasisType::FORCE_SINK;
 
 		tryingToAddTile = false;
 		tryingToAddTile = true; // TESTING, TEMP!
@@ -151,7 +153,6 @@ struct CurrentSelection {
 			+ drawSideIndex * addTileParentTarget.sideInfosOffset)
 			% 4;
 	}
-
 	void findPreviewTile() {
 		// Figure out the preview tile's type:
 		int infosOffset = hoveredTileConnectionIndex - addTileParentTarget.initialSideIndex;
@@ -184,32 +185,44 @@ struct CurrentSelection {
 		addTile = Tile(tileSubype, maxVert);
 	}
 
+	void tryEditTiles() {
+		if (p_inputManager->leftMouseButtonClicked()) {
+			p_tileManager->createTilePair(
+				Tile::superTileType(addTile.type), addTile.maxVert, addTileColor, addTileColor * 0.5f);
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			p_tileManager->deleteTile(hoveredTile);
+		}
+	}
+	void tryEditBases() {
+		if (p_inputManager->leftMouseButtonClicked()) {
+			p_basisManager->addBasis(hoveredTile, heldBasis.localOrientation, heldBasis.type);
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			p_basisManager->deleteBasis(hoveredTile);
+		}
+	}
+	void tryEditEntities() {
+		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
+
+			p_entityManager->createEntity(hoveredTile->index, heldEntity.type, heldEntity.localOrientation, true);
+
+			std::cout << "new num entities after add: "<<p_entityManager->entities.size() << std::endl;
+		}
+		else if (p_inputManager->rightMouseButtonClicked()) {
+			for (int i = 0; i < 9; i++) {
+				if (hoveredTile->hasEntity(LocalPosition(i))) {
+					p_entityManager->deleteEntity(&p_entityManager->entities[hoveredTile->entityIndices[i]]);
+					std::cout << "entities left after deletion: "<<p_entityManager->entities.size() << std::endl;
+				}
+			}
+		}
+	}
+
 	void tryEditWorld() {
-		if (canEditTiles) {
-			if (p_inputManager->leftMouseButtonPressed()) {
-				p_tileManager->createTilePair(
-					Tile::superTileType(addTile.type), addTile.maxVert, addTileColor, addTileColor * 0.5f);
-			}
-			else if (p_inputManager->rightMouseButtonClicked()) {
-				p_tileManager->deleteTile(hoveredTile);
-			}
-		}
-		else if (canEditBases) {
-			if (p_inputManager->leftMouseButtonPressed()) {
-				p_basisManager->addBasis(hoveredTile, heldBasis.type);
-			}
-			else if (p_inputManager->rightMouseButtonClicked()) {
-				p_basisManager->deleteBasis(hoveredTile);
-			}
-		}
-		else if (canEditEntities) {
-			if (p_inputManager->leftMouseButtonPressed()) {
-				//p_tileManager->createEntity(hoveredTile, heldEntity.type, (Tile::Edge)heldEntity.localOrientation);
-			}
-			else if (p_inputManager->rightMouseButtonClicked()) {
-				//p_tileManager->deleteEntity(hoveredTile);
-			}
-		}
+		     if (canEditTiles)    { tryEditTiles();    }
+		else if (canEditBases)    { tryEditBases();    }
+		else if (canEditEntities) { tryEditEntities(); }
 	}
 
 	void update() {
@@ -218,11 +231,11 @@ struct CurrentSelection {
 
 		if (p_inputManager->keys[ROTATE_KEY].click) {
 			if (canEditBases) {
-				heldBasis.orientation = (heldBasis.orientation + 1) % 4;
+				heldBasis.localOrientation = LocalDirection((heldBasis.localOrientation + 1) % 4);
+				std::cout << heldBasis.localOrientation << std::endl;
 			}
 			if (canEditEntities) {
 				heldEntity.localOrientation = LocalDirection((heldEntity.localOrientation + 1) % 4);
-				std::cout << heldEntity.localOrientation << std::endl;
 			}
 		}
 

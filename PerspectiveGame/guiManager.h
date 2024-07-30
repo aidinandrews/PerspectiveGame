@@ -70,6 +70,7 @@ public:
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	CurrentSelection* p_currentSelection;
+	EntityManager* p_entityManager;
 
 	bool show_demo_window;
 	bool show_another_window;
@@ -84,7 +85,7 @@ public:
 public:
 	void imGuiSetup();
 	GuiManager(GLFWwindow *w, GLFWwindow* imgw, ShaderManager *sm, InputManager *im, Camera *c, TileManager *tm, Framebuffer* fb,
-			   ButtonManager *bm, CurrentSelection*cs);
+			   ButtonManager *bm, CurrentSelection*cs, EntityManager*em);
 	~GuiManager();
 
 	void setupFramebufferForButtonRender(int buttonIndex, GLuint textureID);
@@ -97,6 +98,9 @@ public:
 	void draw2d3rdPerson();
 	void draw3d3rdPerson();
 	void render();
+
+	void bindSSBOs2d3rdPerson();
+	void bindUniforms2d3rdPerson();
 
 	void drawColoredRectFromPixelSpace(glm::ivec2 pos, glm::ivec2 size, glm::vec3 color);
 	// Assumes screen space:

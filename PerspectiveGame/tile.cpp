@@ -11,13 +11,6 @@ Tile::Tile() {
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
 	}
-	//entity = nullptr;
-
-	/*buildingType = BUILDING_TYPE_NONE;
-	buildingOrientation = Tile::Edge::UP;
-	entityType = ENTITY_TYPE_NONE;
-	entityOffsetSide = Tile::Edge::UP;
-	entityOffset = 0.0f;*/
 }
 
 Tile::Tile(TileSubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), maxVert(maxVert) {
@@ -207,20 +200,14 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 	color = glm::vec4(tile->color, 1);
 
 	basisType = (int)tile->basis.type;
-	basisOrientation = tile->basis.orientation;
+	basisOrientation = tile->basis.localOrientation;
 
-	hasForce = (int)tile->force.magnitude > 0;
+	hasForce = (int)tile->force.hasForce;
 	forceDirection = tile->force.direction;
 
-	entityEdge0Index = tile->entityIndices[0];
-	entityEdge1Index = tile->entityIndices[1];
-	entityEdge2Index = tile->entityIndices[2];
-	entityEdge3Index = tile->entityIndices[3];
-	entityEdge4Index = tile->entityIndices[4];
-	entityEdge5Index = tile->entityIndices[5];
-	entityEdge6Index = tile->entityIndices[6];
-	entityEdge7Index = tile->entityIndices[7];
-	entityEdge8Index = tile->entityIndices[8];
+	for (int i = 0; i < 9; i++) {
+		entityIndices[i] = tile->entityIndices[i];
+	}
 
 	tileSubType = (int)tile->type;
 

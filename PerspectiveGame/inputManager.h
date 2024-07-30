@@ -123,6 +123,7 @@ struct InputManager {
 	void updateViaMouse();
 	void update();
 
+	bool leftMouseButtonClicked() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].click; }
 	bool leftMouseButtonPressed() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].pressed; }
 	bool leftMouseButtonReleased() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].released; }
 	bool rightMouseButtonPressed() { return mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].pressed; }

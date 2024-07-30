@@ -38,9 +38,18 @@ public:
 	TileManager* p_tileManager;
 
 	std::vector<Entity> entities;
+	std::vector<EntityGpuInfo> entityGpuInfos;
+
+	GLuint entityGpuBufferID;
 
 public:
-	EntityManager(TileManager* tm) :p_tileManager(tm) {}
+	EntityManager(TileManager* tm) :p_tileManager(tm) {
+		glGenBuffers(1, &entityGpuBufferID);
+	}
+
+	~EntityManager() {
+		glDeleteBuffers(1, &entityGpuBufferID);
+	}
 
 	// Gives one of the 2 possible tiles an entity can be in (it is in 2 when on an edge).
 	// If it is only in one tile, asking for the second tile it is in (index == 1) results in returning false
@@ -59,49 +68,46 @@ public:
 		Tile* tile = p_tileManager->tiles[tileIndex];
 		
 		if (!override && tile->hasEntity(LOCAL_POSITION_CENTER)) {
-			std::cout << "entity in my spot!" << std::endl;
 			return;
 		}
 
-		entities.push_back(Entity(entityType, true, LOCAL_DIRECTION_0, orientation, 0.0f, -1, -1));
+		entities.push_back(Entity(entityType, true, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_0, orientation, 
+			0.0f, -1, -1, glm::vec4(randColor(), 1)));
 		entities.back().index = (int)entities.size() - 1;
+		entities.back().tileIndex[0] = tileIndex;
+
 		tile->entityIndices[LOCAL_POSITION_CENTER] = entities.back().index;
-		tile->entityObstructionMap |= ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[LOCAL_POSITION_CENTER];
+		tile->entityObstructionMap |= TileNavigator::localPositionToObstructionMask(LOCAL_POSITION_CENTER);
 
 		// Connect up to leader/follower line if necessary:
 	}
-
 	void deleteEntity(Entity* entity) {
-		if (entity->hasLeader()) {
-			entities[entity->leadingEntityIndex].followingEntityIndex = -1;
-		}
-		if (entity->hasFollower()) {
-			entities[entity->followingEntityIndex].leadingEntityIndex = -1;
-			// maybe promote this follower to a leader somehow?
-		}
-		
+		Tile* tile;
 		// remove from tile(s):
 		for (int i = 0; i < 2; i++) {
-			if (entity->tileIndex[i] == -1) { continue; }
-			Tile* tile = p_tileManager->tiles[entity->tileIndex[i]];
+			if (!entity->connectedToTile(i)) { continue; }
+			tile = p_tileManager->tiles[entity->tileIndex[i]];
 			tile->entityIndices[entity->localPosition] = -1;
-			tile->entityObstructionMap &= ~ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[entity->localPosition];
+			tile->entityObstructionMap &= ~TileNavigator::localPositionToObstructionMask(entity->localPosition);
+		}
+
+		if (entity->index == entities.size() - 1) {
+			entities.pop_back();
+			return;
 		}
 
 		// copy last entity to this one, then delete last entity:
-		int newIndex       = entity->index;
-		Entity* lastEntity = &entities.back();
-		entities[newIndex] = *lastEntity;
-		lastEntity         = &entities[newIndex];
+		int newIndex = entity->index;
+		(*entity) = entities.back();
+		entity->index = newIndex;
 
-		lastEntity->index  = newIndex;
-		if (lastEntity->hasLeader())   { entities[lastEntity->leadingEntityIndex].followingEntityIndex = newIndex; }
-		if (lastEntity->hasFollower()) { entities[lastEntity->followingEntityIndex].leadingEntityIndex = newIndex; }
+		//if (lastEntity->hasLeader())   { entities[lastEntity->leadingEntityIndex].followingEntityIndex = newIndex; }
+		//if (lastEntity->hasFollower()) { entities[lastEntity->followingEntityIndex].leadingEntityIndex = newIndex; }
 		for (int i = 0; i < 2; i++) {
-			if (lastEntity->tileIndex[i] == -1) { continue; }
-			p_tileManager->tiles[lastEntity->tileIndex[i]]->entityIndices[lastEntity->localPosition] = newIndex;
+			if (!entity->connectedToTile(i)) { continue; }
+			tile = p_tileManager->tiles[entity->tileIndex[i]];
+			tile->entityIndices[entity->localPosition] = newIndex;
 		}
-
 		entities.pop_back();
 	}
 
@@ -110,9 +116,29 @@ public:
 	bool moveEntityToNeighborInner(Entity* entity, LocalDirection side);
 
 	bool tryMoveEntity(Entity* entity);
+	bool tryMoveEntityInterior(Entity* entity);
+
 	bool tryMoveEntityCenterToMiddle(Entity* entity);
 	bool tryMoveEntityMiddleToCenter(Entity* entity);
 	bool tryMoveEntityMiddleToEdge(Entity* entity);
 	bool tryMoveEntityEdgeToMiddle(Entity* entity);
 	bool tryMoveEntityEdgeToNeighbor(Entity* entity);
+
+	void update() {
+		updateEntities();
+		updateGpuInfos();
+	}
+
+	void updateEntities() {
+		for (Entity& entity : entities) {
+			tryMoveEntity(&entity);
+		}
+	}
+
+	void updateGpuInfos() {
+		entityGpuInfos.clear();
+		for (Entity& entity : entities) {
+			entityGpuInfos.push_back(EntityGpuInfo(&entity));
+		}
+	}
 };

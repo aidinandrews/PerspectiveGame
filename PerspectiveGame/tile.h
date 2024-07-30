@@ -122,7 +122,7 @@ public: // STRUCTS
 
 		// This can be any number but will likely be limited for game design.  
 		// Force applies to masses and makes them move.
-		int magnitude;
+		bool hasForce;
 
 		// Since there are only 4 directions force can be applied, 
 		// only two bits are needed to store the direction.
@@ -130,7 +130,7 @@ public: // STRUCTS
 
 	public: // MEMBER FUNCTIONS:
 
-		Force() : magnitude(0), direction(0) {}
+		Force() : hasForce(0), direction(0) {}
 	};
 
 	// Each tile can have an underlying ans immoveable (basis) structure if necessary for its action.
@@ -143,21 +143,14 @@ public: // STRUCTS
 
 	public: // MEMBER ENUMS:
 
-		enum Type {
-			NONE,
-			PRODUCER,
-			CONSUMER,
-			FORCE_SINK,
-		};
-
 	public: // MEMBER VARIABLES:
 
-		Type type;
-		unsigned int orientation;
+		BasisType type;
+		LocalDirection localOrientation;
 
 	public: // MEMBER FUNCTIONS:
 
-		Basis() : type(NONE), orientation(0) {}
+		Basis() : type(NONE), localOrientation(LOCAL_DIRECTION_0) {}
 	};
 
 public: // MEMBER VARIABLES:
@@ -220,16 +213,13 @@ public: // MEMBER FUNCTIONS:
 
 	static LocalDirection oppositeDirection(LocalDirection currentDirection) { return LocalDirection((int)currentDirection + 2 % 4); }
 
-	bool hasForce() { return force.magnitude != 0; }
-	bool hasNoForce() { return !hasForce(); }
-
 	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
 
 	bool isObstructed(LocalPosition position) {
-		return entityObstructionMap & ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[position];
+		return entityObstructionMap & TileNavigator::localPositionToObstructionMask(position);
 	}
 
-	bool hasBasis() { return basis.type != Tile::Basis::Type::NONE; }
+	bool hasBasis() { return basis.type != BasisType::NONE; }
 
 	Tile* getNeighbor(int sideIndex) { return sideInfos.connectedTiles[sideIndex]; }
 
@@ -346,15 +336,7 @@ struct TileGpuInfo {
 	alignas(4) int hasForce;
 	alignas(4) int forceDirection;
 
-	alignas(4) int entityEdge0Index;
-	alignas(4) int entityEdge1Index;
-	alignas(4) int entityEdge2Index;
-	alignas(4) int entityEdge3Index;
-	alignas(4) int entityEdge4Index;
-	alignas(4) int entityEdge5Index;
-	alignas(4) int entityEdge6Index;
-	alignas(4) int entityEdge7Index;
-	alignas(4) int entityEdge8Index;
+	int entityIndices[9];
 
 	alignas(4) int tileSubType;
 

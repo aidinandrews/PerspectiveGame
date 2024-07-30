@@ -820,7 +820,7 @@ void TileManager::deleteBuilding(Tile* tile) {
 	}
 
 	switch (tile->basis.type) {
-	case Tile::Basis::Type::PRODUCER:
+	case BasisType::PRODUCER:
 		for (int i = 0; i < producers.size(); i++) {
 			if (producers[i].tileIndex == tile->index) {
 				producers[i] = producers[producers.size() - 1];
@@ -828,7 +828,7 @@ void TileManager::deleteBuilding(Tile* tile) {
 			}
 		}
 		break;
-	case Tile::Basis::Type::CONSUMER:
+	case BasisType::CONSUMER:
 		for (int i = 0; i < consumers.size(); i++) {
 			if (consumers[i].tileIndex == tile->index) {
 				consumers[i] = consumers[consumers.size() - 1];
@@ -918,23 +918,6 @@ void TileManager::update() {
 	drawnTiles = 0;
 	TOTAL_TIME = 0;
 	
-	if ((TimeSinceProgramStart - lastUpdateTime) > UpdateTime) {
-		lastUpdateTime = TimeSinceProgramStart;
-
-		for (int i : movedTiles) {
-			//tiles[i]->hadEntity = false;
-		}
-		movedTiles.clear();
-		/*for (Tile* t : tiles) {
-			updateEntity(t);
-		}*/
-
-		/*updateEntities();
-		updateConsumers();
-		updateProducers();*/
-	}
-	
-	updateTileGpuInfoIndices();
 	getRelativePovPosGpuInfos();
 }
 
@@ -1262,10 +1245,8 @@ glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 
 void TileManager::updateTileGpuInfoIndices() {
 	tileGpuInfos.clear();
-	int i = 0;
 	for (Tile* tile : tiles) {
 		tileGpuInfos.push_back(TileGpuInfo(tile));
-		i++;
 	}
 }
 

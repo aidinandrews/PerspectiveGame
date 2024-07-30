@@ -11,6 +11,7 @@ std::chrono::steady_clock::time_point FrameStart;
 float DeltaTime;
 float TimeSinceProgramStart;
 float UpdateTime = 0.5f;
+float LastUpdateTime = 0.0f;
 
 int PixelsPerGuiGridUnit = 60;
 

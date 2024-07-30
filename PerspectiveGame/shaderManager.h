@@ -19,6 +19,8 @@ struct Program {
 	}
 	void init(const char* vertexPath, const char* fragmentPath);
 
+	void init2d3rdPersonPov();
+
 	// use/activate the shader
 	void use() { glUseProgram(ID); }
 
@@ -42,7 +44,7 @@ struct ShaderManager {
 		stencilShader.init("shaders/stencil.vert", "shaders/stencil.frag");
 		simpleShader.init("shaders/simple.vert", "shaders/simple.frag");
 		justVertsAndColors.init("shaders/passthrough.vert", "shaders/empty.frag");
-		POV2D3rdPerson.init("shaders/2D3rdPersonPOV.vert", "shaders/2D3rdPersonPOV.frag");
+		POV2D3rdPerson.init2d3rdPersonPov();
 		POV3D3rdPerson.init("shaders/3D3rdPersonPOV.vert", "shaders/3D3rdPersonPOV.frag");
 	}
 

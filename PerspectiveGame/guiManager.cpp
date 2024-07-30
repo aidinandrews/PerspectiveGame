@@ -75,9 +75,9 @@ void GuiManager::imGuiSetup() {
 }
 
 GuiManager::GuiManager(GLFWwindow *w, GLFWwindow *imgw, ShaderManager *sm, InputManager *im, Camera *c, TileManager *tm,
-					   Framebuffer *fb, ButtonManager *bm, CurrentSelection*cs)
+					   Framebuffer *fb, ButtonManager *bm, CurrentSelection*cs, EntityManager* em)
 	: p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_tileManager(tm), p_framebuffer(fb),
-	p_buttonManager(bm), p_currentSelection(cs) {
+	p_buttonManager(bm), p_currentSelection(cs), p_entityManager(em) {
 
 	imGuiSetup();
 
@@ -138,10 +138,11 @@ void GuiManager::renderImGuiDebugWindows() {
 			"BASIS_PRODUCER",
 			"BASIS_CONSUMER",
 			"BASIS_FORCE_SINK",
+			"BASIS_FORCE_GENERATOR",
 		};
 		static int heldBasisIndex = 2;
 		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
-		p_currentSelection->heldBasis.type = Tile::Basis::Type(heldBasisIndex);
+		p_currentSelection->heldBasis.type = BasisType(heldBasisIndex);
 
 		const char* entityLabels[] = { 
 			"NONE",
@@ -362,39 +363,38 @@ void GuiManager::draw2d3rdPersonCpuCropping() {
 	p_tileManager->draw2D3rdPerson();
 }
 
-void GuiManager::draw2d3rdPersonGpuRaycasting() {
-	// by this time we have updated the camera transformation matrix
-	glDisable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
-
-	glBindVertexArray(p_framebuffer->VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
-	Button *sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex];
-
-	setVertAttribVec2Pos();
-	p_shaderManager->POV2D3rdPerson.use();
+void GuiManager::bindSSBOs2d3rdPerson() {
+	// Tile buffer:
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, p_tileManager->tileInfosBufferID);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-				 p_tileManager->tileGpuInfos.size() * sizeof(TileGpuInfo),
-				 p_tileManager->tileGpuInfos.data(),
-				 GL_DYNAMIC_DRAW);
-
+		p_tileManager->tileGpuInfos.size() * sizeof(TileGpuInfo),
+		p_tileManager->tileGpuInfos.data(),
+		GL_DYNAMIC_DRAW);
 	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "tileInfosBuffer");
 	GLuint tileInfosBindingPoint = 1;
 	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, tileInfosBlockID, tileInfosBindingPoint);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, tileInfosBindingPoint, p_tileManager->tileInfosBufferID);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
+	// Entity buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_entityManager->entityGpuBufferID);
+	glBufferData(GL_UNIFORM_BUFFER,
+		p_entityManager->entityGpuInfos.size() * sizeof(EntityGpuInfo),
+		p_entityManager->entityGpuInfos.data(),
+		GL_DYNAMIC_DRAW);
+	GLuint entityInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "entityInfosBuffer");
+	GLuint entityInfosBindingPoint = 2;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, entityInfosBlockID, entityInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityInfosBindingPoint, p_entityManager->entityGpuBufferID);
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
+}
+
+void GuiManager::bindUniforms2d3rdPerson() {
 	GLuint deltaTimeID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "deltaTime");
 	glUniform1f(deltaTimeID, TimeSinceProgramStart);
 
 	GLuint updateProgressID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "updateProgress");
-	glUniform1f(updateProgressID, float(TimeSinceProgramStart - p_tileManager->lastUpdateTime) / UpdateTime);
+	glUniform1f(updateProgressID, float(TimeSinceProgramStart - LastUpdateTime) / UpdateTime);
 
 	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
 	glUniform1i(initialTileIndexID, p_tileManager->povTile.tile->index);
@@ -410,6 +410,27 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 
 	GLuint povPosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovPosWindowSpace");
 	glUniform2f(povPosID, 0, 0);
+}
+
+void GuiManager::draw2d3rdPersonGpuRaycasting() {
+	// by this time we have updated the camera transformation matrix
+	glDisable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_BLEND);
+
+	glBindVertexArray(p_framebuffer->VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
+	Button *sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex];
+
+	setVertAttribVec2Pos();
+	p_shaderManager->POV2D3rdPerson.use();
+
+	bindSSBOs2d3rdPerson();
+
+	bindUniforms2d3rdPerson();
 
 	// Pack relative position data into a mat4:
 	glm::mat4 relativePosData = {

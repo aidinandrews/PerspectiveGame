@@ -213,6 +213,7 @@
     <ClCompile Include="..\Libraries\include\ImGui\imgui_draw.cpp" />
     <ClCompile Include="..\Libraries\include\ImGui\imgui_tables.cpp" />
     <ClCompile Include="..\Libraries\include\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="basisManager.cpp" />
     <ClCompile Include="building.cpp" />
     <ClCompile Include="cameraManager.cpp" />
     <ClCompile Include="entity.cpp" />
@@ -237,8 +238,9 @@
     <None Include="..\Libraries\include\ImGui\imgui.ini" />
     <None Include="helperFunctions.glsl" />
     <None Include="imgui.ini" />
-    <None Include="shaders\2D3rdPersonPOV.frag" />
-    <None Include="shaders\2D3rdPersonPOV.vert" />
+    <None Include="shaders\2d3rdPersonPovHeader.frag" />
+    <None Include="shaders\2d3rdPersonPov.vert" />
+    <None Include="shaders\2d3rdPersonPovBody.frag" />
     <None Include="shaders\3D3rdPersonPOV.frag" />
     <None Include="shaders\3D3rdPersonPOV.vert" />
     <None Include="shaders\default.frag" />

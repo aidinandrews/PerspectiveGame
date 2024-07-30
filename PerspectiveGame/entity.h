@@ -1,5 +1,8 @@
 #pragma once
 #include <iostream>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
 
 #include "tileNavigation.h"
 
@@ -45,23 +48,30 @@ public: // MEMBER VARIABLES:
 	LocalDirection lastLocalDirection;
 	LocalDirection localOrientation;
 
+	glm::vec4 color;
 	float opacity;
-	
+
 public: // MEMBER FUNCTIONS
 
 	Entity() : type(NONE), isStatic(true), localDirection(LocalDirection::LOCAL_DIRECTION_0), localOrientation(LocalDirection::LOCAL_DIRECTION_0),
-		opacity(0), followingEntityIndex(-1)
-	{}
+		opacity(0), followingEntityIndex(-1) {
+		color = glm::vec4(1, 1, 1, 1);
+	}
 
-	Entity(Entity::Type t, bool is, LocalDirection ld, LocalOrientation lo, float o, int lei, int fei) {
+	Entity(Entity::Type t, bool is, LocalPosition lp, LocalDirection ld, LocalOrientation lo, float o, int lei, int fei, glm::vec4 c) {
+		index = 0;
+		tileIndex[0] = -1;
+		tileIndex[1] = -1;
 		type = t;
 		isStatic = is;
+		localPosition = lp;
 		localDirection = ld;
 		lastLocalDirection = LOCAL_DIRECTION_INVALID;
 		localOrientation = lo;
 		opacity = o;
 		leadingEntityIndex = lei;
 		followingEntityIndex = fei;
+		color = c;
 	}
 
 	bool hasLeader() { return leadingEntityIndex != -1; }
@@ -70,7 +80,45 @@ public: // MEMBER FUNCTIONS
 	bool hasFollower() { return followingEntityIndex != -1; }
 	bool hasNoFollower() { return !hasFollower(); }
 
-	static uint16_t localPosToObstructionMask(LocalPosition pos) {
-		return ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[pos];
+	bool inMiddlePosition() { return ((localPosition > 3) && (localPosition < 8)); }
+	bool inEdgePosition() { return localPosition < 4; }
+	bool inCenterPosition() { return localPosition == 8; }
+
+	bool connectedToTile(bool index) { return tileIndex[index] != -1; }
+
+	Entity& operator=(const Entity& other) {
+		index = other.index;
+		tileIndex[0] = other.tileIndex[0];
+		tileIndex[1] = other.tileIndex[1];
+		type = other.type;
+		isStatic = other.isStatic;
+		localPosition = other.localPosition;
+		localDirection = other.localDirection;
+		lastLocalDirection = other.lastLocalDirection;
+		localOrientation = other.localOrientation;
+		opacity = other.opacity;
+		leadingEntityIndex = other.leadingEntityIndex;
+		followingEntityIndex = other.followingEntityIndex;
+		color = other.color;
+
+		return *this;
+	}
+};
+
+struct EntityGpuInfo {
+	alignas(4) int type;
+	alignas(4) int localOrientation;
+	alignas(4) int localDirection;
+	alignas(4) int lastLocalDirection;
+	alignas(4) int isStatic;
+	alignas(16) glm::vec4 color;
+
+	EntityGpuInfo(Entity* entity) {
+		type = entity->type;
+		localOrientation = entity->localOrientation;
+		localDirection = entity->localDirection;
+		lastLocalDirection = entity->lastLocalDirection;
+		isStatic = entity->isStatic;
+		color = entity->color;
 	}
 };

@@ -115,7 +115,7 @@ struct App {
 
 #ifdef USE_GUI_WINDOW
 		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera, 
-			p_tileManager, &framebuffer, p_buttonManager, p_currentSelection);
+			p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager);
 #else
 		p_guiManager = new GuiManager(window.window, nullptr, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
 #endif
@@ -141,7 +141,7 @@ struct App {
 				p_tileManager->createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 			}
 		}
-		p_basisManager->createProducer(0, Entity::Type::MATERIAL_A, true);
+		//p_basisManager->createProducer(p_tileManager->tiles[0], Entity::Type::MATERIAL_A, true);
 	}
 
 	void updateGraphicsAPI() {
@@ -149,11 +149,41 @@ struct App {
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
+
+	void updateWorld() {
+		p_tileManager->update();
+
+		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
+			LastUpdateTime = TimeSinceProgramStart;
+
+			p_forceManager->update();
+			p_basisManager->update();
+			p_entityManager->update();
+			p_tileManager->updateTileGpuInfoIndices();
+		}
+	}
+
+	void updateGui() {
+#ifdef USE_GUI_WINDOW
+		glfwMakeContextCurrent(window.window);
+#endif
+		updateGraphicsAPI();
+		p_guiManager->render();
+		glfwSwapBuffers(window.window);
+
+#ifdef USE_GUI_WINDOW
+		glfwMakeContextCurrent(imGuiWindow.window);
+		updateGraphicsAPI();
+		p_guiManager->renderImGuiDebugWindows();
+		glfwSwapBuffers(imGuiWindow.window);
+#endif
+	}
 	
 	void run() {
+		int   counter        = 0;
+		int   lastFPS        = 0;
 		float runningFPS = 0;
-		int counter = 0;
-		int lastFPS = 0;
+		float lastUpdateTime = 0;
 
 		while (!glfwWindowShouldClose(window.window)) {
 			auto start = std::chrono::high_resolution_clock::now();
@@ -161,30 +191,12 @@ struct App {
 			updateGlobalVariables(window.window);
 
 			inputManager.update();
-
 			p_buttonManager->updateButtons();
-
 			camera.update();
-
 			p_currentSelection->update();
 
-			p_tileManager->update();
-			p_forceManager->update();
-			p_basisManager->update();
-
-#ifdef USE_GUI_WINDOW
-			glfwMakeContextCurrent(window.window);
-#endif
-			updateGraphicsAPI();
-			p_guiManager->render();
-			glfwSwapBuffers(window.window);
-			
-#ifdef USE_GUI_WINDOW
-			glfwMakeContextCurrent(imGuiWindow.window);
-			updateGraphicsAPI();
-			p_guiManager->renderImGuiDebugWindows();
-			glfwSwapBuffers(imGuiWindow.window);
-#endif
+			updateWorld();
+			updateGui();
 			
 			auto end = std::chrono::high_resolution_clock::now();
 			float thisFrameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();

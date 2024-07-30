@@ -50,8 +50,6 @@ public: // DYNAMIC MEMBER VARIABLES:
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
 
-	float lastUpdateTime = 0;
-
 	// OpenGl stuff:
 	GLuint texID;
 	std::vector<GLfloat> verts;
@@ -126,8 +124,6 @@ public: // INITIALIZERS:
 		//createProducer(0, Entity::Type::MATERIAL_A, true);
 		//createConsumer(1, true);
 		//createForceSink(2, false);
-
-
 
 		lastCamPosOffset = glm::vec3(0, 0, 0);
 

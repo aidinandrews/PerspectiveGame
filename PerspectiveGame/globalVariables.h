@@ -22,6 +22,7 @@ extern std::chrono::steady_clock::time_point FrameStart;
 extern float DeltaTime;
 extern float TimeSinceProgramStart;
 extern float UpdateTime;
+extern float LastUpdateTime;
 
 extern int PixelsPerGuiGridUnit;
 

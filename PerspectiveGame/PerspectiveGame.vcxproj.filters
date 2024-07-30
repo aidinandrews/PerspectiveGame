@@ -37,6 +37,9 @@
     <Filter Include="Source Files\Engine">
       <UniqueIdentifier>{131d71ab-1eeb-4ecd-ba85-2283b0b55a07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Shaders\2d3rdPersonPov">
+      <UniqueIdentifier>{bae931d7-f5f3-45e4-8427-62d82ab4976b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\include\ImGui\imconfig.h">
@@ -153,11 +156,11 @@
     <ClInclude Include="forceBlockManager.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
-    <ClInclude Include="basisManager.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="tileNavigation.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="basisManager.h">
+      <Filter>Source Files\World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -240,16 +243,13 @@
       <Filter>Source Files\World</Filter>
     </ClCompile>
     <ClCompile Include="tileNavigation.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="basisManager.cpp">
+      <Filter>Source Files\World</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\2D3rdPersonPOV.frag">
-      <Filter>Resource Files\Shaders</Filter>
-    </None>
-    <None Include="shaders\2D3rdPersonPOV.vert">
-      <Filter>Resource Files\Shaders</Filter>
-    </None>
     <None Include="shaders\3D3rdPersonPOV.frag">
       <Filter>Resource Files\Shaders</Filter>
     </None>
@@ -300,6 +300,15 @@
     </None>
     <None Include="helperFunctions.glsl">
       <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovHeader.frag">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPov.vert">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovBody.frag">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

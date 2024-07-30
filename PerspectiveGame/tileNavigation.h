@@ -12,6 +12,14 @@ enum TileSubType {
 	TILE_TYPE_YZ_BACK = 5,
 };
 
+enum BasisType {
+	NONE,
+	PRODUCER,
+	CONSUMER,
+	FORCE_SINK,
+	FORCE_GENERATOR,
+};
+
 // Each entity has one of 9 positions on the tile (see ascii diagram below), but some positions are
 	// not valid depending on tile type.  Positions ZERO and ONE are invalid for front-facing tiles and
 	// positions TWO and THREE are invalid for back-facing tiles.  If an entity moves to an invalid space,
@@ -57,18 +65,6 @@ enum GlobalDirection {
 	Z_POSITIVE, Z_NEGATIVE
 };
 
-const uint16_t ENTITY_LOCAL_POSITION_OBSTRUCTION_MAP_MASKS[9] = {
-	0b0000000100010000, // Edge   0
-	0b0000000000000110, // Edge   1
-	0b0000100010000000, // Edge   2
-	0b0110000000000000, // Edge   3
-	0b0000001100110000, // Middle 0
-	0b0000000001100110, // Middle 1
-	0b0000110011000000, // Middle 2
-	0b0110011000000000, // Middle 3
-	0b0000011001100000, // Center
-};
-
 struct TileNavigator {
 private:
 	// Returns the adjusted local orientation of an entity/basis when going from one tile to another.
@@ -80,6 +76,9 @@ private:
 	// Gives the next position given the tile's facing direction, a current position, and a direction.
 	// format: NEXT_POSITION[isFrontFacing][currentPosition][direction].
 	static const LocalPosition NEXT_LOCAL_POSITION[9][4];
+
+	// Given a position, returns the uint16_t mask that represents its obstruction from within the tile:
+	static const uint16_t ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[10];
 
 public:
 	// Returns the adjusted local direction of an entity/basis when going from one tile to another.
@@ -106,5 +105,9 @@ public:
 
 	inline static LocalDirection oppositeDirection(LocalDirection currentDirection) {
 		return LocalDirection((int(currentDirection) + 2) % 4);
+	}
+
+	inline static uint16_t localPositionToObstructionMask(LocalPosition position) {
+		return ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[position];
 	}
 };
