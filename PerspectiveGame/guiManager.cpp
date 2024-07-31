@@ -157,7 +157,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldEntityIndex = 5;
 		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
-		p_currentSelection->heldEntity.type = Entity::Type(heldEntityIndex);
+		p_currentSelection->heldEntity->type = Entity::Type(heldEntityIndex);
 		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->addTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)

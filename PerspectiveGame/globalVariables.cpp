@@ -10,14 +10,15 @@ std::chrono::steady_clock::time_point ProgramStart;
 std::chrono::steady_clock::time_point FrameStart;
 float DeltaTime;
 float TimeSinceProgramStart;
-float UpdateTime = 0.5f;
+float UpdateTime = 0.125f;
 float LastUpdateTime = 0.0f;
 
 int PixelsPerGuiGridUnit = 60;
 
 float FPS = 0;
 float FrameTime = 0;
-int NumFrames = 0;
+int CurrentFrame = 0;
+int CurrentTick = 0;
 
 float leftEdit = -1, rightEdit = 1, topEdit = 1, bottomEdit = -1;
 

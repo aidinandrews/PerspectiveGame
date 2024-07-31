@@ -7,6 +7,7 @@ Tile::Tile() {
 	color = glm::vec3(1, 1, 1);
 	sibling = nullptr;
 	this->maxVert = glm::ivec3(0, 0, 0);
+	forceLocalDirection = LOCAL_DIRECTION_INVALID;
 
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
@@ -44,13 +45,8 @@ Tile::Tile(TileSubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), max
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
 	}
-	//entity = nullptr;
 
-	/*buildingType = BUILDING_TYPE_NONE;
-	buildingOrientation = Tile::Edge::UP;
-	entityType = ENTITY_TYPE_NONE;
-	entityOffsetSide = Tile::Edge::UP;
-	entityOffset = 0.0f;*/
+	forceLocalDirection = LOCAL_DIRECTION_INVALID;
 }
 
 glm::ivec3 Tile::normal() {
@@ -202,8 +198,8 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 	basisType = (int)tile->basis.type;
 	basisOrientation = tile->basis.localOrientation;
 
-	hasForce = (int)tile->force.hasForce;
-	forceDirection = tile->force.direction;
+	hasForce = (int)tile->hasForce();
+	forceDirection = tile->forceLocalDirection;
 
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = tile->entityIndices[i];

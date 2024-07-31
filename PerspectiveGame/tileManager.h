@@ -119,12 +119,6 @@ public: // INITIALIZERS:
 		povTile.initialVertIndex = 0;
 		povTile.sideInfosOffset = 1;
 
-		//createEntity(tiles[0], Entity::Type::BUILDING_FORCE_BLOCK, Tile::Edge::UP);
-		//createForceBlock(2, Tile::Edge::RIGHT, 1);
-		//createProducer(0, Entity::Type::MATERIAL_A, true);
-		//createConsumer(1, true);
-		//createForceSink(2, false);
-
 		lastCamPosOffset = glm::vec3(0, 0, 0);
 
 		glGenBuffers(1, &tileInfosBufferID);
@@ -135,33 +129,6 @@ public: // INITIALIZERS:
 public: // MEMBER FUNCTIONS:
 
 	void update();
-
-	// Creates a producer which can create any entity and set it inside the tile it is inside.
-	/*bool createProducer(int tileIndex, Entity::Type producedEntityType, bool override);
-	void deleteProducer(Tile* tile);
-	void updateProducers();*/
-
-	// Creates a consumer which will destroy any entity at offset 0 inside the tile it is inside.
-	/*bool createConsumer(int tileIndex, bool override);
-	void deleteConsumer(Tile* tile);
-	void updateConsumers();*/
-
-	/*bool createForceSink(int tileIndex, bool override);
-	void deleteForceSink(Tile* tile);*/
-
-	/*static bool createForceBlock(int tileIndex, Tile::Edge orientation, int magnitude);
-	void deleteForceBlock(Tile* tile);
-	void updateForceBlocks();*/
-
-	/*void createEntity(Tile* tile, Entity::Type entityType, Tile::Edge entityOrientation);
-	void deleteEntity(Tile* tile);
-	void updateEntity(Tile* t);*/
-
-	/*void addLeader(Tile* tile);
-	void removeLeader(int leaderIndex);
-	bool tryAddFollower(Tile* tile);
-	void updateEntityLeader(Tile* t, int leaderIndex);
-	void demoteLeader(int entityLeaderIndex);*/
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();

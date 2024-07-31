@@ -40,7 +40,7 @@ bool BasisManager::createForceSink(Tile* tile, bool override) {
 	}
 
 	tile->basis.type = BasisType::FORCE_SINK;
-	tile->force.hasForce = false;
+	tile->forceLocalDirection = LOCAL_DIRECTION_INVALID;
 
 	// The creation of a force sink may cut off a line of force from its 
 	// force block, so we need to spawn a force eater to take care of it now:
@@ -48,7 +48,7 @@ bool BasisManager::createForceSink(Tile* tile, bool override) {
 		Tile* neighbor = tile->sideInfos.connectedTiles[i];
 		LocalDirection adjDir = TileNavigator::dirToDirMap(tile->type, neighbor->type, LocalDirection(i));
 
-		if (neighbor->force.direction == adjDir) {
+		if (neighbor->forceLocalDirection == adjDir) {
 			p_forceManager->createForceEater(neighbor->index, adjDir);
 		}
 	}
@@ -65,7 +65,7 @@ void BasisManager::deleteForceSink(Tile* tile) {
 
 		LocalDirection adjDir = LocalDirection((TileNavigator::dirToDirMap(tile->type, neighbor->type, LocalDirection(i)) + 2) % 4);
 
-		if ((neighbor->force.direction == adjDir)) {
+		if (neighbor->hasForce() && (neighbor->forceLocalDirection == adjDir)) {
 			p_forceManager->createForcePropogator(tile->index, LocalDirection((i + 2) % 4));
 			continue;
 		}
@@ -147,7 +147,6 @@ bool BasisManager::createForceGenerator(Tile* tile, LocalDirection orientation, 
 	if (!override && tile->hasBasis()) {
 		return false;
 	}
-	std::cout << "creatingForceGenerator!" << std::endl;
 	tile->basis.type = BasisType::FORCE_GENERATOR;
 	tile->basis.localOrientation = orientation;
 	p_forceManager->createForcePropogator(tile->index, orientation);

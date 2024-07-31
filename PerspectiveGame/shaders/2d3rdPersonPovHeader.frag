@@ -65,12 +65,13 @@ struct TileInfo {
 
 	int type; // 3 bits (6 options)
 };
+bool hasForce(TileInfo t) { return t.forceDirection < 4; }
+
 struct EntityInfo {
 	int type;
-	int localOrientation;
-	int localDirection;
-	int lastLocalDirection;
-	int isStatic;
+	int localOrientation[2];
+	int localDirection[2];
+	int lastLocalDirection[2];
 	vec4 color;
 };
 
@@ -166,16 +167,11 @@ const int ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4] = { // Key: [Current Tile T
 	}
 #undef X
 };
-// Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
-int orientationToOrientationMap(int currentTileType, int neighborTileType, int exitingSide, int currentOrientation) {
-	return ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
-}
-
-
 const vec2 LOCAL_POS_INDEX_TO_VEC2[] = { 
-	vec2(1,0.5), vec2(0.5,0), vec2(0,0.5), vec2(0.3,1), 
-	vec2(0.75,0.5), vec2(0.5,0.25), vec2(0.25,0.5), vec2(0.5,0.75), 
-	vec2(0.5,0.5) };
+	vec2(1.0f,  0.5f), vec2(0.5f, 0.0f ), vec2(0.0f,  0.5f), vec2(0.5f, 1.0f ), 
+	vec2(0.75f, 0.5f), vec2(0.5f, 0.25f), vec2(0.25f, 0.5f), vec2(0.5f, 0.75f), 
+	vec2(0.5f,  0.5f) 
+};
 
 const vec2  povPosToPixelPos = fragWorldPos - povPos;
 const float totalDist = length(povPosToPixelPos);
@@ -213,6 +209,11 @@ vec2 fragLocalBasisPos; // Gives position if side 0 was x+ and side 3 was y+. Do
 vec2 vertOrigin;
 vec2 vertA;
 vec2 vertB;
+
+// Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
+int orientationToOrientationMap(int currentTileType, int neighborTileType, int exitingSide, int currentOrientation) {
+	return ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
+}
 
 
 
@@ -313,7 +314,9 @@ bool colorEntity(int position) {
 bool isInsideEntity() {
 	for (int i = 0; i<9; i++) {
 		if (CurrentTile.entityIndices[i] != -1) {
-			return colorEntity(i);
+			if (colorEntity(i)) {
+				return true;
+			}
 		}
 	}
 	return false;
@@ -636,7 +639,7 @@ void colorPixel() {
 
 	// Apply an effect if the tile has a force applied over it:
 	forceColor = vec4(1,1,1,1);
-	if (tileInfos[currentTileIndex].hasForce == TRUE) {
+	if (hasForce(tileInfos[currentTileIndex])) {
 		float X = 0, Y = 0;
 		switch(tileInfos[currentTileIndex].forceDirection) {
 		case 0: X =  dot(vertA, fragDrawTilePos);     Y =  dot(vertB, fragDrawTilePos); break;

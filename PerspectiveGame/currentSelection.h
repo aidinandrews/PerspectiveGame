@@ -28,7 +28,7 @@ struct CurrentSelection {
 	int	hoveredTileConnectionIndex;
 
 	Tile::Basis heldBasis;
-	Entity heldEntity;
+	Entity* heldEntity;
 
 	bool canEditEntities;
 	bool canEditBases;
@@ -47,19 +47,23 @@ struct CurrentSelection {
 		hoveredTile = nullptr;
 		hoveredTileConnectionIndex = 0;
 
-		canEditEntities = false;
-		canEditBases = false;
-		canEditTiles = false;
-
 		canEditEntities = true;
-		heldEntity.type = Entity::Type::BUILDING_FORCE_BLOCK;
+		heldEntity = new Entity(Entity::Type::MATERIAL_A, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_0, 1.0f, -1, -1, glm::vec4(1, 0, 0, 1));
+
+		canEditBases = false;
 		heldBasis.type = BasisType::FORCE_SINK;
+
+		canEditTiles = false;
 
 		tryingToAddTile = false;
 		tryingToAddTile = true; // TESTING, TEMP!
 
 		addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 		addTileColor = glm::vec3(1, 0, 0);
+	}
+
+	~CurrentSelection() {
+		delete heldEntity;
 	}
 
 	void findHoveredTile() {
@@ -205,9 +209,7 @@ struct CurrentSelection {
 	void tryEditEntities() {
 		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
 
-			p_entityManager->createEntity(hoveredTile->index, heldEntity.type, heldEntity.localOrientation, true);
-
-			std::cout << "new num entities after add: "<<p_entityManager->entities.size() << std::endl;
+			p_entityManager->createEntity(hoveredTile->index, heldEntity->type, heldEntity->localOrientations[0], true);
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			for (int i = 0; i < 9; i++) {
@@ -235,7 +237,7 @@ struct CurrentSelection {
 				std::cout << heldBasis.localOrientation << std::endl;
 			}
 			if (canEditEntities) {
-				heldEntity.localOrientation = LocalDirection((heldEntity.localOrientation + 1) % 4);
+				heldEntity->localOrientations[0] = LocalDirection((heldEntity->localOrientations[0] + 1) % 4);
 			}
 		}
 

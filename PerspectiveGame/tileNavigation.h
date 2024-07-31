@@ -110,4 +110,7 @@ public:
 	inline static uint16_t localPositionToObstructionMask(LocalPosition position) {
 		return ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[position];
 	}
+
+	static void print(LocalDirection d);
+	static void print(LocalPosition p);
 };

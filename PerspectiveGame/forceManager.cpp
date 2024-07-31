@@ -5,7 +5,7 @@ void ForceManager::removeForces() {
 		Tile* tile = p_tileManager->tiles[forceEaters[i].tileIndex];
 
 		// Eat:
-		tile->force.hasForce = 0;
+		tile->forceLocalDirection = LOCAL_DIRECTION_INVALID;
 
 		// Go to next tile:
 		LocalDirection newHeading = TileNavigator::dirToDirMap(tile->type, tile->getNeighbor(forceEaters[i].heading)->type, forceEaters[i].heading);
@@ -15,7 +15,7 @@ void ForceManager::removeForces() {
 		Tile* newTile = p_tileManager->tiles[forceEaters[i].tileIndex];
 
 		// Kys if there is no more force to eat/we jumped to a new line of force:
-		if ((forceEaters[i].heading != newTile->force.direction) || (newTile->force.hasForce == false)
+		if ((forceEaters[i].heading != newTile->forceLocalDirection) || (newTile->hasForce() == false)
 			|| tile->basis.type == BasisType::FORCE_SINK || tile->basis.type == BasisType::FORCE_GENERATOR) {
 
 			forceEaters.erase(forceEaters.begin() + i);
@@ -31,7 +31,7 @@ void ForceManager::propagateForces() {
 		Tile* tile = p_tileManager->tiles[forcePropagators[i].tileIndex];
 
 		// Kys if next tile already has a force in it:
-		if (tile->force.hasForce || tile->basis.type == BasisType::FORCE_SINK) {
+		if (tile->hasForce() || tile->basis.type == BasisType::FORCE_SINK) {
 			forcePropagators.erase(forcePropagators.begin() + i);
 			i--;
 			continue;
@@ -39,8 +39,7 @@ void ForceManager::propagateForces() {
 
 		LocalDirection heading = forcePropagators[i].heading;
 		
-		tile->force.direction = heading;
-		tile->force.hasForce = true;
+		tile->forceLocalDirection = heading;
 
 		Tile* nextTile = tile->sideInfos.connectedTiles[heading];
 

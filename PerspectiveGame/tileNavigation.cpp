@@ -97,3 +97,31 @@ const uint16_t TileNavigator::ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[10] = {
 	0b0000011001100000, // Center
 	0b1111111111111111, // Invalid
 };
+
+void TileNavigator::print(LocalDirection d) {
+	switch (d) {
+	case LOCAL_DIRECTION_0:       std::cout << "LOCAL_DIRECTION_0" << std::endl; break;
+	case LOCAL_DIRECTION_1:       std::cout << "LOCAL_DIRECTION_1" << std::endl; break;
+	case LOCAL_DIRECTION_2:       std::cout << "LOCAL_DIRECTION_2" << std::endl; break;
+	case LOCAL_DIRECTION_3:       std::cout << "LOCAL_DIRECTION_3" << std::endl; break;
+	case LOCAL_DIRECTION_STATIC:  std::cout << "LOCAL_DIRECTION_STATIC" << std::endl; break;
+	case LOCAL_DIRECTION_INVALID: std::cout << "LOCAL_DIRECTION_INVALID" << std::endl; break;
+	default:                      std::cout << "OUT OF SCOPE" << std::endl;
+	}
+}
+
+void TileNavigator::print(LocalPosition p) {
+	switch (p) {
+	case LOCAL_POSITION_EDGE_0:   std::cout << "LOCAL_POSITION_EDGE_0" << std::endl; break;
+	case LOCAL_POSITION_EDGE_1:	  std::cout << "LOCAL_POSITION_EDGE_1" << std::endl; break;
+	case LOCAL_POSITION_EDGE_2:	  std::cout << "LOCAL_POSITION_EDGE_2" << std::endl; break;
+	case LOCAL_POSITION_EDGE_3:	  std::cout << "LOCAL_POSITION_EDGE_3" << std::endl; break;
+	case LOCAL_POSITION_MIDDLE_0: std::cout << "LOCAL_POSITION_MIDDLE_0" << std::endl; break;
+	case LOCAL_POSITION_MIDDLE_1: std::cout << "LOCAL_POSITION_MIDDLE_1" << std::endl; break;
+	case LOCAL_POSITION_MIDDLE_2: std::cout << "LOCAL_POSITION_MIDDLE_2" << std::endl; break;
+	case LOCAL_POSITION_MIDDLE_3: std::cout << "LOCAL_POSITION_MIDDLE_3" << std::endl; break;
+	case LOCAL_POSITION_CENTER:	  std::cout << "LOCAL_POSITION_CENTER" << std::endl; break;
+	case LOCAL_POSITION_INVALID:  std::cout << "LOCAL_POSITION_INVALID" << std::endl; break;
+	default:                      std::cout << "OUT OF SCOPE" << std::endl;
+	}
+}

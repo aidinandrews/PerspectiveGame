@@ -54,62 +54,12 @@ public:
 	// Gives one of the 2 possible tiles an entity can be in (it is in 2 when on an edge).
 	// If it is only in one tile, asking for the second tile it is in (index == 1) results in returning false
 	// and output being nullptr.
-	bool getTile(Entity* entity, bool index, Tile** output) {
-		if (entity->tileIndex[index] != -1) {
-			output = &p_tileManager->tiles[entity->tileIndex[index]];
-			return true;
-		}
-		output = nullptr;
-		return false;
-	}
+	Tile* getTile (Entity* entity, bool index) { return p_tileManager->tiles[entity->tileIndices[index]]; }
+	Tile* getTile0(Entity* entity) { return p_tileManager->tiles[entity->tileIndices[0]]; }
+	Tile* getTile1(Entity* entity) { return p_tileManager->tiles[entity->tileIndices[1]]; }
 
-	void createEntity(int tileIndex, Entity::Type entityType, LocalDirection orientation, bool override) {
-		
-		Tile* tile = p_tileManager->tiles[tileIndex];
-		
-		if (!override && tile->hasEntity(LOCAL_POSITION_CENTER)) {
-			return;
-		}
-
-		entities.push_back(Entity(entityType, true, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_0, orientation, 
-			0.0f, -1, -1, glm::vec4(randColor(), 1)));
-		entities.back().index = (int)entities.size() - 1;
-		entities.back().tileIndex[0] = tileIndex;
-
-		tile->entityIndices[LOCAL_POSITION_CENTER] = entities.back().index;
-		tile->entityObstructionMap |= TileNavigator::localPositionToObstructionMask(LOCAL_POSITION_CENTER);
-
-		// Connect up to leader/follower line if necessary:
-	}
-	void deleteEntity(Entity* entity) {
-		Tile* tile;
-		// remove from tile(s):
-		for (int i = 0; i < 2; i++) {
-			if (!entity->connectedToTile(i)) { continue; }
-			tile = p_tileManager->tiles[entity->tileIndex[i]];
-			tile->entityIndices[entity->localPosition] = -1;
-			tile->entityObstructionMap &= ~TileNavigator::localPositionToObstructionMask(entity->localPosition);
-		}
-
-		if (entity->index == entities.size() - 1) {
-			entities.pop_back();
-			return;
-		}
-
-		// copy last entity to this one, then delete last entity:
-		int newIndex = entity->index;
-		(*entity) = entities.back();
-		entity->index = newIndex;
-
-		//if (lastEntity->hasLeader())   { entities[lastEntity->leadingEntityIndex].followingEntityIndex = newIndex; }
-		//if (lastEntity->hasFollower()) { entities[lastEntity->followingEntityIndex].leadingEntityIndex = newIndex; }
-		for (int i = 0; i < 2; i++) {
-			if (!entity->connectedToTile(i)) { continue; }
-			tile = p_tileManager->tiles[entity->tileIndex[i]];
-			tile->entityIndices[entity->localPosition] = newIndex;
-		}
-		entities.pop_back();
-	}
+	void createEntity(int tileIndex, Entity::Type entityType, LocalDirection orientation, bool override);
+	void deleteEntity(Entity* entity);
 
 	bool moveEntityToEdge(Entity* entity, LocalDirection side);
 	bool moveEntityToNeighborEdge(Entity* entity, LocalDirection side);
@@ -117,6 +67,8 @@ public:
 
 	bool tryMoveEntity(Entity* entity);
 	bool tryMoveEntityInterior(Entity* entity);
+	bool tryMoveEntityToEdge(Entity* entity);
+	bool tryMoveEntityFromEdge(Entity* entity);
 
 	bool tryMoveEntityCenterToMiddle(Entity* entity);
 	bool tryMoveEntityMiddleToCenter(Entity* entity);
@@ -131,7 +83,14 @@ public:
 
 	void updateEntities() {
 		for (Entity& entity : entities) {
-			tryMoveEntity(&entity);
+			// Forces can only change an entity's direction if it is in the central position of a tile,
+			// else there is a possibility for tie-breaking conflicts!
+			if (entity.inCenterPosition()) {
+				entity.localDirections[0] = getTile0(&entity)->forceLocalDirection;
+			}
+			if (entity.hasDirection()) {
+				tryMoveEntity(&entity);
+			}
 		}
 	}
 

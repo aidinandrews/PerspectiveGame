@@ -36,42 +36,44 @@ private:
 public: // MEMBER VARIABLES:
 
 	int index; // Index into the entity vector in entityManager.
-	int tileIndex[2]; // If the entity is on an edge, it 'resides' in both tiles. Hence [2].
+	int tileIndices[2]; // If the entity is on an edge, it 'resides' in both tiles. Hence [2].
 	int leadingEntityIndex;
 	int followingEntityIndex;
 
 	Type type;
 
-	bool           isStatic;
-	LocalPosition  localPosition;
-	LocalDirection localDirection;
-	LocalDirection lastLocalDirection;
-	LocalDirection localOrientation;
+	LocalPosition  localPositions[2];
+	LocalDirection localDirections[2];
+	LocalDirection lastLocalDirections[2];
+	LocalDirection localOrientations[2];
 
 	glm::vec4 color;
 	float opacity;
 
 public: // MEMBER FUNCTIONS
 
-	Entity() : type(NONE), isStatic(true), localDirection(LocalDirection::LOCAL_DIRECTION_0), localOrientation(LocalDirection::LOCAL_DIRECTION_0),
-		opacity(0), followingEntityIndex(-1) {
-		color = glm::vec4(1, 1, 1, 1);
-	}
+	Entity(Entity::Type type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
+		float opacity, int leaderIndex, int followerIndex, glm::vec4 color) {
 
-	Entity(Entity::Type t, bool is, LocalPosition lp, LocalDirection ld, LocalOrientation lo, float o, int lei, int fei, glm::vec4 c) {
-		index = 0;
-		tileIndex[0] = -1;
-		tileIndex[1] = -1;
-		type = t;
-		isStatic = is;
-		localPosition = lp;
-		localDirection = ld;
-		lastLocalDirection = LOCAL_DIRECTION_INVALID;
-		localOrientation = lo;
-		opacity = o;
-		leadingEntityIndex = lei;
-		followingEntityIndex = fei;
-		color = c;
+		this->type = type;
+
+		this->index = 0;
+		this->tileIndices[0] = -1;
+		this->tileIndices[1] = -1;
+
+		this->localPositions[0] = position;
+		this->localPositions[1] = LOCAL_POSITION_INVALID;
+		this->localDirections[0] = direction;
+		this->localDirections[1] = LOCAL_DIRECTION_INVALID;
+		this->lastLocalDirections[0] = LOCAL_DIRECTION_INVALID;
+		this->lastLocalDirections[1] = LOCAL_DIRECTION_INVALID;
+		this->localOrientations[0] = orientation;
+		this->localOrientations[1] = LOCAL_DIRECTION_INVALID;
+
+		this->opacity = opacity;
+		this->leadingEntityIndex = leaderIndex;
+		this->followingEntityIndex = followerIndex;
+		this->color = color;
 	}
 
 	bool hasLeader() { return leadingEntityIndex != -1; }
@@ -80,18 +82,22 @@ public: // MEMBER FUNCTIONS
 	bool hasFollower() { return followingEntityIndex != -1; }
 	bool hasNoFollower() { return !hasFollower(); }
 
-	bool inMiddlePosition() { return ((localPosition > 3) && (localPosition < 8)); }
-	bool inEdgePosition() { return localPosition < 4; }
-	bool inCenterPosition() { return localPosition == 8; }
+	bool inMiddlePosition() { return ((localPositions[0] > 3) && (localPositions[0] < 8)); }
+	bool inEdgePosition() { return localPositions[0] < 4; }
+	bool inCenterPosition() { return localPositions[0] == 8; }
 
-	bool connectedToTile(bool index) { return tileIndex[index] != -1; }
+	bool connectedToTile(bool index) { return tileIndices[index] != -1; }
 
-	Entity& operator=(const Entity& other) {
+	bool hasDirection() { return localDirections[0] < 4; }
+
+	bool movingToEdge() { return inMiddlePosition() && (localDirections[0] == (localPositions[0] - 4)); }
+	bool movingToCenter() { return inMiddlePosition() && (localDirections[0] == ((localPositions[0] - 2) % 4)); }
+
+	/*Entity& operator=(const Entity& other) {
 		index = other.index;
 		tileIndex[0] = other.tileIndex[0];
 		tileIndex[1] = other.tileIndex[1];
 		type = other.type;
-		isStatic = other.isStatic;
 		localPosition = other.localPosition;
 		localDirection = other.localDirection;
 		lastLocalDirection = other.lastLocalDirection;
@@ -102,23 +108,23 @@ public: // MEMBER FUNCTIONS
 		color = other.color;
 
 		return *this;
-	}
+	}*/
 };
 
 struct EntityGpuInfo {
 	alignas(4) int type;
-	alignas(4) int localOrientation;
-	alignas(4) int localDirection;
-	alignas(4) int lastLocalDirection;
-	alignas(4) int isStatic;
+	alignas(8) int localOrientation[2];
+	alignas(8) int localDirection[2];
+	alignas(8) int lastLocalDirection[2];
 	alignas(16) glm::vec4 color;
 
 	EntityGpuInfo(Entity* entity) {
 		type = entity->type;
-		localOrientation = entity->localOrientation;
-		localDirection = entity->localDirection;
-		lastLocalDirection = entity->lastLocalDirection;
-		isStatic = entity->isStatic;
+		for (int i = 0; i < 2; i++) {
+			localOrientation[i] = entity->localOrientations[i];
+			localDirection[i] = entity->localDirections[i];
+			lastLocalDirection[i] = entity->lastLocalDirections[i];
+		}
 		color = entity->color;
 	}
 };

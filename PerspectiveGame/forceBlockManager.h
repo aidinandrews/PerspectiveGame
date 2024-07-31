@@ -29,7 +29,7 @@ private:
 		//tile->entity->type = Entity::Type::BUILDING_FORCE_BLOCK;
 		////tile->entity.offset = 0; // Centered initially.
 		//tile->entity->orientation = orientation;
-		//tile->entity->direction = (tile->force.magnitude > 0) ? tile->force.direction : 0;
+		//tile->entity->direction = (tile->force.magnitude > 0) ? tile->forceLocalDirection : 0;
 		//tile->entity->mass = 3;
 
 		Tile* neighborTile = p_tileManager->tiles[tile->sideInfos.connectedTiles[orientation]->index];

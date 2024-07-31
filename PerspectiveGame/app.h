@@ -136,12 +136,14 @@ struct App {
 
 	void setupWorld() {
 		// This is the initial two tiles that must exist for the player to even move around at all:
-		for (int w = 0; w < 4; w++) {
-			for (int h = 0; h < 4; h++) {
+		for (int w = 1; w < 5; w++) {
+			for (int h = 1; h < 5; h++) {
 				p_tileManager->createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 			}
 		}
 		//p_basisManager->createProducer(p_tileManager->tiles[0], Entity::Type::MATERIAL_A, true);
+		p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_0, BasisType::FORCE_GENERATOR);
+		p_entityManager->createEntity(8, Entity::Type::MATERIAL_A, LOCAL_DIRECTION_0, true);
 	}
 
 	void updateGraphicsAPI() {
@@ -156,10 +158,16 @@ struct App {
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
 			LastUpdateTime = TimeSinceProgramStart;
 
-			p_forceManager->update();
-			p_basisManager->update();
 			p_entityManager->update();
+			p_forceManager->update();
+
+			if (CurrentTick % 4 == 0) {
+				p_basisManager->update();
+				
+			}
+
 			p_tileManager->updateTileGpuInfoIndices();
+			CurrentTick++;
 		}
 	}
 
@@ -180,10 +188,12 @@ struct App {
 	}
 	
 	void run() {
-		int   counter        = 0;
-		int   lastFPS        = 0;
+		int counter = 0;
+		int lastFPS = 0;
 		float runningFPS = 0;
 		float lastUpdateTime = 0;
+		CurrentFrame = 0;
+		CurrentTick = 0;
 
 		while (!glfwWindowShouldClose(window.window)) {
 			auto start = std::chrono::high_resolution_clock::now();
@@ -202,7 +212,7 @@ struct App {
 			float thisFrameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();
 			//std::cout << FrameTime << std::endl;
 			Sleep((DWORD)std::max(16.0f - FrameTime, 0.0f));
-			NumFrames++;
+			CurrentFrame++;
 
 			counter++;
 			runningFPS += (1000.0f / thisFrameTime);

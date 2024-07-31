@@ -103,36 +103,6 @@ public: // STRUCTS
 		}
 	};
 
-	// Every tile (with the exclusion of tiles housing dispercer bases) applies a force to entities inside it.
-	// This force is the actor that makes entities move.  Movement consumes force equal to an entity's mass,
-	// and is quantized into 0, 1, 2, or 4 tiles/tick.  Movement is further subdivided into sub ticks for 
-	// collision detection, so it is really quantized into 0, 1/4, 1/2, 3/4, and 1 tiles/sub tick.  This is so 
-	// that entities can be moved at most 1 block at a time even if they have a speed of > 1 block/tick.  Entities
-	// are updated in this list based on speed: 
-	// 
-	//     { [ *4_, *2_, *1_ ], [ *4_/2_/1_ ], [ *4_, *2_/1_ ], [ *4_/2_/1_ ] }
-	// 
-	// where {} is a tick, [] is a sub tick, *x is a collision check and x_ is a movement.  '/' designates that
-	// the movement/collision chack can be done at the same time since movements with no collision detection do
-	// not need to be done in order.  This heirarchy breaks ties when two entities want to enter the same tile 
-	// (a 4 tile/tick entity will always superceed a 1 tile/tick entity if both try to enter a tile on the same tick).
-	//
-	struct Force {
-	public: // MEMBER VARIABLES:
-
-		// This can be any number but will likely be limited for game design.  
-		// Force applies to masses and makes them move.
-		bool hasForce;
-
-		// Since there are only 4 directions force can be applied, 
-		// only two bits are needed to store the direction.
-		unsigned int direction;
-
-	public: // MEMBER FUNCTIONS:
-
-		Force() : hasForce(0), direction(0) {}
-	};
-
 	// Each tile can have an underlying ans immoveable (basis) structure if necessary for its action.
 	// Ex: A tile that produces entities needs to communicate this visually and also cannot be able to be moved.
 	// Providing the shader with information about a tile's basis will allow it to rener under the tile's entity.
@@ -158,10 +128,11 @@ public: // MEMBER VARIABLES:
 	Tile *sibling;
 
 	TileSubType type;
-	Force force;
+	
+	LocalDirection forceLocalDirection;
 
 	int entityIndices[9];
-	uint16_t entityObstructionMap = 0;
+	uint16_t entityObstructionMask = 0;
 
 	Basis basis;
 
@@ -213,15 +184,17 @@ public: // MEMBER FUNCTIONS:
 
 	static LocalDirection oppositeDirection(LocalDirection currentDirection) { return LocalDirection((int)currentDirection + 2 % 4); }
 
+	bool hasForce() { return forceLocalDirection < 4; }
+
 	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
 
 	bool isObstructed(LocalPosition position) {
-		return entityObstructionMap & TileNavigator::localPositionToObstructionMask(position);
+		return entityObstructionMask & TileNavigator::localPositionToObstructionMask(position);
 	}
 
 	bool hasBasis() { return basis.type != BasisType::NONE; }
 
-	Tile* getNeighbor(int sideIndex) { return sideInfos.connectedTiles[sideIndex]; }
+	Tile* getNeighbor(LocalDirection side) { return sideInfos.connectedTiles[side]; }
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
 	static Tile::Type getTileType(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);

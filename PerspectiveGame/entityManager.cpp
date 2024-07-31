@@ -1,208 +1,170 @@
 #include "entityManager.h"
 
-bool EntityManager::moveEntityToEdge(Entity* entity, LocalDirection side) {
-	//Entity* currentEntity             = entity;
-	//Tile* currentTile                 = getTile(entity);
-	//Tile* neighborTile                = currentTile->getNeighbor(side);
-	//LocalPosition neighborPos = (LocalPosition)currentTile->sideInfos.connectedSideIndices[side];
-	//uint16_t newNeighborObstruction   = Entity::localPosToObstructionMask(neighborPos);
-	//bool nextPosOccupied              = neighborTile->entityObstructionMap &= newNeighborObstruction != 0;
-	//
-	//if (nextPosOccupied) { return false; } // Don't move the entity if there is stuff in the way.
+void EntityManager::createEntity(int tileIndex, Entity::Type entityType, LocalDirection orientation, bool override) {
 
-	//// Move the entity and its followers (if it has any):
-	//neighborTile->entityObstructionMap |= Entity::localPosToObstructionMask(LocalPosition(neighborPos));
-	//currentEntity->localPosition = TileNavigator::TileNavigator::nextLocalPosition(currentEntity->localPosition, currentEntity->localDirection);
-	//LocalPosition previousLocalPos = currentEntity->localPosition;
-	//while (currentEntity->hasFollowers()) {
-	//	currentEntity = currentEntity->follower;
-	//	previousLocalPos = currentEntity->localPosition;
-	//	currentEntity->localPosition = TileNavigator::nextLocalPosition(currentEntity->localPosition, currentEntity->localDirection);
-	//}
-	//// Remove 'tail' of the last follower from the obstruction map:
-	//currentTile->entityObstructionMap  &= ~Entity::localPosToObstructionMask(previousLocalPos);
-	//currentTile->entityObstructionMap  |=  Entity::localPosToObstructionMask(currentEntity->localPosition);	
+	Tile* tile = p_tileManager->tiles[tileIndex];
 
-	//return true;
-	return false;
+	if (!override && tile->hasEntity(LOCAL_POSITION_CENTER)) {
+		return;
+	}
+
+	entities.push_back(Entity(entityType, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_STATIC, orientation,
+		0.0f, -1, -1, glm::vec4(randColor(), 1)));
+	entities.back().index = (int)entities.size() - 1;
+	entities.back().tileIndices[0] = tileIndex;
+
+	tile->entityIndices[LOCAL_POSITION_CENTER] = entities.back().index;
+	tile->entityObstructionMask |= TileNavigator::localPositionToObstructionMask(LOCAL_POSITION_CENTER);
+
+	// Connect up to leader/follower line if necessary:
 }
 
-bool EntityManager::moveEntityToNeighborEdge(Entity* entity, LocalDirection side) {
-	//Tile* currentTile                 = getTile(entity);
-	//Tile* neighborTile                = currentTile->getNeighbor(side);
-	//LocalPosition neighborPos = (LocalPosition)currentTile->sideInfos.connectedSideIndices[side];
-	//uint16_t newNeighborObstruction   = Entity::localPosToObstructionMask(neighborPos);
-	//bool nextPosOccupied              = neighborTile->entityObstructionMap &= newNeighborObstruction != 0;
-	//
-	//if (nextPosOccupied) { return false; }
+void EntityManager::deleteEntity(Entity* entity) {
+	Tile* tile;
+	// remove from tile(s):
+	for (int i = 0; i < 2; i++) {
+		if (!entity->connectedToTile(i)) { continue; }
+		tile = p_tileManager->tiles[entity->tileIndices[i]];
+		tile->entityIndices[entity->localPositions[i]] = -1;
+		tile->entityObstructionMask &= ~TileNavigator::localPositionToObstructionMask(entity->localPositions[i]);
+	}
 
-	//// Because the entity moved, we need to update the relevant obstruction maps:
-	//currentTile->entityObstructionMap  &= ~Entity::localPosToObstructionMask(entity->localPosition);
-	//currentTile->entityObstructionMap  |=  Entity::localPosToObstructionMask(LocalPosition(side));
-	//neighborTile->entityObstructionMap |=  Entity::localPosToObstructionMask(LocalPosition(neighborPos));
+	if (entity->index == entities.size() - 1) {
+		entities.pop_back();
+		return;
+	}
 
-	//entity->localPosition    = neighborPos;
-	//entity->localDirection   = TileNavigator::dirToDirMap(currentTile->type, neighborTile->type, side);
-	//entity->localOrientation = TileNavigator::orientationToOrientationMap(currentTile->type, neighborTile->type, side, entity->localOrientation);
-	//entity->tileIndex        = neighborTile->index;
+	// copy last entity to this one, then delete last entity:
+	int newIndex = entity->index;
+	(*entity) = entities.back();
+	entity->index = newIndex;
 
-	//// Disconnect from current tile and connect to neighbor tile:
-	//for (int i = 0; i < 3; i++) { 
-	//	if (currentTile->entityIndices[i] == entity->index) { 
-	//		currentTile->entityIndices[i] = -1; 
-	//		break; 
-	//	} 
-	//}
-	//for (int i = 0; i < 3; i++) { 
-	//	if (neighborTile->entityIndices[i] == -1) { 
-	//		neighborTile->entityIndices[i] = entity->index; 
-	//		break; 
-	//	} 
-	//}
-	//return true;
-	return false;
-
-}
-
-bool EntityManager::moveEntityToNeighborInner(Entity* entity, LocalDirection side) {
-	//Tile* currentTile                      = getTile(entity);
-	//Tile* neighborTile                     = currentTile->getNeighbor(side);
-	//LocalDirection neighborDir             = TileNavigator::dirToDirMap(currentTile->type, neighborTile->type, side);
-	//LocalPosition neighborSidePos          = (LocalPosition)currentTile->sideInfos.connectedSideIndices[side];
-	//LocalPosition neighborInnerPos         = TileNavigator::nextLocalPosition(neighborSidePos, neighborDir);
-	//uint16_t newEdgeObstruction            = Entity::localPosToObstructionMask(neighborSidePos);
-	//uint16_t newInnerObstruction           = Entity::localPosToObstructionMask(neighborInnerPos);
-	//bool nextPosOccupied                   = ((neighborTile->entityObstructionMap &= ~newEdgeObstruction) &= newInnerObstruction) != 0;
-
-	//if (nextPosOccupied) { return false; }
-
-	//// Because the entity moved, we need to update the relevant obstruction maps:
-	//currentTile->entityObstructionMap  &= ~Entity::localPosToObstructionMask(entity->localPosition);
-	//neighborTile->entityObstructionMap |=  Entity::localPosToObstructionMask(LocalPosition(neighborInnerPos));
-
-	//entity->localPosition = neighborInnerPos;
-	//entity->localDirection = TileNavigator::dirToDirMap(currentTile->type, neighborTile->type, side);
-	//entity->localOrientation = TileNavigator::orientationToOrientationMap(currentTile->type, neighborTile->type, side, entity->localOrientation);
-	//entity->tileIndex = neighborTile->index;
-
-	//// Disconnect from current tile and connect to neighbor tile:
-	//for (int i = 0; i < 3; i++) {
-	//	if (currentTile->entityIndices[i] == entity->index) {
-	//		currentTile->entityIndices[i] = -1;
-	//		break;
-	//	}
-	//}
-	//for (int i = 0; i < 3; i++) {
-	//	if (neighborTile->entityIndices[i] == -1) {
-	//		neighborTile->entityIndices[i] = entity->index;
-	//		break;
-	//	}
-	//}
-	//return true;
-	return false;
-
+	//if (lastEntity->hasLeader())   { entities[lastEntity->leadingEntityIndex].followingEntityIndex = newIndex; }
+	//if (lastEntity->hasFollower()) { entities[lastEntity->followingEntityIndex].leadingEntityIndex = newIndex; }
+	for (int i = 0; i < 2; i++) {
+		if (!entity->connectedToTile(i)) { continue; }
+		tile = p_tileManager->tiles[entity->tileIndices[i]];
+		tile->entityIndices[entity->localPositions[i]] = newIndex;
+	}
+	entities.pop_back();
 }
 
 bool EntityManager::tryMoveEntityInterior(Entity* entity) {
-	LocalPosition newPosition = TileNavigator::nextLocalPosition(entity->localPosition, entity->localDirection);
-	Tile* tile = p_tileManager->tiles[entity->tileIndex[0]]; // If in only 1 tile, the first index points to it.
-	uint16_t currentMask = TileNavigator::localPositionToObstructionMask(entity->localPosition);
+
+	LocalPosition newPosition = TileNavigator::nextLocalPosition(entity->localPositions[0], entity->localDirections[0]);
+	Tile* tile = p_tileManager->tiles[entity->tileIndices[0]]; // If in only 1 tile, the first index points to it.
+	uint16_t currentMask = TileNavigator::localPositionToObstructionMask(entity->localPositions[0]);
 	uint16_t newMask = TileNavigator::localPositionToObstructionMask(newPosition);
-	bool obstruction = (tile->entityObstructionMap & ~currentMask) | newMask;
-	if (obstruction) {
-		// TODO: REVERSE DIRECTION:
+	bool obstructed = (tile->entityObstructionMask & ~currentMask) & newMask;
+	if (obstructed) {
 		return false;
 	}
 
-	tile->entityIndices[entity->localPosition] = -1;
-	tile->entityObstructionMap = (tile->entityObstructionMap & ~currentMask) | newMask;
-	entity->localPosition = newPosition;
+	tile->entityIndices[entity->localPositions[0]] = -1;
+	tile->entityObstructionMask = (tile->entityObstructionMask & ~currentMask) | newMask;
+	entity->localPositions[0] = newPosition;
+	tile->entityIndices[newPosition] = entity->index;
 
 	// TODO: MOVE FOLLOWERS:
+
+	// TODO: if the new position has no force action on it (not in central position/no force in tile) and
+	// there is an obstruction in the next spot it would be in, inverse the entity's direction:
 
 	return true;
 }
 
-bool EntityManager::tryMoveEntity(Entity* entity) {
-	if (entity->inCenterPosition() || 
-		(entity->inMiddlePosition() && (entity->localDirection == ((entity->localPosition - 2) % 4)))) {
-		// move around the tile, there is no chance of the entity moving to a neighbor,
-		// needing to be split between two tiles,
-		// or consolodated from two tiles to one.
-		return tryMoveEntityInterior(entity);
+bool EntityManager::tryMoveEntityToEdge(Entity* entity) {
+	Tile* tile = getTile0(entity);
+	Tile* neighborile = tile->getNeighbor(entity->localDirections[0]);
+
+	LocalPosition newPosition = (LocalPosition)entity->localDirections[0];
+	LocalPosition neighborNewPosition = (LocalPosition)tile->sideInfos.connectedSideIndices[entity->localDirections[0]];
+
+	uint16_t currentMask = TileNavigator::localPositionToObstructionMask(entity->localPositions[0]);
+	uint16_t newMask = TileNavigator::localPositionToObstructionMask(newPosition);
+	uint16_t neighborNewMask = TileNavigator::localPositionToObstructionMask(neighborNewPosition);
+
+	bool obstruction = neighborile->entityObstructionMask & neighborNewMask;
+	if (obstruction) {
+		return false;
 	}
 
-	/*Tile* currentTile = getTile(entity);
-	LocalPosition newPos   = TileNavigator::nextLocalPosition(entity->localPosition, entity->localDirection);
-	uint16_t currentObstructionMap = currentTile->entityObstructionMap;
-	uint16_t currentObstruction    = Entity::localPosToObstructionMask(entity->localPosition);
-	uint16_t newObstruction        = Entity::localPosToObstructionMask(newPos);*/
+	// Move things around:
+	tile->entityIndices[entity->localPositions[0]] = -1;
+	tile->entityIndices[newPosition] = entity->index;
+	tile->entityObstructionMask = (tile->entityObstructionMask & ~currentMask) | newMask;
 
+	neighborile->entityIndices[neighborNewPosition] = entity->index;
+	neighborile->entityObstructionMask |= neighborNewMask;
 
-	//// Check if the entity has to check/change neighboring tile data:
-	//if (entity->localPosition == entity->localDirection) {
-	//	// entity is on an edge and headed into a neighboring tile.
+	entity->localPositions[0] = newPosition;
 
-	//	// check if neighboring tile is clear for movement:
-	//	// if not, inverse entity/followers direction(s):
+	entity->tileIndices[1] = neighborile->index;
+	entity->localPositions[1] = neighborNewPosition;
+	entity->localDirections[1] = LocalDirection((neighborNewPosition + 2) % 4);
+	entity->localOrientations[1] = TileNavigator::orientationToOrientationMap(tile->type, neighborile->type,
+		entity->localDirections[0], entity->localOrientations[0]);
 
-	//	// move over entity/followers
-	//	// add obstruction to neighbor tile
-	//	// remove obstruction from tail entity
-	//}
-	//else if (entity->localPosition == entity->localDirection + 4) {
-	//	tryMoveEntityMiddleToEdge(entity);
-	//}
-	//else if (entity->localPosition == ((entity->localDirection + 2) % 4) + 4) {
-	//	// entity is on an edge and headed into its current tile
+	// TODO: MOVE FOLLOWERS:
 
-	//	// check if current tile is clear for movement:
-	//	// if not, inverse entity/followers direction(s):
+	// TODO: if the new position has no force action on it (not in central position/no force in tile) and
+	// there is an obstruction in the next spot it would be in, inverse the entity's direction:
 
-	//	// move over entity/followers
-	//	// add obstruction to current tile
-	//	// remove obstruction from tail entity
-	//}
-	//else if (entity->localPosition == LocalPosition::LOCAL_POSITION_CENTER) {
-	//	tryMoveEntityCenterToMiddle(entity);
-	//}
-	//else {
-	//	tryMoveEntityMiddleToCenter(entity);
-	//}
+	return true;
+}
 
-	//{
-	//	//switch (newPos) {
-	//	//case LocalPosition::EDGE_0: return moveEntityToEdge(entity, LocalDirection::_0);
-	//	//case LocalPosition::EDGE_1: return moveEntityToEdge(entity, LocalDirection::_1);
-	//	//case LocalPosition::EDGE_2: return moveEntityToEdge(entity, LocalDirection::_2);
-	//	//case LocalPosition::EDGE_3: return moveEntityToEdge(entity, LocalDirection::_3);
+bool EntityManager::tryMoveEntityFromEdge(Entity* entity) {
+	// figure out what tile to move fully to:
+	bool arriving, leaving;
+	if (entity->localDirections[0] == entity->localPositions[0]) { arriving = 1; leaving = 0; }
+	else { arriving = 0; leaving = 1; }
 
-	//	//case LocalPosition::_0_NEIGHBOR: return moveEntityToNeighborEdge(entity, LocalDirection::_0);
-	//	//case LocalPosition::_1_NEIGHBOR: return moveEntityToNeighborEdge(entity, LocalDirection::_1);
-	//	//case LocalPosition::_2_NEIGHBOR: return moveEntityToNeighborEdge(entity, LocalDirection::_2);
-	//	//case LocalPosition::_3_NEIGHBOR: return moveEntityToNeighborEdge(entity, LocalDirection::_3);
+	Tile* arrivingTile = getTile(entity, arriving);
+	Tile* leavingTile = getTile(entity, leaving);
 
-	//	//case LocalPosition::_0_NEIGHBOR_INNER: return moveEntityToNeighborInner(entity, LocalDirection::_0);
-	//	//case LocalPosition::_1_NEIGHBOR_INNER: return moveEntityToNeighborInner(entity, LocalDirection::_1);
-	//	//case LocalPosition::_2_NEIGHBOR_INNER: return moveEntityToNeighborInner(entity, LocalDirection::_2);
-	//	//case LocalPosition::_3_NEIGHBOR_INNER: return moveEntityToNeighborInner(entity, LocalDirection::_3);
+	LocalPosition newPosition = LocalPosition(entity->localPositions[arriving] + 4);
 
-	//	//case LocalPosition::INVALID: return false;
+	uint16_t arrivingCurrentMask = TileNavigator::localPositionToObstructionMask(entity->localPositions[arriving]);
+	uint16_t leavingCurrentMask = TileNavigator::localPositionToObstructionMask(entity->localPositions[leaving]);
+	uint16_t newMask = TileNavigator::localPositionToObstructionMask(newPosition);
 
-	//	//default: // No overlap with neighbors, positions 5, 6, 7, and 8:
-	//	//	bool nextPosOccupied = ((currentObstructionMap &= ~currentObstruction) &= newObstruction) != 0;
-	//	//	if (nextPosOccupied) { return false; }
+	bool obstruction = (arrivingTile->entityObstructionMask & ~arrivingCurrentMask) & newMask;
+	if (obstruction) {
+		std::cout << "OBSTRUCTION" << std::endl;
+		return false;
+	}
 
-	//	//	currentTile->entityObstructionMap &= ~Entity::localPosToObstructionMask(entity->localPosition);
-	//	//	currentTile->entityObstructionMap |=  Entity::localPosToObstructionMask(LocalPosition(newPos));
+	// Move things around:
+	leavingTile->entityObstructionMask &= ~leavingCurrentMask;
+	leavingTile->entityIndices[entity->localPositions[leaving]] = -1;
 
-	//	//	entity->localPosition = newPos;
+	arrivingTile->entityObstructionMask |= arrivingCurrentMask;
+	arrivingTile->entityIndices[entity->localPositions[arriving]] = -1;
+	arrivingTile->entityIndices[newPosition] = entity->index;
 
-	//	//	return true;
-	//	//}
-	//}
-	return false;
+	entity->localPositions[0] = newPosition;
+	entity->tileIndices[0] = arrivingTile->index;
+	entity->localDirections[0] = entity->localDirections[arriving];
+	entity->lastLocalDirections[0] = entity->lastLocalDirections[arriving];
+	entity->localOrientations[0] = entity->localOrientations[arriving];
 
+	entity->tileIndices[1] = -1;
+}
+
+bool EntityManager::tryMoveEntity(Entity* entity) {
+	if (!entity->hasDirection()) { 
+		return false; 
+	}
+
+	if (entity->inEdgePosition()) { 
+		return tryMoveEntityFromEdge(entity); 
+	}
+	else if (entity->movingToEdge()) { 
+		return tryMoveEntityToEdge(entity); 
+	}
+	else /*if (entity->inCenterPosition() || entity->movingToCenter())*/ { 
+		return tryMoveEntityInterior(entity); 
+	}
 }
 
 bool EntityManager::tryMoveEntityCenterToMiddle(Entity* entity) {
@@ -215,7 +177,7 @@ bool EntityManager::tryMoveEntityCenterToMiddle(Entity* entity) {
 
 	//// check if current tile is clear for movement:
 	//// if not, inverse entity/followers direction(s):
-	//bool newPositionObstructed = (currentTile->entityObstructionMap &= ~oldObstructionMap) |= newObstructionMap;
+	//bool newPositionObstructed = (currentTile->entityObstructionMask &= ~oldObstructionMap) |= newObstructionMap;
 	//if (newPositionObstructed) {
 	//	currentEntity->localDirection = TileNavigator::oppositeDirection(currentEntity->localDirection);
 	//	while (currentEntity->hasFollowers()) {
@@ -230,7 +192,7 @@ bool EntityManager::tryMoveEntityCenterToMiddle(Entity* entity) {
 	//Tile* tailTile = currentTile;
 	//LocalPosition tailPosition = currentEntity->localPosition;
 
-	//currentTile->entityObstructionMap |= newObstructionMap;
+	//currentTile->entityObstructionMask |= newObstructionMap;
 	//currentTile->entityIndices[currentEntity->localPosition] = -1;
 	//currentTile->entityIndices[newPosition] = currentEntity->index;
 	//currentEntity->localPosition = TileNavigator::nextLocalPosition(currentEntity->localPosition, currentEntity->localDirection);
@@ -256,7 +218,7 @@ bool EntityManager::tryMoveEntityCenterToMiddle(Entity* entity) {
 	//// Remove obstruction from tail entity:
 	//oldObstructionMap = Entity::localPosToObstructionMask(tailPosition);
 	//newObstructionMap = Entity::localPosToObstructionMask(currentEntity->localPosition);
-	//currentTile->entityObstructionMap = (currentTile->entityObstructionMap & ~oldObstructionMap) | newObstructionMap;
+	//currentTile->entityObstructionMask = (currentTile->entityObstructionMask & ~oldObstructionMap) | newObstructionMap;
 
 	//return true;
 	return false;
@@ -277,7 +239,7 @@ bool EntityManager::tryMoveEntityMiddleToEdge(Entity* entity) {
 	//uint16_t newObstructionMap = Entity::localPosToObstructionMask(neighborPosition);
 	//
 	//// if not, inverse entity/followers direction(s):
-	//bool newPositionObstructed = neighbor->entityObstructionMap & newObstructionMap;
+	//bool newPositionObstructed = neighbor->entityObstructionMask & newObstructionMap;
 	//if (newPositionObstructed) {
 	//	currentEntity->localDirection = TileNavigator::oppositeDirection(currentEntity->localDirection);
 	//	while (currentEntity->hasFollowers()) {
@@ -292,7 +254,7 @@ bool EntityManager::tryMoveEntityMiddleToEdge(Entity* entity) {
 	//Tile* tailTile = currentTile;
 	//LocalPosition tailPosition = currentEntity->localPosition;
 
-	//currentTile->entityObstructionMap |= newObstructionMap;
+	//currentTile->entityObstructionMask |= newObstructionMap;
 	//currentTile->entityIndices[currentEntity->localPosition] = -1;
 	//currentTile->entityIndices[newPosition] = currentEntity->index;
 	//currentEntity->localPosition = TileNavigator::nextLocalPosition(currentEntity->localPosition, currentEntity->localDirection);
@@ -322,7 +284,7 @@ bool EntityManager::tryMoveEntityMiddleToEdge(Entity* entity) {
 	//// Remove obstruction from tail entity:
 	//uint16_t tailObstructionMap = Entity::localPosToObstructionMask(tailPosition);
 	//newObstructionMap = Entity::localPosToObstructionMask(currentEntity->localPosition);
-	//currentTile->entityObstructionMap = (currentTile->entityObstructionMap & ~tailObstructionMap) | newObstructionMap;
+	//currentTile->entityObstructionMask = (currentTile->entityObstructionMask & ~tailObstructionMap) | newObstructionMap;
 
 	//return true;
 	return false;

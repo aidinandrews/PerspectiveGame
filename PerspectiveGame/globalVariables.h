@@ -28,7 +28,8 @@ extern int PixelsPerGuiGridUnit;
 
 extern float FPS;
 extern float FrameTime;
-extern int NumFrames;
+extern int CurrentFrame;
+extern int CurrentTick;
 
 extern float leftEdit;
 extern float rightEdit;
