@@ -115,12 +115,12 @@ public: // STRUCTS
 
 	public: // MEMBER VARIABLES:
 
-		BasisType type;
+		BasisID type;
 		LocalDirection localOrientation;
 
 	public: // MEMBER FUNCTIONS:
 
-		Basis() : type(NONE), localOrientation(LOCAL_DIRECTION_0) {}
+		Basis() : type(BASIS_TYPE_NONE), localOrientation(LOCAL_DIRECTION_0) {}
 	};
 
 public: // MEMBER VARIABLES:
@@ -131,8 +131,19 @@ public: // MEMBER VARIABLES:
 	
 	LocalDirection forceLocalDirection;
 
+	// Index into a list of entities inside an entityManager that we cant see from here.
 	int entityIndices[9];
-	uint16_t entityObstructionMask = 0;
+	// Entities point to two tiles.  entityInfoIndex[position] tells us which data belongs to this tile.
+	bool entityInfoIndices[9];
+	// Each bit of this mask corrisponds to a 16th of the tile taken up by some object inside it.
+	// Ordered (corner numbers are tile edge info indices/local direction codes):
+	// 3------------>0
+	// ^ 12 13 14 15 |
+	// | 08 09 10 11 |
+	// | 04 05 06 07 |
+	// | 00 01 02 03 V
+	// 2 <-----------1
+	uint16_t obstructionMask;
 
 	Basis basis;
 
@@ -145,6 +156,8 @@ public: // MEMBER VARIABLES:
 	// Used for decoration/organization.  
 	// Colors the tile a certain color/pattern.	
 	glm::fvec3 color;
+
+	CornerBuildingID cornerBuildings[4];
 
 private:
 	// This array maps the orientation/direction info of entities/forces/bases when moving from one tile to another.
@@ -161,7 +174,7 @@ private:
 
 public: // MEMBER FUNCTIONS:
 
-	Tile();
+	//Tile();
 
 	// Tile initializer.
 	// - TileSubType: One of three Tile::Types (XY, XZ, YZ) and two directions (FRONT/BACK) -> 6 options.
@@ -189,10 +202,10 @@ public: // MEMBER FUNCTIONS:
 	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
 
 	bool isObstructed(LocalPosition position) {
-		return entityObstructionMask & TileNavigator::localPositionToObstructionMask(position);
+		return obstructionMask & TileNavigator::getObstructionMask(position);
 	}
 
-	bool hasBasis() { return basis.type != BasisType::NONE; }
+	bool hasBasis() { return basis.type != BASIS_TYPE_NONE; }
 
 	Tile* getNeighbor(LocalDirection side) { return sideInfos.connectedTiles[side]; }
 
@@ -295,23 +308,25 @@ struct TileTarget {
 
 // Becuase the data structure used for storing tiles on the CPU is not easily translateable to the GPU, this
 // struct will act as a translator for the information so that a scene can be drawn in a shader on the GPU.
-struct TileGpuInfo {
+struct alignas(32) TileGpuInfo {
+	alignas(32) glm::vec2 texCoords[4];
+	
 	alignas(16) int neighborIndices[4];
 	alignas(16) int neighborMirrored[4];
+	
 	alignas(16) int neighborSideIndex[4];
-
+	alignas(16) int cornerBuildingTypes[4];
+	
 	alignas(16) glm::vec4 color;
-	alignas(32) glm::vec2 texCoords[4];
-
-	alignas(4) int basisType;
-	alignas(4) int basisOrientation;
-
-	alignas(4) int hasForce;
-	alignas(4) int forceDirection;
-
-	int entityIndices[9];
-
-	alignas(4) int tileSubType;
+	alignas(4)  int basisType;
+	alignas(4)  int basisOrientation;
+	alignas(4)  int hasForce;
+	alignas(4)  int forceDirection;
+			    
+	alignas(4)  int tileSubType;
+	alignas(4)  int obstructionMask;
+	alignas(4)  int entityIndices[9];
+	alignas(4)  int padding[5];
 
 	TileGpuInfo(Tile *tile);
 };

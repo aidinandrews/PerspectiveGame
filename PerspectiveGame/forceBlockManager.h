@@ -26,7 +26,7 @@ private:
 
 		// MOVE THIS STUFF TO createEntity()
 		//tile->entity = new Entity;
-		//tile->entity->type = Entity::Type::BUILDING_FORCE_BLOCK;
+		//tile->entity->type = EntityType::BUILDING_FORCE_BLOCK;
 		////tile->entity.offset = 0; // Centered initially.
 		//tile->entity->orientation = orientation;
 		//tile->entity->direction = (tile->force.magnitude > 0) ? tile->forceLocalDirection : 0;

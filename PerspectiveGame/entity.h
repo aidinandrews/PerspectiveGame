@@ -14,33 +14,22 @@
 // This allows for much more straight forward and mechanic-driven collisions.  Overall, tiles are the space
 // and entities are the objects inside that space.
 struct Entity {
-
-public: // MEMBER ENUMS AND MEMBER STRUCTS:
-
-	// All objects can be moved, so buildings and materials
-	// both fall under the 'entity' struct.
-	enum Type {
-		NONE,
-
-		MATERIAL_OMNI,
-		MATERIAL_A,
-		MATERIAL_B,
-
-		BUILDING_COMPRESSOR,
-		BUILDING_FORCE_BLOCK,
-		BUILDING_FORCE_MIRROR,
-	};
-
-private:
-
 public: // MEMBER VARIABLES:
 
 	int index; // Index into the entity vector in entityManager.
-	int tileIndices[2]; // If the entity is on an edge, it 'resides' in both tiles. Hence [2].
+	// If the entity is on an edge, it 'resides' in both tiles. Hence [2].
+	// tileIndices[1] is always the 'leaving tile' or the only tile the entity is in.
+	// tileIndices[0] is always the 'going tile' or -1 (not indexing anywhere).
+	int tileIndices[2];
+	int leaderListIndex;
 	int leadingEntityIndex;
 	int followingEntityIndex;
 
-	Type type;
+	// indexes into the static entity list in entityManager.  used for trying to promote static entities.
+	// -1 if entity is not static.
+	int staticListIndex; 
+
+	EntityID type;
 
 	LocalPosition  localPositions[2];
 	LocalDirection localDirections[2];
@@ -52,7 +41,7 @@ public: // MEMBER VARIABLES:
 
 public: // MEMBER FUNCTIONS
 
-	Entity(Entity::Type type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
+	Entity(EntityID type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
 		float opacity, int leaderIndex, int followerIndex, glm::vec4 color) {
 
 		this->type = type;
@@ -60,6 +49,8 @@ public: // MEMBER FUNCTIONS
 		this->index = 0;
 		this->tileIndices[0] = -1;
 		this->tileIndices[1] = -1;
+		this->leaderListIndex = -1;
+		this->staticListIndex = -1;
 
 		this->localPositions[0] = position;
 		this->localPositions[1] = LOCAL_POSITION_INVALID;
@@ -76,6 +67,9 @@ public: // MEMBER FUNCTIONS
 		this->color = color;
 	}
 
+	bool isStatic() { return staticListIndex != -1; }
+
+	bool isLeader() { return leaderListIndex >= 0; }
 	bool hasLeader() { return leadingEntityIndex != -1; }
 	bool hasNoLeader() { return !hasLeader(); }
 
@@ -111,12 +105,16 @@ public: // MEMBER FUNCTIONS
 	}*/
 };
 
-struct EntityGpuInfo {
-	alignas(4) int type;
+struct alignas(16) EntityGpuInfo {
+	alignas(16) glm::vec4 color;
+
 	alignas(8) int localOrientation[2];
 	alignas(8) int localDirection[2];
+	
 	alignas(8) int lastLocalDirection[2];
-	alignas(16) glm::vec4 color;
+	alignas(4) int type;
+	alignas(4) int padding;
+	
 
 	EntityGpuInfo(Entity* entity) {
 		type = entity->type;

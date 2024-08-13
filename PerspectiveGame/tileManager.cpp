@@ -808,19 +808,19 @@ void TileManager::deleteBuilding(Tile* tile) {
 		return;
 	}
 	switch (tile->entity->type) {
-	case Entity::Type::BUILDING_COMPRESSOR:
+	case EntityType::BUILDING_COMPRESSOR:
 
 		break;
-	case Entity::Type::BUILDING_FORCE_BLOCK:
+	case EntityType::BUILDING_FORCE_BLOCK:
 
 		break;
-	case Entity::Type::BUILDING_FORCE_MIRROR:
+	case EntityType::BUILDING_FORCE_MIRROR:
 
 		break;
 	}
 
 	switch (tile->basis.type) {
-	case BasisType::PRODUCER:
+	case BASIS_TYPE_PRODUCER:
 		for (int i = 0; i < producers.size(); i++) {
 			if (producers[i].tileIndex == tile->index) {
 				producers[i] = producers[producers.size() - 1];
@@ -828,7 +828,7 @@ void TileManager::deleteBuilding(Tile* tile) {
 			}
 		}
 		break;
-	case BasisType::CONSUMER:
+	case BASIS_TYPE_CONSUMER:
 		for (int i = 0; i < consumers.size(); i++) {
 			if (consumers[i].tileIndex == tile->index) {
 				consumers[i] = consumers[consumers.size() - 1];
@@ -914,7 +914,6 @@ void TileManager::update() {
 
 	verts.clear();
 	indices.clear();
-
 	drawnTiles = 0;
 	TOTAL_TIME = 0;
 	

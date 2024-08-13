@@ -1,15 +1,15 @@
 #version 430 core // We need 430 for SSBOs.
 
+//#define PEEK_OBSTRUCTION_MAPS
+
 #define PI				3.1415926535897932384626433832795
 
+#define TRUE  1
+#define FALSE 0
+
 // Entity IDs:
-#define NONE			0
-#define OMNI			1
-#define MATERIAL_A		2
-#define MATERIAL_B		3
-#define COMPRESSOR		4
-#define FORCE_BLOCK		5
-#define FORCE_MIRROR	6
+#define NONE 0
+#define OMNI 1
 
 // Basis IDs:
 #define EMPTY			0
@@ -18,13 +18,11 @@
 #define FORCE_SINK		3
 #define FORCE_GENERATOR	4
 
-#define TRUE			1
-#define FALSE			0
-
-#define RIGHT			0
-#define DOWN			1
-#define LEFT			2
-#define UP				3
+// Corner Building IDs:
+#define BELT_MIDDLE_FORWARD 1
+#define BELT_MIDDLE_BACKWARD    2
+#define BELT_END_FORWARD    3
+#define BELT_END_BACKWARD       4
 
 #define MAX_STEPS 1000 // <- Protects against infinite loops.
 
@@ -48,39 +46,40 @@ uniform sampler2D inTexture;
 uniform mat4      inPovRelativePositions;
 
 struct TileInfo {
-	int neighborIndices[4];
-	int neighborMirrored[4]; // 1x4 bits
-	int neighborSideIndex[4]; // 2x4 bits
-	
-	vec4 color; // could be vec3 
 	vec2 texCoords[4];
-
+	
+	int neighborIndices[4];
+	int neighborMirrored[4];
+	
+	int neighborSideIndex[4];
+	int cornerBuildingTypes[4];
+	
+	vec4 color;
 	int basisType;
-	int basisOrientation; // 2 bits
-
-	int hasForce; // 1 bit
-	int forceDirection; // 2 bits
-
+	int basisOrientation;
+	int hasForce;
+	int forceDirection;
+	
+	int tileSubType;
+	int obstructionMask;
 	int entityIndices[9];
-
-	int type; // 3 bits (6 options)
+	int padding[5];
 };
 bool hasForce(TileInfo t) { return t.forceDirection < 4; }
 
 struct EntityInfo {
-	int type;
+	vec4 color;
+
 	int localOrientation[2];
 	int localDirection[2];
+	
 	int lastLocalDirection[2];
-	vec4 color;
+	int type;
+	int padding;
 };
 
-layout (std430, binding = 1) buffer tileInfosBuffer { 
-	TileInfo tileInfos[]; 
-};
-layout (std430, binding = 2) buffer entityInfosBuffer {
-	EntityInfo entityInfos[];
-};
+layout (std430, binding = 1) buffer tileInfosBuffer   { TileInfo tileInfos[];     };
+layout (std430, binding = 2) buffer entityInfosBuffer { EntityInfo entityInfos[]; };
 
 
 
@@ -106,6 +105,7 @@ float pointToLineSegDist(vec2 A, vec2 B, vec2 E) {
 vec2 rotate(vec2 v, float angle) {
     return mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * v;
 }
+vec4 rgb(float r, float g, float b) { return vec4(r/256,g/256,b/256,1); }
 
 
 
@@ -215,6 +215,18 @@ int orientationToOrientationMap(int currentTileType, int neighborTileType, int e
 	return ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
 }
 
+const uint coordToObstructionMask[2][4] = { { 0x8888, 0x4444, 0x2222, 0x1111 }, { 0x000f, 0x00f0, 0x0f00, 0xf000, } };
+uint vec2ToObstructionMask(vec2 v) {
+	uint xFlag = coordToObstructionMask[0][int(v.x * 4)];
+	uint yFlag = coordToObstructionMask[1][int(v.y * 4)];
+	return xFlag & yFlag;
+}
+bool fragInObstructionMask() {
+	uint posFlag = vec2ToObstructionMask(fragLocalBasisPos);
+	if ((posFlag & CurrentTile.obstructionMask) != 0) { return true; }
+	return false;
+}
+
 
 
 // Early Declarations for lower orginization:
@@ -246,9 +258,8 @@ void getRelativeVertPositions() {
 		switch(currentInitialSideIndex) {
 		case 0: fragLocalBasisPos = fragDrawTilePos; break;
 		case 1: fragLocalBasisPos = center + rotate(fragDrawTilePos - center, PI/2.0f); break;
-		case 2: fragLocalBasisPos = center + rotate(fragDrawTilePos - center, PI);      break;
-		default: 
-		/*case 3:*/ fragLocalBasisPos = center + rotate(fragDrawTilePos - center,  -PI/2.0f); break;
+		case 2: fragLocalBasisPos = center + rotate(fragDrawTilePos - center, PI); break;
+		default: /* case 3: */ fragLocalBasisPos = center + rotate(fragDrawTilePos - center,  -PI/2.0f);
 		}
 	}
 	else {
@@ -256,8 +267,7 @@ void getRelativeVertPositions() {
 		case 0: fragLocalBasisPos = center + rotate(fragDrawTilePos.yx - center, PI/2.0f); break;
 		case 1: fragLocalBasisPos = center + rotate(fragDrawTilePos.yx - center, PI); break;
 		case 2: fragLocalBasisPos = center + rotate(fragDrawTilePos.yx - center, -PI/2.0f); break;
-		default: 
-		/*case 3:*/ fragLocalBasisPos = fragDrawTilePos.yx; break;
+		default: /* case 3: */ fragLocalBasisPos = fragDrawTilePos.yx;
 		}
 	}
 }
@@ -302,7 +312,7 @@ bool isInsidePlayer() {
 	}
 	return false;
 }
-// REFACTOR THIS BULLSHIT:
+
 bool colorEntity(int position) {
 	vec2 entityCenter = LOCAL_POS_INDEX_TO_VEC2[position];
 	if (max(abs(fragLocalBasisPos.x - entityCenter.x), abs(fragLocalBasisPos.y - entityCenter.y)) < 0.25) {
@@ -319,79 +329,6 @@ bool isInsideEntity() {
 			}
 		}
 	}
-	return false;
-//	float entityOffset = updateProgress;
-//
-//	float thisEntityOffset = (entityOffset - 1) * tileInfos[currentTileIndex].entityMoving;
-//
-//	int inverseOffset = (currentSideOffset + 2) % 4; // 1 -> 3 and 3 -> 1
-//	vec2 entityVert = DRAW_TILE_COORDS[((currentInitialVertIndex * inverseOffset) 
-//					+ (tileInfos[currentTileIndex].entityDirection * currentSideOffset)) 
-//					% 4];	
-//
-//	vec2 entityVertOther = DRAW_TILE_COORDS[((inverseOffset * currentInitialVertIndex) 
-//							+ ((tileInfos[currentTileIndex].entityDirection + 3) * currentSideOffset)) 
-//							% 4];
-//
-//	vec2 entityForward = entityVert - entityVertOther;
-//	vec2 entityPos = vec2(0.5f, 0.5f) + entityForward * thisEntityOffset;
-//
-//	// Since the max size of an entity is the size of a tile, if we are too far away from the entityPos, we must be outside of the entity itself:
-//	if(abs(fragDrawTilePos.x - entityPos.x) < 0.5f && abs(fragDrawTilePos.y - entityPos.y) < 0.5f){
-//		
-//		switch(tileInfos[currentTileIndex].entityType) {
-//		case(MATERIAL_A):
-//			if (abs(fragDrawTilePos.x - entityPos.x) < 0.25f && abs(fragDrawTilePos.y - entityPos.y) < 0.25f) {
-//				gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
-//				return true;
-//			}
-//			break;
-//
-//		case(FORCE_BLOCK):
-//			return tryDrawForceBlock(entityForward * thisEntityOffset, currentTileIndex, tileInfos[currentTileIndex].entityOrientation);
-//		}
-//
-//	}
-//
-//	// check adjacent tiles for entities:
-//	for (int i = 0; i < 4; i++) {
-//		int ithIndex = (currentInitialSideIndex + i * currentSideOffset) % 4;
-//		int neighborTileIndex = tileInfos[currentTileIndex].neighborIndices[ithIndex];
-//		int neighborSideIndex = tileInfos[currentTileIndex].neighborSideIndex[ithIndex];
-//		float neighborEntityOffset = (-entityOffset + 1) * tileInfos[neighborTileIndex].entityMoving;
-//
-//		entityPos = vec2(0.5f, 0.5f) + ADJACENT_ENTITY_OFFSETS[i] * -(neighborEntityOffset - 1.0f);
-//		entityForward = ADJACENT_ENTITY_OFFSETS[i] * -(neighborEntityOffset - 1.0f);
-//
-//		// Check we should even try to draw anything:
-//		bool neighborEmpty = tileInfos[neighborTileIndex].entityType == NONE;
-//		bool neighborEntityGoingAway = ((tileInfos[neighborTileIndex].entityDirection + 2) % 4) != neighborSideIndex;
-//		bool neighborEntityTooFarAway = abs(fragDrawTilePos.x - entityPos.x) > 0.5f 
-//									 || abs(fragDrawTilePos.y - entityPos.y) > 0.5f;
-//
-//		if (neighborEmpty || neighborEntityGoingAway || neighborEntityTooFarAway) {
-//			continue;
-//		}
-//		
-//		switch(tileInfos[neighborTileIndex].entityType) {
-//		case(MATERIAL_A):
-//			if (abs(fragDrawTilePos.x - entityPos.x) < 0.25f && abs(fragDrawTilePos.y - entityPos.y) < 0.25f) {
-//				gl_FragColor = vec4(0.945, 0.937, 0.6, 1);
-//				return true;
-//			}
-//			return false;
-//
-//		case(FORCE_BLOCK):
-//			int trueNeighborOrientation = ORIENTATION_TO_ORIENTATION_MAP
-//				[tileInfos[neighborTileIndex].type]
-//				[tileInfos[currentTileIndex].type]
-//				[neighborSideIndex]
-//				[tileInfos[neighborTileIndex].entityOrientation];
-//
-//			return tryDrawForceBlock(entityForward, neighborTileIndex, trueNeighborOrientation);
-//		}
-//	}
-
 	return false;
 }
 
@@ -499,6 +436,191 @@ bool isInsideBasis() {
 		}
 
 		return false;
+}
+
+float S(float x, float o) { 
+	return abs(PI * mod(abs((x - 2.0 * o) / PI), 1.0) - (PI / 2.0)) - (PI / 2.0);
+}
+float T(float x, float y, float o) { 
+	return 0.5 * (-S(x, o) + sqrt(1.0 + 2.0*y - y*y - sqrt(1.0f + 4.0f*y))); 
+}
+bool isInSquare(vec2 p, vec2 o, float a, float s) {
+	// Translate the pixel coordinates to the origin of the square
+    vec2 translated = p - o;
+    
+    // Rotate the coordinates back to align with the square's axes
+    float cosAngle = cos(-a);
+    float sinAngle = sin(-a);
+    vec2 rotated = vec2(
+        translated.x * cosAngle - translated.y * sinAngle,
+        translated.x * sinAngle + translated.y * cosAngle);
+    
+    // Check if the coordinates are within the bounds of the square
+    return abs(rotated.x) <= s && abs(rotated.y) <= s;
+}
+
+#define BELT_SPEED deltaTime * 3
+
+bool drawBeltMiddle(int cornerBuildingIndex, bool forward) {
+	const vec4 DARK = rgb(54, 41, 56);
+	const vec4 M1 = rgb(83, 61, 79);
+	const vec4 M2 = rgb(110, 80, 97);
+	const vec4 M3 = rgb(138, 100, 109);
+	const vec4 M4 = rgb(160, 126, 124);
+	const vec4 LIGHT = rgb(180, 161, 151);
+
+	vec2 p;
+	switch(cornerBuildingIndex) {
+	case 0: p = rotate(fragLocalBasisPos - vec2(1, 0), PI / 2.0f)*vec2(-1, 1) + vec2(1, 0); break;
+	case 1: p = -(fragLocalBasisPos - vec2(1, 0)); break;
+	case 2: p = rotate(fragLocalBasisPos, -PI / 2.0); break;
+	case 3: p = fragLocalBasisPos - vec2(0, 1); break;
+	}
+
+	if (p.y > 0.25) {
+		return false;
+	}
+
+	float a;
+	if (forward) { a = BELT_SPEED; }
+	else { a = -BELT_SPEED; }
+
+	// Thin outer belt:
+	if (p.y > 2.0f / (3.0f * PI)) { 
+		gl_FragColor = DARK; 
+		return true;
+	}
+
+	// Axles:
+	vec2 o = DRAW_TILE_COORDS[cornerBuildingIndex] - DRAW_TILE_COORDS[(cornerBuildingIndex+3)%4];
+	float r = 0.0883883476483;
+	if (distance(p, vec2(0,0)) < r || distance(p, o/2.0) < r || distance(p, o) < r) {
+		gl_FragColor = DARK;
+		return true; 
+	}
+
+	// Squares:
+	if (isInSquare(p, vec2(0,0), a + (PI/4.0f), 2.0f/(3.0f*PI*sqrt(2)) ) ||
+		isInSquare(p, o/2.0,     a,             2.0f/(3.0f*PI*sqrt(2)) ) ||
+		isInSquare(p, o,         a + (PI/4.0f), 2.0f/(3.0f*PI*sqrt(2)) ) ) {
+		gl_FragColor = M3; 
+		return true; 
+	}
+
+	// Humps:
+	float X = -3.0f*PI*p.x;
+	float Y = -3.0f*PI*p.y + 2.0f;
+	float t = T(X, Y, a);
+	if (Y < sin(2.0f * t) - sin(t) - cos(t) + 1) { 
+		gl_FragColor = LIGHT; 
+		return true; 
+	}
+
+	// Back Squares:
+	if (isInSquare(p, vec2(0,0), a,             2.0f/(3.0f*PI*sqrt(2)) ) ||
+		isInSquare(p, o/2.0,     a + (PI/4.0f), 2.0f/(3.0f*PI*sqrt(2)) ) ||
+		isInSquare(p, o,         a,             2.0f/(3.0f*PI*sqrt(2)) ) ) {
+		gl_FragColor = M2; 
+		return true; 
+	}
+
+	// Back Humps:
+	a += PI / 4.0f;
+	t = T(X, Y, a);
+	if (Y < sin(2.0f * t) - sin(t) - cos(t) + 1) { 
+		gl_FragColor = M4; 
+		return true; 
+	}
+
+	gl_FragColor = M1; 
+	return true;
+}
+bool drawBeltEnd(int cornerBuildingIndex, bool forward) {
+	vec2 center;
+	switch(cornerBuildingIndex) {
+	case 0: center = vec2(1, 1); break;
+	case 1: center = vec2(1, 0); break;
+	case 2: center = vec2(0, 0); break;
+	case 3: center = vec2(0, 1); break;
+	}
+
+	if (distance(fragLocalBasisPos, center) > 0.25) { return false; }
+
+	// Belt:
+	if (distance(fragLocalBasisPos, center) > 2.0f / (3.0f * PI)) { 
+		gl_FragColor = rgb(54, 41, 56);
+		return true; 
+	}
+
+	float a;
+	if (forward) { a = BELT_SPEED; }
+	else { a = -BELT_SPEED; }
+	
+	// Axle:
+	if (distance(fragLocalBasisPos, center) < 0.0883883476483) {
+		gl_FragColor = rgb(54, 41, 56);
+		return true;
+	}
+
+	// Square:
+	if (isInSquare(fragLocalBasisPos, center, a + PI / 4.0, 2.0f/(3.0f*PI*sqrt(2)) ) ) {
+		gl_FragColor = rgb(138, 100, 109);
+		return true;
+	}
+	
+	// Humps:
+		gl_FragColor = rgb(180, 161, 151);
+		return true;
+}
+
+bool isInsideCornerBuilding() {
+	bool drawn = false;
+	for (int i = 0; i < 4; i++) { 
+		switch(CurrentTile.cornerBuildingTypes[i]) {
+		case BELT_MIDDLE_FORWARD:  drawn = drawn || drawBeltMiddle(i, true); break;
+		case BELT_MIDDLE_BACKWARD: drawn = drawn || drawBeltMiddle(i, false); break;
+		case BELT_END_FORWARD:     drawn = drawn || drawBeltEnd(i, true); break;
+		case BELT_END_BACKWARD:    drawn = drawn || drawBeltEnd(i, false); break;
+		}
+	}
+	return drawn;
+
+
+//	for (int i = 0; i < 4; i++) {
+//
+//		if (fragLocalBasisPos.x < 0.25f) {
+////			if (CurrentTile.cornerBuildingTypes[2] != NONE) {
+////				
+////			}
+//			continue;
+//		}
+//		else if (fragLocalBasisPos.x > 0.75f) {
+//		
+//			switch(CurrentTile.cornerBuildingTypes[i]) {
+//			case BELT_END_FORWARD:
+//				if (drawBeltEnd(
+//
+//			case BELT_MIDDLE_FORWARD: 
+//				vec2 P = rotate(fragLocalBasisPos - vec2(1, 0), PI / 2.0f);
+//				P.x *= -1;
+//				P += vec2(1, 0);
+//				gl_FragColor = drawBeltMiddle(P, true); 
+//				return true;
+//			case BELT_MIDDLE_BACKWARD: 
+//				vec2 P = rotate(fragLocalBasisPos - vec2(1, 0), PI / 2.0f);
+//				P.x *= -1;
+//				P += vec2(1, 0);
+//				gl_FragColor = drawBeltMiddle(P, false); 
+//				return true;
+//			}
+//		}
+//		else if (fragLocalBasisPos.y < 0.25f) {
+//		}
+//		else if (fragLocalBasisPos.y > 0.75f) {
+//		}
+//	}
+//
+//	return false;
 }
 
 
@@ -613,24 +735,28 @@ vec4 tileTexColor() {
 void colorPixel() {
 	// Rendering heierarchy (player 'drawn last'): 
 	// player > entity > basis > force
+
+	#ifdef PEEK_OBSTRUCTION_MAPS
+	if (fragInObstructionMask() && sin(128 * fragLocalBasisPos.x) > 0) {
+		gl_FragColor = vec4(1, 0, 0, 1); 
+		return;
+	}
+	#endif
 	
-	bool insideBasis  = false;
-	bool insidePlayer = false;
-	bool insideEntity = false;
 	float forceWeight = 0.5f;
 	vec4 forceColor;
 
 	if (isInsidePlayer()) {
-		insidePlayer = true;
 		gl_FragColor = vec4(0.984, 0.953, 0.835, 1);
 		return;
 	} 
+	else if (isInsideCornerBuilding()) {
+		return;
+	}
 	else if (isInsideEntity()) {
-		insideEntity = true;
 		return;
 	} 
 	else if(isInsideBasis()) {
-		insideBasis = true;
 	}
 	else /* We are just on the tile somewhere, so key into the texture: */ {
 		gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5);
@@ -648,8 +774,8 @@ void colorPixel() {
 		case 3: X =  dot(vertB, fragDrawTilePos);     Y =  dot(vertA, fragDrawTilePos); break;
 		}
 
-		forceWeight *= (cos(2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 4) + 1) / 2.0f;
-		float offset = (cos(8 * (2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 4)) + 1) / 8.0f;
+		forceWeight *= (cos(2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 8) + 1) / 2.0f;
+		float offset = (cos(8 * (2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 8)) + 1) / 8.0f;
 		gl_FragColor = mix(gl_FragColor, forceColor, forceWeight + offset);
 	}
 }

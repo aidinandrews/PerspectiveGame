@@ -1,52 +1,36 @@
 #include "tile.h"
 #include "building.h"
 
-Tile::Tile() {
-	index = 0;
-	type = TILE_TYPE_XY_FRONT;
-	color = glm::vec3(1, 1, 1);
-	sibling = nullptr;
-	this->maxVert = glm::ivec3(0, 0, 0);
-	forceLocalDirection = LOCAL_DIRECTION_INVALID;
-
-	for (int i = 0; i < 9; i++) {
-		entityIndices[i] = -1;
-	}
-}
+//Tile::Tile() {
+//	index = 0;
+//	type = TILE_TYPE_XY_FRONT;
+//	color = glm::vec3(1, 1, 1);
+//	sibling = nullptr;
+//	this->maxVert = glm::ivec3(0, 0, 0);
+//	forceLocalDirection = LOCAL_DIRECTION_INVALID;
+//
+//	for (int i = 0; i < 9; i++) {
+//		entityIndices[i] = -1;
+//	}
+//}
 
 Tile::Tile(TileSubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), maxVert(maxVert) {
 
-	glm::vec2 A(1, 1);
-	glm::vec2 B(1, 0);
-	glm::vec2 C(0, 0);
-	glm::vec2 D(0, 1);
-
-	// Generate verts:
-	switch (superTileType(tileSubType)) {
-	case TILE_TYPE_XY:
-		sideInfos.texCoords[0] = A;
-		sideInfos.texCoords[1] = B;
-		sideInfos.texCoords[2] = C;
-		sideInfos.texCoords[3] = D;
-		break;
-	case TILE_TYPE_XZ:
-		sideInfos.texCoords[3] = D;
-		sideInfos.texCoords[2] = C;
-		sideInfos.texCoords[1] = B;
-		sideInfos.texCoords[0] = A;
-		break;
-	default: /*TILE_TYPE_YZ*/
-		sideInfos.texCoords[0] = A;
-		sideInfos.texCoords[1] = B;
-		sideInfos.texCoords[2] = C;
-		sideInfos.texCoords[3] = D;
-	}
+	sideInfos.texCoords[0] = glm::vec2(1, 1);
+	sideInfos.texCoords[1] = glm::vec2(1, 0);
+	sideInfos.texCoords[2] = glm::vec2(0, 0);
+	sideInfos.texCoords[3] = glm::vec2(0, 1);
 
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
+		entityInfoIndices[i] = 0;
 	}
 
+	obstructionMask = 0;
+
 	forceLocalDirection = LOCAL_DIRECTION_INVALID;
+
+	for (int i = 0; i < 4; i++) { cornerBuildings[i] = CORNER_BUILDING_NONE; }
 }
 
 glm::ivec3 Tile::normal() {
@@ -211,6 +195,11 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 		neighborIndices[i] = tile->sideInfos.connectedTiles[i]->index;
 		neighborMirrored[i] = (int)tile->sideInfos.connectionsMirrored[i];
 		neighborSideIndex[i] = tile->sideInfos.connectedSideIndices[i];
+
 		texCoords[i] = tile->sideInfos.texCoords[i];
+
+		cornerBuildingTypes[i] = (int)tile->cornerBuildings[i];
 	}
+
+	obstructionMask = tile->obstructionMask;
 }

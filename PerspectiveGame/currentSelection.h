@@ -35,9 +35,9 @@ struct CurrentSelection {
 	bool canEditTiles;
 
 	bool tryingToAddTile;
-	Tile addTile;
-	glm::vec3 addTileColor;
-	RelativeTileOrientation addTileRelativeOrientation;
+	Tile* heldTile;
+	glm::vec3 heldTileColor;
+	RelativeTileOrientation heldTileRelativeOrientation;
 
 	// Tile before the preview tile we want to add.  tile 'connecting' preview tile to scene:
 	TileTarget addTileParentTarget; 
@@ -47,22 +47,23 @@ struct CurrentSelection {
 		hoveredTile = nullptr;
 		hoveredTileConnectionIndex = 0;
 
-		canEditEntities = true;
-		heldEntity = new Entity(Entity::Type::MATERIAL_A, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_0, 1.0f, -1, -1, glm::vec4(1, 0, 0, 1));
-
-		canEditBases = false;
-		heldBasis.type = BasisType::FORCE_SINK;
-
 		canEditTiles = false;
-
 		tryingToAddTile = false;
 		tryingToAddTile = true; // TESTING, TEMP!
 
-		addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
-		addTileColor = glm::vec3(1, 0, 0);
+		heldTile = new Tile(TILE_TYPE_XY_FRONT, glm::ivec3(1, 1, 0));
+		heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
+		heldTileColor = glm::vec3(1, 0, 0);
+
+		canEditEntities = true;
+		heldEntity = new Entity(ENTITY_TYPE_OMNI, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_0, 1.0f, -1, -1, glm::vec4(1, 0, 0, 1));
+
+		canEditBases = false;
+		heldBasis.type = BASIS_TYPE_FORCE_SINK;
 	}
 
 	~CurrentSelection() {
+		delete heldTile;
 		delete heldEntity;
 	}
 
@@ -168,7 +169,7 @@ struct CurrentSelection {
 		glm::ivec3 v2 = addTileParentTarget.tile->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset) % 4);
 		glm::ivec3 v3, v4;
 
-		switch (addTileRelativeOrientation) {
+		switch (heldTileRelativeOrientation) {
 		case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
 			v3 = v1 - addTileParentTarget.tile->normal();
 			v4 = v2 - addTileParentTarget.tile->normal();
@@ -186,13 +187,13 @@ struct CurrentSelection {
 		Tile::Type tileType = Tile::getTileType(v1, v2, v3, v4);
 		TileSubType tileSubype = Tile::tileSubType(tileType, true);
 		glm::ivec3 maxVert = Tile::getMaxVert(v1, v2, v3, v4);
-		addTile = Tile(tileSubype, maxVert);
+		(*heldTile) = Tile(tileSubype, maxVert);
 	}
 
 	void tryEditTiles() {
 		if (p_inputManager->leftMouseButtonClicked()) {
 			p_tileManager->createTilePair(
-				Tile::superTileType(addTile.type), addTile.maxVert, addTileColor, addTileColor * 0.5f);
+				Tile::superTileType(heldTile->type), heldTile->maxVert, heldTileColor, heldTileColor * 0.5f);
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			p_tileManager->deleteTile(hoveredTile);
@@ -215,7 +216,6 @@ struct CurrentSelection {
 			for (int i = 0; i < 9; i++) {
 				if (hoveredTile->hasEntity(LocalPosition(i))) {
 					p_entityManager->deleteEntity(&p_entityManager->entities[hoveredTile->entityIndices[i]]);
-					std::cout << "entities left after deletion: "<<p_entityManager->entities.size() << std::endl;
 				}
 			}
 		}
@@ -245,15 +245,15 @@ struct CurrentSelection {
 	}
 
 	void cyclePreviewTileOrientation() {
-		switch (addTileRelativeOrientation) {
+		switch (heldTileRelativeOrientation) {
 		case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
-			addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
+			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
 			return;
 		case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
-			addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
+			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
 			return;
 		default: /*RELATIVE_TILE_ORIENTATION_UP*/
-			addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
+			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 			return;
 		}
 	}

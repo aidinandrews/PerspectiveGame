@@ -141,9 +141,27 @@ struct App {
 				p_tileManager->createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 			}
 		}
-		//p_basisManager->createProducer(p_tileManager->tiles[0], Entity::Type::MATERIAL_A, true);
-		p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_0, BasisType::FORCE_GENERATOR);
-		p_entityManager->createEntity(8, Entity::Type::MATERIAL_A, LOCAL_DIRECTION_0, true);
+		//p_basisManager->createProducer(p_tileManager->tiles[2], ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
+		p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
+		p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
+		//p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
+		p_entityManager->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
+		p_entityManager->createEntity(8, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_1, true);
+
+		/*p_tileManager->tiles[2]->cornerBuildings[0] = CORNER_BUILDING_BELT_MIDDLE_FORWARD;
+		p_tileManager->tiles[10]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_BACK;
+		p_tileManager->tiles[4]->cornerBuildings[1] = CORNER_BUILDING_BELT_END_BACK;
+		p_tileManager->tiles[12]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_BACK;
+		p_tileManager->tiles[0]->cornerBuildings[0] = CORNER_BUILDING_BELT_END_BACK;
+		p_tileManager->tiles[8]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_BACK;
+
+		p_tileManager->tiles[2]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_FORWARD;
+		p_tileManager->tiles[3]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_BACK;
+		p_tileManager->tiles[0]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_FORWARD;
+		p_tileManager->tiles[1]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_BACK;
+		p_tileManager->tiles[4]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_FORWARD;
+		p_tileManager->tiles[5]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_BACK;*/
+
 	}
 
 	void updateGraphicsAPI() {
@@ -159,11 +177,10 @@ struct App {
 			LastUpdateTime = TimeSinceProgramStart;
 
 			p_entityManager->update();
-			p_forceManager->update();
 
 			if (CurrentTick % 4 == 0) {
+				p_forceManager->update();
 				p_basisManager->update();
-				
 			}
 
 			p_tileManager->updateTileGpuInfoIndices();
@@ -199,13 +216,11 @@ struct App {
 			auto start = std::chrono::high_resolution_clock::now();
 
 			updateGlobalVariables(window.window);
-
 			inputManager.update();
 			p_buttonManager->updateButtons();
-			camera.update();
 			p_currentSelection->update();
-
 			updateWorld();
+			camera.update();
 			updateGui();
 			
 			auto end = std::chrono::high_resolution_clock::now();

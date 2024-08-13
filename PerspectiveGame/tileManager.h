@@ -113,6 +113,7 @@ public: // INITIALIZERS:
 
 		// by this point there should be two tiles in the scene:
 		createTilePair(Tile::Type::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.8));
+
 		povTile.tile = tiles[0];
 		povPos = glm::vec3(0.5f, 0.5f, 0.0f);
 		povTile.initialSideIndex = 0;

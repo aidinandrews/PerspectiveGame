@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 
+#define NO_ENTITY_INDEX -1
+
 // Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
 // should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
 enum TileSubType {
@@ -12,12 +14,25 @@ enum TileSubType {
 	TILE_TYPE_YZ_BACK = 5,
 };
 
-enum BasisType {
-	NONE,
-	PRODUCER,
-	CONSUMER,
-	FORCE_SINK,
-	FORCE_GENERATOR,
+enum BasisID {
+	BASIS_TYPE_NONE,
+	BASIS_TYPE_PRODUCER,
+	BASIS_TYPE_CONSUMER,
+	BASIS_TYPE_FORCE_SINK,
+	BASIS_TYPE_FORCE_GENERATOR,
+};
+
+enum EntityID {
+	ENTITY_TYPE_NONE,
+	ENTITY_TYPE_OMNI,
+};
+
+enum CornerBuildingID {
+	CORNER_BUILDING_NONE,
+	CORNER_BUILDING_BELT_MIDDLE_FORWARD,
+	CORNER_BUILDING_BELT_MIDDLE_BACK,
+	CORNER_BUILDING_BELT_END_FORWARD,
+	CORNER_BUILDING_BELT_END_BACK,
 };
 
 // Each entity has one of 9 positions on the tile (see ascii diagram below), but some positions are
@@ -107,7 +122,7 @@ public:
 		return LocalDirection((int(currentDirection) + 2) % 4);
 	}
 
-	inline static uint16_t localPositionToObstructionMask(LocalPosition position) {
+	inline static uint16_t getObstructionMask(LocalPosition position) {
 		return ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[position];
 	}
 

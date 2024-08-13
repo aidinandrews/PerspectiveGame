@@ -5,21 +5,21 @@ void BasisManager::update() {
 	updateConsumers();
 }
 
-void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisType basisType) {
+void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisID basisType) {
 	switch (basisType) {
-	case BasisType::NONE:
+	case BASIS_TYPE_NONE:
 		deleteBasis(tile);
 		break;
-	case BasisType::PRODUCER:
-		createProducer(tile, Entity::Type::MATERIAL_A, false);
+	case BASIS_TYPE_PRODUCER:
+		createProducer(tile, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, false);
 		break;
-	case BasisType::CONSUMER:
+	case BASIS_TYPE_CONSUMER:
 		createConsumer(tile, false);
 		break;
-	case BasisType::FORCE_SINK:
+	case BASIS_TYPE_FORCE_SINK:
 		createForceSink(tile, false);
 		break;
-	case BasisType::FORCE_GENERATOR:
+	case BASIS_TYPE_FORCE_GENERATOR:
 		createForceGenerator(tile, orientation, false);
 		break;
 	}
@@ -27,19 +27,19 @@ void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisType ba
 
 void BasisManager::deleteBasis(Tile* tile) {
 	switch (tile->basis.type) {
-	case BasisType::PRODUCER:        deleteProducer(tile);       break;
-	case BasisType::CONSUMER:        deleteConsumer(tile);       break;
-	case BasisType::FORCE_SINK:      deleteForceSink(tile);      break;
-	case BasisType::FORCE_GENERATOR: deleteForceGenerator(tile); break;
+	case BASIS_TYPE_PRODUCER:        deleteProducer(tile);       break;
+	case BASIS_TYPE_CONSUMER:        deleteConsumer(tile);       break;
+	case BASIS_TYPE_FORCE_SINK:      deleteForceSink(tile);      break;
+	case BASIS_TYPE_FORCE_GENERATOR: deleteForceGenerator(tile); break;
 	}
 }
 
 bool BasisManager::createForceSink(Tile* tile, bool override) {
-	if (!override && tile->basis.type != BasisType::NONE) {
+	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}
 
-	tile->basis.type = BasisType::FORCE_SINK;
+	tile->basis.type = BASIS_TYPE_FORCE_SINK;
 	tile->forceLocalDirection = LOCAL_DIRECTION_INVALID;
 
 	// The creation of a force sink may cut off a line of force from its 
@@ -52,34 +52,42 @@ bool BasisManager::createForceSink(Tile* tile, bool override) {
 			p_forceManager->createForceEater(neighbor->index, adjDir);
 		}
 	}
+
+	// It should not be possible for an entity to get inside a force sink, so if there are any entities in the
+	// tile on placement of this sink, destroy them:
+	for (int i = 0; i < 9; i++) {
+		if (tile->entityIndices[i] != -1) {
+			p_entityManager->deleteEntity(&p_entityManager->entities[tile->entityIndices[i]]);
+		}
+	}
+	p_entityManager->obstructionMaskChanges.push_back(ObstructionMaskChange(tile->index, 0xffff, tile->index, 0xffff));
+
 	return true;
 }
 
 void BasisManager::deleteForceSink(Tile* tile) {
-	tile->basis.type = BasisType::NONE;
+	tile->basis.type = BASIS_TYPE_NONE;
+	p_entityManager->obstructionMaskChanges.push_back(ObstructionMaskChange(tile->index, 0xffff, tile->index, 0));
 
 	// When deleting a force sink, it may be that the sink was blocking a line of force.
 	// Now that the sink is not blocking it, that line of force has to be propogated out:
 	for (int i = 0; i < 4; i++) {
 		Tile* neighbor = tile->sideInfos.connectedTiles[i];
-
-		LocalDirection adjDir = LocalDirection((TileNavigator::dirToDirMap(tile->type, neighbor->type, LocalDirection(i)) + 2) % 4);
-
-		if (neighbor->hasForce() && (neighbor->forceLocalDirection == adjDir)) {
+		if (neighbor->hasForce() && neighbor->forceLocalDirection == tile->sideInfos.connectedSideIndices[i]) {
 			p_forceManager->createForcePropogator(tile->index, LocalDirection((i + 2) % 4));
 			continue;
 		}
 	}
 }
 
-bool BasisManager::createProducer(Tile* tile, Entity::Type producedEntityType, bool override) {
-	if (!override && tile->basis.type != BasisType::NONE) {
+bool BasisManager::createProducer(Tile* tile, EntityID producedEntityType, LocalOrientation orientation, bool override) {
+	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}
 
-	tile->basis.type = BasisType::PRODUCER;
+	tile->basis.type = BASIS_TYPE_PRODUCER;
 
-	producers.push_back(Producer(tile, producedEntityType));
+	producers.push_back(Producer(tile, producedEntityType, orientation));
 
 	return true;
 }
@@ -88,18 +96,18 @@ void BasisManager::deleteProducer(Tile* tile) {
 	for (int i = 0; i < producers.size(); i++) {
 		if (producers[i].tileIndex == tile->index) {
 			producers.erase(producers.begin() + i);
-			tile->basis.type = BasisType::NONE;
+			tile->basis.type = BASIS_TYPE_NONE;
 			return;
 		}
 	}
 }
 
 bool BasisManager::createConsumer(Tile* tile, bool override) {
-	if (!override && tile->basis.type != BasisType::NONE) {
+	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}
 
-	tile->basis.type = BasisType::CONSUMER;
+	tile->basis.type = BASIS_TYPE_CONSUMER;
 
 	consumers.push_back(Consumer(tile));
 
@@ -110,7 +118,7 @@ void BasisManager::deleteConsumer(Tile* tile) {
 	for (int i = 0; i < consumers.size(); i++) {
 		if (consumers[i].tileIndex == tile->index) {
 			consumers.erase(consumers.begin() + i);
-			tile->basis.type = BasisType::NONE;
+			tile->basis.type = BASIS_TYPE_NONE;
 			return;
 		}
 	}
@@ -118,7 +126,7 @@ void BasisManager::deleteConsumer(Tile* tile) {
 
 void BasisManager::updateProducers() {
 	for (Producer& producer : producers) {
-		p_entityManager->createEntity(producer.tileIndex, producer.producedEntityType, producer.producedEntityLocalDirection, false);
+		p_entityManager->createEntity(producer.tileIndex, producer.producedEntityType, producer.producedEntityLocalOrientation, false);
 	}
 }
 
@@ -147,7 +155,7 @@ bool BasisManager::createForceGenerator(Tile* tile, LocalDirection orientation, 
 	if (!override && tile->hasBasis()) {
 		return false;
 	}
-	tile->basis.type = BasisType::FORCE_GENERATOR;
+	tile->basis.type = BASIS_TYPE_FORCE_GENERATOR;
 	tile->basis.localOrientation = orientation;
 	p_forceManager->createForcePropogator(tile->index, orientation);
 
@@ -155,7 +163,7 @@ bool BasisManager::createForceGenerator(Tile* tile, LocalDirection orientation, 
 }
 
 void BasisManager::deleteForceGenerator(Tile* tile) {
-	tile->basis.type = BasisType::NONE;
+	tile->basis.type = BASIS_TYPE_NONE;
 
 	p_forceManager->createForceEater(tile->index, tile->basis.localOrientation);
 }

@@ -70,7 +70,7 @@ public:
 		pitch = 0.0f;
 		yaw = 0.0f;//3.0f * (float)M_PI / 2.0f;
 		roll = 0.0f;
-		zoom = 2.0f;
+		zoom = 2.01f;
 		transfMatrix = glm::mat4(1);
 		inverseTransfMatrix = glm::mat4(1);
 	}

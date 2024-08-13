@@ -7,16 +7,16 @@
 struct BasisManager {
 private:
 	struct Producer {
-		Entity::Type producedEntityType;
-		LocalDirection producedEntityLocalDirection;
+		EntityID producedEntityType;
+		LocalOrientation producedEntityLocalOrientation;
 		int tileIndex;
 
 		Producer() {
-			producedEntityType = Entity::Type::NONE;
+			producedEntityType = ENTITY_TYPE_NONE;
 			tileIndex = 0;
 		}
 
-		Producer(Tile* tile, Entity::Type et) : tileIndex(tile->index), producedEntityType(et) {
+		Producer(Tile* tile, EntityID et, LocalOrientation lo) : tileIndex(tile->index), producedEntityType(et), producedEntityLocalOrientation(lo) {
 		}
 	};
 
@@ -49,13 +49,13 @@ public:
 
 	void update();
 
-	void addBasis(Tile* tile, LocalDirection orientation, BasisType basisType);
+	void addBasis(Tile* tile, LocalDirection orientation, BasisID basisType);
 	void deleteBasis(Tile* tile);
 
 	bool createForceSink(Tile* tile, bool override);
 	void deleteForceSink(Tile* tile);
 
-	bool createProducer(Tile* tile, Entity::Type producedEntityType, bool override);
+	bool createProducer(Tile* tile, EntityID producedEntityType, LocalOrientation orientation, bool override);
 	void updateProducers();
 	void deleteProducer(Tile* tile);
 

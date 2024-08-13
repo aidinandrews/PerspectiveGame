@@ -16,7 +16,7 @@ void ForceManager::removeForces() {
 
 		// Kys if there is no more force to eat/we jumped to a new line of force:
 		if ((forceEaters[i].heading != newTile->forceLocalDirection) || (newTile->hasForce() == false)
-			|| tile->basis.type == BasisType::FORCE_SINK || tile->basis.type == BasisType::FORCE_GENERATOR) {
+			|| newTile->basis.type == BASIS_TYPE_FORCE_SINK || newTile->basis.type == BASIS_TYPE_FORCE_GENERATOR) {
 
 			forceEaters.erase(forceEaters.begin() + i);
 			i--;
@@ -31,7 +31,7 @@ void ForceManager::propagateForces() {
 		Tile* tile = p_tileManager->tiles[forcePropagators[i].tileIndex];
 
 		// Kys if next tile already has a force in it:
-		if (tile->hasForce() || tile->basis.type == BasisType::FORCE_SINK) {
+		if (tile->hasForce() || tile->basis.type == BASIS_TYPE_FORCE_SINK) {
 			forcePropagators.erase(forcePropagators.begin() + i);
 			i--;
 			continue;

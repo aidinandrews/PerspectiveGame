@@ -142,23 +142,16 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldBasisIndex = 2;
 		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
-		p_currentSelection->heldBasis.type = BasisType(heldBasisIndex);
+		p_currentSelection->heldBasis.type = BasisID(heldBasisIndex);
 
 		const char* entityLabels[] = { 
 			"NONE",
-
 			"MATERIAL_OMNI",
-			"MATERIAL_A",
-			"MATERIAL_B",
-
-			"BUILDING_COMPRESSOR",
-			"BUILDING_FORCE_BLOCK",
-			"BUILDING_FORCE_MIRROR", 
 		};
 		static int heldEntityIndex = 5;
 		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
-		p_currentSelection->heldEntity->type = Entity::Type(heldEntityIndex);
-		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->addTileColor); // Edit 3 floats representing a color
+		p_currentSelection->heldEntity->type = EntityID(heldEntityIndex);
+		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->heldTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)
 		if (ImGui::Button("Preview Tile Orientation")) {
@@ -167,13 +160,13 @@ void GuiManager::renderImGuiDebugWindows() {
 		ImGui::SameLine();
 		switch (counter) {
 		case 0: ImGui::Text("UP"); 
-			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
+			p_currentSelection->heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
 			break;
 		case 1: ImGui::Text("FLAT");
-			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
+			p_currentSelection->heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
 			break;
 		case 2: ImGui::Text("DOWN");
-			p_currentSelection->addTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
+			p_currentSelection->heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 			break;
 		}
 
@@ -368,8 +361,15 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, p_tileManager->tileInfosBufferID);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
 		p_tileManager->tileGpuInfos.size() * sizeof(TileGpuInfo),
-		p_tileManager->tileGpuInfos.data(),
+		nullptr,
 		GL_DYNAMIC_DRAW);
+	TileGpuInfo* tileData = (TileGpuInfo*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 
+		sizeof(TileGpuInfo) * p_tileManager->tileGpuInfos.size(), 
+		GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	for (int i = 0; i < p_tileManager->tileGpuInfos.size(); ++i) {
+		tileData[i] = p_tileManager->tileGpuInfos[i];
+	}
+
 	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "tileInfosBuffer");
 	GLuint tileInfosBindingPoint = 1;
 	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, tileInfosBlockID, tileInfosBindingPoint);
@@ -387,6 +387,8 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityInfosBindingPoint, p_entityManager->entityGpuBufferID);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
+
+	//std::cout << sizeof(TileGpuInfo) << std::endl;
 }
 
 void GuiManager::bindUniforms2d3rdPerson() {
