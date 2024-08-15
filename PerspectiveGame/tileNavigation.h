@@ -14,7 +14,7 @@ enum TileSubType {
 	TILE_TYPE_YZ_BACK = 5,
 };
 
-enum BasisID {
+enum BasisType {
 	BASIS_TYPE_NONE,
 	BASIS_TYPE_PRODUCER,
 	BASIS_TYPE_CONSUMER,
@@ -22,12 +22,12 @@ enum BasisID {
 	BASIS_TYPE_FORCE_GENERATOR,
 };
 
-enum EntityID {
+enum EntityType {
 	ENTITY_TYPE_NONE,
 	ENTITY_TYPE_OMNI,
 };
 
-enum CornerBuildingID {
+enum CornerBuildingType {
 	CORNER_BUILDING_NONE,
 	CORNER_BUILDING_BELT_MIDDLE_FORWARD,
 	CORNER_BUILDING_BELT_MIDDLE_BACK,

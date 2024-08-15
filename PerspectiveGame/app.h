@@ -145,8 +145,13 @@ struct App {
 		p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
 		p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
 		//p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
+		p_basisManager->addBasis(p_tileManager->tiles[4], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_SINK);
+
+		p_tileManager->tiles[0]->forceLocalDirection = LOCAL_DIRECTION_3;
+		p_tileManager->tiles[2]->forceLocalDirection = LOCAL_DIRECTION_3;
+		
+		p_entityManager->createEntity(2, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
 		p_entityManager->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
-		p_entityManager->createEntity(8, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_1, true);
 
 		/*p_tileManager->tiles[2]->cornerBuildings[0] = CORNER_BUILDING_BELT_MIDDLE_FORWARD;
 		p_tileManager->tiles[10]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_BACK;
@@ -179,6 +184,7 @@ struct App {
 			p_entityManager->update();
 
 			if (CurrentTick % 4 == 0) {
+				p_currentSelection->addQueuedEntities();
 				p_forceManager->update();
 				p_basisManager->update();
 			}

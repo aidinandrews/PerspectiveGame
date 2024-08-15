@@ -5,7 +5,7 @@ void BasisManager::update() {
 	updateConsumers();
 }
 
-void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisID basisType) {
+void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisType basisType) {
 	switch (basisType) {
 	case BASIS_TYPE_NONE:
 		deleteBasis(tile);
@@ -80,7 +80,7 @@ void BasisManager::deleteForceSink(Tile* tile) {
 	}
 }
 
-bool BasisManager::createProducer(Tile* tile, EntityID producedEntityType, LocalOrientation orientation, bool override) {
+bool BasisManager::createProducer(Tile* tile, EntityType producedEntityType, LocalOrientation orientation, bool override) {
 	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}

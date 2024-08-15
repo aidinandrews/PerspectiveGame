@@ -9,6 +9,15 @@
 #include "buttonManager.h"
 #include "cameraManager.h"
 
+struct QueuedEntity {
+	int tileIndex;
+	EntityType entityType;
+	LocalDirection entityOrientation;
+	QueuedEntity(int tileIndex, EntityType entityType, LocalDirection entityOrientation) :
+		tileIndex(tileIndex), entityType(entityType), entityOrientation(entityOrientation)\
+	{}
+};
+
 struct CurrentSelection {
 
 	enum RelativeTileOrientation {
@@ -29,6 +38,8 @@ struct CurrentSelection {
 
 	Tile::Basis heldBasis;
 	Entity* heldEntity;
+
+	std::vector<QueuedEntity> queuedEntities;
 
 	bool canEditEntities;
 	bool canEditBases;
@@ -65,6 +76,13 @@ struct CurrentSelection {
 	~CurrentSelection() {
 		delete heldTile;
 		delete heldEntity;
+	}
+
+	void addQueuedEntities() {
+		for (QueuedEntity e : queuedEntities) {
+			p_entityManager->createEntity(e.tileIndex, e.entityType, e.entityOrientation, false);
+		}
+		queuedEntities.clear();
 	}
 
 	void findHoveredTile() {
@@ -209,8 +227,7 @@ struct CurrentSelection {
 	}
 	void tryEditEntities() {
 		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
-
-			p_entityManager->createEntity(hoveredTile->index, heldEntity->type, heldEntity->localOrientations[0], true);
+			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type, heldEntity->localOrientations[0]));
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			for (int i = 0; i < 9; i++) {

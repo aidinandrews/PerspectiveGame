@@ -115,7 +115,7 @@ public: // STRUCTS
 
 	public: // MEMBER VARIABLES:
 
-		BasisID type;
+		BasisType type;
 		LocalDirection localOrientation;
 
 	public: // MEMBER FUNCTIONS:
@@ -157,7 +157,7 @@ public: // MEMBER VARIABLES:
 	// Colors the tile a certain color/pattern.	
 	glm::fvec3 color;
 
-	CornerBuildingID cornerBuildings[4];
+	CornerBuildingType cornerBuildings[4];
 
 private:
 	// This array maps the orientation/direction info of entities/forces/bases when moving from one tile to another.

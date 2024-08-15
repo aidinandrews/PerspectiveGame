@@ -1,8 +1,8 @@
 #version 430 core // We need 430 for SSBOs.
 
-//#define PEEK_OBSTRUCTION_MAPS
+#define PEEK_OBSTRUCTION_MAPS
 
-#define PI				3.1415926535897932384626433832795
+#define PI 3.1415926535897932384626433832795
 
 #define TRUE  1
 #define FALSE 0
@@ -19,10 +19,10 @@
 #define FORCE_GENERATOR	4
 
 // Corner Building IDs:
-#define BELT_MIDDLE_FORWARD 1
-#define BELT_MIDDLE_BACKWARD    2
-#define BELT_END_FORWARD    3
-#define BELT_END_BACKWARD       4
+#define BELT_MIDDLE_FORWARD  1
+#define BELT_MIDDLE_BACKWARD 2
+#define BELT_END_FORWARD     3
+#define BELT_END_BACKWARD    4
 
 #define MAX_STEPS 1000 // <- Protects against infinite loops.
 

@@ -142,7 +142,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldBasisIndex = 2;
 		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
-		p_currentSelection->heldBasis.type = BasisID(heldBasisIndex);
+		p_currentSelection->heldBasis.type = BasisType(heldBasisIndex);
 
 		const char* entityLabels[] = { 
 			"NONE",
@@ -150,7 +150,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldEntityIndex = 5;
 		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
-		p_currentSelection->heldEntity->type = EntityID(heldEntityIndex);
+		p_currentSelection->heldEntity->type = EntityType(heldEntityIndex);
 		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->heldTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)

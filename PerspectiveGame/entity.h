@@ -29,7 +29,7 @@ public: // MEMBER VARIABLES:
 	// -1 if entity is not static.
 	int staticListIndex; 
 
-	EntityID type;
+	EntityType type;
 
 	LocalPosition  localPositions[2];
 	LocalDirection localDirections[2];
@@ -41,7 +41,7 @@ public: // MEMBER VARIABLES:
 
 public: // MEMBER FUNCTIONS
 
-	Entity(EntityID type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
+	Entity(EntityType type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
 		float opacity, int leaderIndex, int followerIndex, glm::vec4 color) {
 
 		this->type = type;
@@ -123,6 +123,12 @@ struct alignas(16) EntityGpuInfo {
 			localDirection[i] = entity->localDirections[i];
 			lastLocalDirection[i] = entity->lastLocalDirections[i];
 		}
-		color = entity->color;
+
+		if (entity->isLeader())
+			color = glm::vec4(0, 1, 0, 1);
+		else
+			color = glm::vec4(0, 0, 0, 1);
+
+		//color = entity->color;
 	}
 };

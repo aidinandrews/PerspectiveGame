@@ -156,10 +156,10 @@
     <ClInclude Include="forceBlockManager.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
-    <ClInclude Include="tileNavigation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="basisManager.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="tileNavigation.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
   </ItemGroup>

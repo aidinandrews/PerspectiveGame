@@ -66,6 +66,7 @@ public:
 	std::vector<Entity> entities;
 	std::vector<LeaderInfo> leaderInfos; // Only these entities are updated on tick, others are followers or static.
 	std::vector<int> staticEntityIndices;
+	// This exists so that entities cannot 'cut' into each other's corners on movement:
 	std::vector<ObstructionMaskChange> obstructionMaskChanges;
 	std::vector<EntityGpuInfo> entityGpuInfos;
 
@@ -88,24 +89,21 @@ public:
 	Tile* getTile1(Entity* entity) { return p_tileManager->tiles[entity->tileIndices[1]]; }
 
 	// Entities are always created at the center of tiles, otherwise tie-breaking collisions happen :(
-	void createEntity(int tileIndex, EntityID entityType, LocalDirection orientation, bool override);
+	void createEntity(int tileIndex, EntityType entityType, LocalDirection orientation, bool override);
 	void deleteEntity(Entity* entity);
 
 	void removeEntityFromLeaderList(Entity* entity);
 	void removeEntityFromStaticList(Entity* entity);
 	void removeEntityFromEntityList(Entity* entity);
 
-	Entity* getEntity(Tile* tile, LocalPosition position) {
-		return &entities[tile->entityIndices[position]];
-	}
-	Entity* getEntity(LeaderInfo* leaderInfo) {
-		return &entities[leaderInfo->entityIndex];
-	}
+	void demoteLeader(int leaderIndex);
 
-	Entity* getFollower(Entity* entity) {
-		return &entities[entity->followingEntityIndex];
-	}
-	void reverseEntityLineDir(Entity* entity, int leaderIndex);
+	Entity* getEntity(Tile* tile, LocalPosition position) { return &entities[tile->entityIndices[position]]; }
+	Entity* getEntity(LeaderInfo* leaderInfo) { return &entities[leaderInfo->entityIndex]; }
+
+	Entity* getFollower(Entity* entity) { return &entities[entity->followingEntityIndex]; }
+	Entity* getLeader(Entity* entity) { return &entities[entity->leadingEntityIndex]; }
+	LeaderInfo* reverseEntityLineDir(Entity* entity);
 
 	// If a static entity is pushed/has force applied to it, it must be promoted to a leader or follower in order to move.
 	void tryPromoteStaticEntities() {
@@ -126,23 +124,16 @@ public:
 
 				entity->staticListIndex = -1;
 				entity->localDirections[0] = tile->forceLocalDirection;
-				entity->leaderListIndex = leaderInfos.size();
+				entity->leaderListIndex = (int)leaderInfos.size();
 
-				leaderInfos.push_back(LeaderInfo(leaderInfos.size(), entity->index, entity->localDirections[0], 1));
+				leaderInfos.push_back(LeaderInfo((int)leaderInfos.size(), entity->index, entity->localDirections[0], 1));
 			}
 		}
 	}
 
-	void manageEntityCollision(LeaderInfo* leaderInfo, int entityInfosIndex);
+	void manageEntityCollision(LeaderInfo* leaderInfo);
 
-	void tryChangeEntityDirection(Entity* entity) {
-		Tile* tile = getTile0(entity);
-
-		if (!tile->hasForce()) { return; }
-		if (entity->localDirections[0] == tile->forceLocalDirection) { return; }
-
-		entity->localDirections[0] = getTile0(entity)->forceLocalDirection;
-	}
+	bool tryChangeEntityDirection(LeaderInfo* leaderInfo);
 
 	// An entity can only be made a leader while residing in the center or edge of a tile, and the logic is slightly different for each case.
 	// returns the number of followers added to the entity.
@@ -159,8 +150,9 @@ public:
 	bool tryMoveLeaderInterior(LeaderInfo* leaderInfo);
 	bool tryMoveLeaderToEdge(LeaderInfo* leaderInfo);
 	bool tryMoveLeaderFromEdge(LeaderInfo* leaderInfo);
+	void moveFollowers(Entity* entity);
 
-	bool hasCornerConflict(Entity* entity, Tile* arrivingTile, int arriving, int edgeOffset);
+	bool cornerCollision(Entity* entity, Tile* arrivingTile, int arriving, int edgeOffset);
 
 	void updateObstructionMasks() {
 		for (ObstructionMaskChange omc : obstructionMaskChanges) {
@@ -182,7 +174,7 @@ public:
 			// Forces can only change an entity's direction if it is in the central position of a tile,
 			// else there is a possibility for tie-breaking conflicts!
 			if (entities[info->entityIndex].inCenterPosition()) {
-				tryChangeEntityDirection(&entities[info->entityIndex]);
+				tryChangeEntityDirection(info);
 			}
 			if (entities[info->entityIndex].hasDirection()) {
 				tryMoveLeader(info);
