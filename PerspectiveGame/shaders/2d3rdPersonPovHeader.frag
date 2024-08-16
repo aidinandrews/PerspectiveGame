@@ -47,33 +47,23 @@ uniform mat4      inPovRelativePositions;
 
 struct TileInfo {
 	vec2 texCoords[4];
-	
 	int neighborIndices[4];
 	int neighborMirrored[4];
-	
 	int neighborSideIndex[4];
-	int cornerBuildingTypes[4];
-	
 	vec4 color;
+	int entityIndices[9]; // 36
 	int basisType;
 	int basisOrientation;
-	int hasForce;
-	int forceDirection;
-	
 	int tileSubType;
 	int obstructionMask;
-	int entityIndices[9];
-	int padding[5];
+	int padding[3];
 };
-bool hasForce(TileInfo t) { return t.forceDirection < 4; }
 
 struct EntityInfo {
 	vec4 color;
-
 	int localOrientation[2];
 	int localDirection[2];
-	
-	int lastLocalDirection[2];
+	int position[2];
 	int type;
 	int padding;
 };
@@ -573,56 +563,6 @@ bool drawBeltEnd(int cornerBuildingIndex, bool forward) {
 		return true;
 }
 
-bool isInsideCornerBuilding() {
-	bool drawn = false;
-	for (int i = 0; i < 4; i++) { 
-		switch(CurrentTile.cornerBuildingTypes[i]) {
-		case BELT_MIDDLE_FORWARD:  drawn = drawn || drawBeltMiddle(i, true); break;
-		case BELT_MIDDLE_BACKWARD: drawn = drawn || drawBeltMiddle(i, false); break;
-		case BELT_END_FORWARD:     drawn = drawn || drawBeltEnd(i, true); break;
-		case BELT_END_BACKWARD:    drawn = drawn || drawBeltEnd(i, false); break;
-		}
-	}
-	return drawn;
-
-
-//	for (int i = 0; i < 4; i++) {
-//
-//		if (fragLocalBasisPos.x < 0.25f) {
-////			if (CurrentTile.cornerBuildingTypes[2] != NONE) {
-////				
-////			}
-//			continue;
-//		}
-//		else if (fragLocalBasisPos.x > 0.75f) {
-//		
-//			switch(CurrentTile.cornerBuildingTypes[i]) {
-//			case BELT_END_FORWARD:
-//				if (drawBeltEnd(
-//
-//			case BELT_MIDDLE_FORWARD: 
-//				vec2 P = rotate(fragLocalBasisPos - vec2(1, 0), PI / 2.0f);
-//				P.x *= -1;
-//				P += vec2(1, 0);
-//				gl_FragColor = drawBeltMiddle(P, true); 
-//				return true;
-//			case BELT_MIDDLE_BACKWARD: 
-//				vec2 P = rotate(fragLocalBasisPos - vec2(1, 0), PI / 2.0f);
-//				P.x *= -1;
-//				P += vec2(1, 0);
-//				gl_FragColor = drawBeltMiddle(P, false); 
-//				return true;
-//			}
-//		}
-//		else if (fragLocalBasisPos.y < 0.25f) {
-//		}
-//		else if (fragLocalBasisPos.y > 0.75f) {
-//		}
-//	}
-//
-//	return false;
-}
-
 
 
 // connectionIndex is the side index of the side of the current tile we are passing over.
@@ -737,47 +677,13 @@ void colorPixel() {
 	// player > entity > basis > force
 
 	#ifdef PEEK_OBSTRUCTION_MAPS
-	if (fragInObstructionMask() && sin(128 * fragLocalBasisPos.x) > 0) {
-		gl_FragColor = vec4(1, 0, 0, 1); 
-		return;
-	}
+	if (fragInObstructionMask() && sin(128 * fragLocalBasisPos.x) > 0) { gl_FragColor = vec4(1, 0, 0, 1); return; }
 	#endif
-	
-	float forceWeight = 0.5f;
-	vec4 forceColor;
 
-	if (isInsidePlayer()) {
-		gl_FragColor = vec4(0.984, 0.953, 0.835, 1);
-		return;
-	} 
-	else if (isInsideCornerBuilding()) {
-		return;
-	}
-	else if (isInsideEntity()) {
-		return;
-	} 
-	else if(isInsideBasis()) {
-	}
-	else /* We are just on the tile somewhere, so key into the texture: */ {
-		gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5);
-		forceWeight = 0.5f;
-	}
-
-	// Apply an effect if the tile has a force applied over it:
-	forceColor = vec4(1,1,1,1);
-	if (hasForce(tileInfos[currentTileIndex])) {
-		float X = 0, Y = 0;
-		switch(tileInfos[currentTileIndex].forceDirection) {
-		case 0: X =  dot(vertA, fragDrawTilePos);     Y =  dot(vertB, fragDrawTilePos); break;
-		case 1: X = -dot(vertB, fragDrawTilePos) + 1; Y =  dot(vertA, fragDrawTilePos); break;
-		case 2: X = -dot(vertA, fragDrawTilePos) + 1; Y =  dot(vertB, fragDrawTilePos); break;
-		case 3: X =  dot(vertB, fragDrawTilePos);     Y =  dot(vertA, fragDrawTilePos); break;
-		}
-
-		forceWeight *= (cos(2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 8) + 1) / 2.0f;
-		float offset = (cos(8 * (2*PI*(X + .5*abs(abs(Y) - 0.5)) - deltaTime * 8)) + 1) / 8.0f;
-		gl_FragColor = mix(gl_FragColor, forceColor, forceWeight + offset);
-	}
+	if (isInsidePlayer()) { gl_FragColor = vec4(0.984, 0.953, 0.835, 1); }
+	//else if (isInsideEntity()) {} 
+	//else if (isInsideBasis()) {}
+	else { gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5); }
 }
 
 

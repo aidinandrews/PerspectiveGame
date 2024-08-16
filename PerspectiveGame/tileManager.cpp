@@ -106,7 +106,7 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 	tileGpuInfos.push_back(TileGpuInfo(frontTile));
 	tileGpuInfos.push_back(TileGpuInfo(backTile));
 
-	//updateTileGpuInfoIndices();
+	updateTileGpuInfoIndices();
 
 	return true;
 }
@@ -884,7 +884,7 @@ void TileManager::deleteTile(Tile* tile) {
 	}
 	// The index values stored in the tiles are messed up, so we need to update the gpu info for all the messed
 	// up tiles:
-	//updateTileGpuInfoIndices();
+	updateTileGpuInfoIndices();
 
 	delete tile;
 	delete sibling;
@@ -907,16 +907,16 @@ int inverseDirection(int dir) {
 }
 
 void TileManager::update() {
+	drawnTiles = 0;
+}
+
+void TileManager::updateVisuals()
+{
 	collisionDetectUnsafeCorners();
 	updatePovTileTarget();
 	update3dRotationAdj();
 	updateWindowFrustum();
 
-	verts.clear();
-	indices.clear();
-	drawnTiles = 0;
-	TOTAL_TIME = 0;
-	
 	getRelativePovPosGpuInfos();
 }
 

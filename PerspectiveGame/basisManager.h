@@ -7,31 +7,29 @@
 struct BasisManager {
 private:
 	struct Producer {
-		EntityType producedEntityType;
-		LocalOrientation producedEntityLocalOrientation;
+		EntityType targetType;
+		LocalDirection targetDirection;
+		LocalOrientation targetOrientation;
 		int tileIndex;
 
-		Producer() {
-			producedEntityType = ENTITY_TYPE_NONE;
-			tileIndex = 0;
-		}
-
-		Producer(Tile* tile, EntityType et, LocalOrientation lo) : tileIndex(tile->index), producedEntityType(et), producedEntityLocalOrientation(lo) {
-		}
+		Producer(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation orientation) :
+			tileIndex(tileIndex), targetType(type), targetDirection(direction), targetOrientation(orientation)
+		{}
 	};
 
 	struct Consumer {
 		int tileIndex;
 
-		Consumer() {
+		Consumer()
+		{
 			tileIndex = 0;
 		}
 
-		Consumer(Tile* tile) : tileIndex(tile->index) {
-		}
+		Consumer(Tile* tile) : tileIndex(tile->index)
+		{}
 
-		void update() {
-		}
+		void update()
+		{}
 	};
 
 private:
@@ -43,19 +41,19 @@ private:
 	std::vector<Consumer> consumers;
 
 public:
-	BasisManager(TileManager* tm, ForceManager* fm, EntityManager* em) : 
-		p_tileManager(tm), p_forceManager(fm), p_entityManager(em) {
-	}
+	BasisManager(TileManager* tm, ForceManager* fm, EntityManager* em) :
+		p_tileManager(tm), p_forceManager(fm), p_entityManager(em)
+	{}
 
 	void update();
 
 	void addBasis(Tile* tile, LocalDirection orientation, BasisType basisType);
 	void deleteBasis(Tile* tile);
 
-	bool createForceSink(Tile* tile, bool override);
-	void deleteForceSink(Tile* tile);
+	//bool createForceSink(Tile* tile, bool override);
+	//void deleteForceSink(Tile* tile);
 
-	bool createProducer(Tile* tile, EntityType producedEntityType, LocalOrientation orientation, bool override);
+	bool createProducer(Tile* tile, EntityType targetType, LocalDirection targetDirection, LocalOrientation targetOrientation, bool override);
 	void updateProducers();
 	void deleteProducer(Tile* tile);
 

@@ -34,15 +34,21 @@ const static uint16_t ENTITY_POS_OBSTRUCTION_MAP_MASKS[25] = {
 	0b0000000000000001,
 };
 
-struct ObstructionMaskChange {
-	int oldTileIndex;
-	uint16_t oldMask;
-	
-	int newTileIndex;
-	uint16_t newMask;
+struct ObstructionMaskSelectiveAdd {
+	int tileIndex;
+	uint16_t mask; // Will |= target obstruction mask.
 
-	ObstructionMaskChange(int oldTileIndex, uint16_t oldMask, int newTileIndex, uint16_t newMask):
-		oldTileIndex(oldTileIndex), oldMask(oldMask), newTileIndex(newTileIndex), newMask(newMask)
+	ObstructionMaskSelectiveAdd(int tileIndex, uint16_t mask) :
+		tileIndex(tileIndex), mask(mask)
+	{}
+};
+
+struct ObstructionMaskSelectiveClear {
+	int tileIndex;
+	uint16_t mask; // Will &= target obstruction mask.
+
+	ObstructionMaskSelectiveClear(int tileIndex, uint16_t mask) :
+		tileIndex(tileIndex), mask(mask)
 	{}
 };
 
@@ -64,12 +70,17 @@ public:
 	TileManager* p_tileManager;
 
 	std::vector<Entity> entities;
-	std::vector<LeaderInfo> leaderInfos; // Only these entities are updated on tick, others are followers or static.
-	std::vector<int> staticEntityIndices;
-	// This exists so that entities cannot 'cut' into each other's corners on movement:
-	std::vector<ObstructionMaskChange> obstructionMaskChanges;
-	std::vector<EntityGpuInfo> entityGpuInfos;
 
+	// If obstruction masks are edited while entities are updated, the second entity of an entity collision will
+	// not see that it is obstructed after the first one is updated.  Obstruction masks are therefore updated after
+	// entities are updated, and these updates are kept track of here:
+	std::vector<ObstructionMaskSelectiveAdd> obstructionMaskAdditions;
+	std::vector<ObstructionMaskSelectiveClear> obstructionMaskClears;
+	
+	// This vector eeps track of the number of entities in each tile (Max 9).
+	// It is used when updating the tile GPU info structs.
+	std::vector<int> entitiesInTiles;
+	std::vector<EntityGpuInfo> entityGpuInfos;
 	GLuint entityGpuBufferID;
 
 public:
@@ -84,82 +95,51 @@ public:
 	// Gives one of the 2 possible tiles an entity can be in (it is in 2 when on an edge).
 	// If it is only in one tile, asking for the second tile it is in (index == 1) results in returning false
 	// and output being nullptr.
-	Tile* getTile(Entity* entity, bool index) { return p_tileManager->tiles[entity->tileIndices[index]]; }
-	Tile* getTile0(Entity* entity) { return p_tileManager->tiles[entity->tileIndices[0]]; }
-	Tile* getTile1(Entity* entity) { return p_tileManager->tiles[entity->tileIndices[1]]; }
+	Tile* getTile(Entity* entity) { return p_tileManager->tiles[entity->getTileIndex()]; }
+	Tile* getLeavingTile(Entity* entity) { return p_tileManager->tiles[entity->getLeavingTileIndex()]; }
 
-	// Entities are always created at the center of tiles, otherwise tie-breaking collisions happen :(
-	void createEntity(int tileIndex, EntityType entityType, LocalDirection orientation, bool override);
+	// Entities are always created at the center of tiles, otherwise tie collisions happen.
+	void createEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation orientation);
 	void deleteEntity(Entity* entity);
 
-	void removeEntityFromLeaderList(Entity* entity);
-	void removeEntityFromStaticList(Entity* entity);
-	void removeEntityFromEntityList(Entity* entity);
+	//void demoteLeader(int leaderIndex);
 
-	void demoteLeader(int leaderIndex);
+	//Entity* getEntity(LeaderInfo* leaderInfo) { return &entities[leaderInfo->entityIndex]; }
 
-	Entity* getEntity(Tile* tile, LocalPosition position) { return &entities[tile->entityIndices[position]]; }
-	Entity* getEntity(LeaderInfo* leaderInfo) { return &entities[leaderInfo->entityIndex]; }
-
-	Entity* getFollower(Entity* entity) { return &entities[entity->followingEntityIndex]; }
-	Entity* getLeader(Entity* entity) { return &entities[entity->leadingEntityIndex]; }
-	LeaderInfo* reverseEntityLineDir(Entity* entity);
-
-	// If a static entity is pushed/has force applied to it, it must be promoted to a leader or follower in order to move.
-	void tryPromoteStaticEntities() {
-		for (int i = 0; i < staticEntityIndices.size(); i++) {
-
-			Entity* entity = &entities[staticEntityIndices[i]];
-			Tile* tile = getTile0(entity);
-
-			if (tile->hasForce() == false || tile->isObstructed(LocalPosition(tile->forceLocalDirection))) {
-				return;
-			}
-			else {
-				int staticIndex = entity->staticListIndex;
-				std::swap(staticEntityIndices[staticIndex], staticEntityIndices.back());
-				entities[staticEntityIndices[staticIndex]].staticListIndex = staticIndex;
-				staticEntityIndices.pop_back();
-				i--;
-
-				entity->staticListIndex = -1;
-				entity->localDirections[0] = tile->forceLocalDirection;
-				entity->leaderListIndex = (int)leaderInfos.size();
-
-				leaderInfos.push_back(LeaderInfo((int)leaderInfos.size(), entity->index, entity->localDirections[0], 1));
-			}
-		}
-	}
-
+	//Entity* getFollower(Entity* entity) { return &entities[entity->followingEntityIndex]; }
+	//Entity* getLeader(Entity* entity) { return &entities[entity->leadingEntityIndex]; }
+	
 	void manageEntityCollision(LeaderInfo* leaderInfo);
 
 	bool tryChangeEntityDirection(LeaderInfo* leaderInfo);
 
 	// An entity can only be made a leader while residing in the center or edge of a tile, and the logic is slightly different for each case.
 	// returns the number of followers added to the entity.
-	int tryAddFollowerCenter(Entity* entity);
+	//int tryAddFollowerCenter(Entity* entity);
 	// An entity can only be made a follower while residing in the center or edge of a tile, and the logic is slightly different for each case.
-	bool tryAddLeaderCenter(Entity* entity);
+	//bool tryAddLeaderCenter(Entity* entity);
 
 	// An entity can only be made a leader while residing in the center or edge of a tile, and the logic is slightly different for each case.
-	bool tryMakeLeaderEdge(Entity* entity);
+	//bool tryMakeLeaderEdge(Entity* entity);
 	// An entity can only be made a follower while residing in the center or edge of a tile, and the logic is slightly different for each case.
-	bool tryMakeFollowerEdge(Entity* entity);
+	//bool tryMakeFollowerEdge(Entity* entity);
+
+	/*void removeEntityFromLeaderList(Entity* entity);
+	void removeEntityFromStaticList(Entity* entity);
+	void removeEntityFromEntityList(Entity* entity);
 
 	bool tryMoveLeader(LeaderInfo* leaderInfo);
 	bool tryMoveLeaderInterior(LeaderInfo* leaderInfo);
 	bool tryMoveLeaderToEdge(LeaderInfo* leaderInfo);
 	bool tryMoveLeaderFromEdge(LeaderInfo* leaderInfo);
-	void moveFollowers(Entity* entity);
+	void moveFollowers(Entity* entity);*/
+
+	void moveEntity(Entity* entity);
+	void moveEntityInterior(Entity* entity);
+	void moveEntityFromEdge(Entity* entity);
+	void moveEntityToEdge(Entity* entity);
 
 	bool cornerCollision(Entity* entity, Tile* arrivingTile, int arriving, int edgeOffset);
-
-	void updateObstructionMasks() {
-		for (ObstructionMaskChange omc : obstructionMaskChanges) {
-			p_tileManager->tiles[omc.oldTileIndex]->obstructionMask &= ~omc.oldMask;
-			p_tileManager->tiles[omc.newTileIndex]->obstructionMask |= omc.newMask;
-		}
-	}
 
 	void update() {
 		updateEntities();
@@ -168,23 +148,50 @@ public:
 	}
 
 	void updateEntities() {
-		tryPromoteStaticEntities();
-		for (int i = 0; i < leaderInfos.size(); i++) {
-			LeaderInfo* info = &leaderInfos[i];
-			// Forces can only change an entity's direction if it is in the central position of a tile,
-			// else there is a possibility for tie-breaking conflicts!
-			if (entities[info->entityIndex].inCenterPosition()) {
-				tryChangeEntityDirection(info);
-			}
-			if (entities[info->entityIndex].hasDirection()) {
-				tryMoveLeader(info);
-			}
+		for (Entity& entity : entities) {
+			moveEntity(&entity);
 		}
 	}
 
+	void updateObstructionMasks() {
+		for (ObstructionMaskSelectiveClear clear : obstructionMaskClears) {
+			p_tileManager->tiles[clear.tileIndex]->obstructionMask &= clear.mask;
+		}
+		for (ObstructionMaskSelectiveAdd add : obstructionMaskAdditions) {
+			p_tileManager->tiles[add.tileIndex]->obstructionMask |= add.mask;
+		}
+		obstructionMaskClears.clear();
+		obstructionMaskAdditions.clear();
+	}
+
 	void updateGpuInfos() {
+		int tileIndex;
+		int numEntitiesInTile;
+
 		entityGpuInfos.clear();
+		entitiesInTiles.assign(p_tileManager->tiles.size(), 0); // Start with 0 entities/tile.
+		p_tileManager->clearEntityIndices();
+
 		for (Entity& entity : entities) {
+			tileIndex = entity.getTileIndex();
+			numEntitiesInTile = entitiesInTiles[tileIndex];
+
+			p_tileManager->tileGpuInfos[tileIndex].entityIndices[numEntitiesInTile] = entity.index;
+			p_tileManager->tiles[tileIndex]->entityIndices[numEntitiesInTile] = entity.index;
+			entitiesInTiles[tileIndex]++;
+
+			if (entity.inEdgePosition()) { // Entities on edges effect 2 tiles:
+				tileIndex = entity.getLeavingTileIndex();
+				numEntitiesInTile = entitiesInTiles[tileIndex];
+				p_tileManager->tileGpuInfos[tileIndex].entityIndices[numEntitiesInTile] = entity.index;
+				p_tileManager->tiles[tileIndex]->entityIndices[numEntitiesInTile] = entity.index;
+				entitiesInTiles[tileIndex]++;
+			}
+
+			if (numEntitiesInTile > 9 || numEntitiesInTile < 0) {
+				std::cout << "OH NO 2" << std::endl;
+			}
+
 			entityGpuInfos.push_back(EntityGpuInfo(&entity));
 		}
 	}

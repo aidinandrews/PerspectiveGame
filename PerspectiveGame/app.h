@@ -37,20 +37,20 @@
 
 struct App {
 	Window window;
-#ifdef USE_GUI_WINDOW
+	#ifdef USE_GUI_WINDOW
 	Window imGuiWindow;
-#endif
+	#endif
 	InputManager inputManager;
 	ShaderManager shaderManager;
-	GuiManager *p_guiManager;
+	GuiManager* p_guiManager;
 	VertexManager vertManager;
 	Camera camera;
 	ButtonManager* p_buttonManager;
-	
-	Framebuffer framebuffer;
-	aaTexture *p_wave;
 
-	TileManager *p_tileManager;
+	Framebuffer framebuffer;
+	aaTexture* p_wave;
+
+	TileManager* p_tileManager;
 	ForceManager* p_forceManager;
 	EntityManager* p_entityManager;
 	CurrentSelection* p_currentSelection;
@@ -58,7 +58,8 @@ struct App {
 
 	App() {}
 
-	~App() {
+	~App()
+	{
 		delete p_guiManager;
 		delete p_wave;
 		delete p_tileManager;
@@ -69,15 +70,16 @@ struct App {
 		glfwTerminate();
 	}
 
-	bool init() {
+	bool init()
+	{
 		if (!glfwInit()) {
 			std::cout << "GLFW initialisation failed!\n";
 			glfwTerminate();
 			return false;
 		}
-#ifdef USE_GUI_WINDOW
+		#ifdef USE_GUI_WINDOW
 		imGuiWindow.init("Debug");
-#endif
+		#endif
 		window.init("Tiles In 3D");
 
 		glfwMakeContextCurrent(window.window);
@@ -113,12 +115,12 @@ struct App {
 
 		p_currentSelection = new CurrentSelection(&inputManager, p_tileManager, p_entityManager, p_buttonManager, &camera, p_basisManager);
 
-#ifdef USE_GUI_WINDOW
-		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera, 
-			p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager);
-#else
+		#ifdef USE_GUI_WINDOW
+		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera,
+									  p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager);
+		#else
 		p_guiManager = new GuiManager(window.window, nullptr, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
-#endif
+		#endif
 		glfwMakeContextCurrent(window.window);
 
 		int bufferWidth, bufferHeight;
@@ -134,48 +136,34 @@ struct App {
 		return true;
 	}
 
-	void setupWorld() {
+	void setupWorld()
+	{
 		// This is the initial two tiles that must exist for the player to even move around at all:
 		for (int w = 1; w < 5; w++) {
 			for (int h = 1; h < 5; h++) {
 				p_tileManager->createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 			}
 		}
-		//p_basisManager->createProducer(p_tileManager->tiles[2], ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
-		p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
-		p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
+		//p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
 		//p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
-		p_basisManager->addBasis(p_tileManager->tiles[4], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_SINK);
-
-		p_tileManager->tiles[0]->forceLocalDirection = LOCAL_DIRECTION_3;
-		p_tileManager->tiles[2]->forceLocalDirection = LOCAL_DIRECTION_3;
-		
-		p_entityManager->createEntity(2, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
-		p_entityManager->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, true);
-
-		/*p_tileManager->tiles[2]->cornerBuildings[0] = CORNER_BUILDING_BELT_MIDDLE_FORWARD;
-		p_tileManager->tiles[10]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_BACK;
-		p_tileManager->tiles[4]->cornerBuildings[1] = CORNER_BUILDING_BELT_END_BACK;
-		p_tileManager->tiles[12]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_BACK;
-		p_tileManager->tiles[0]->cornerBuildings[0] = CORNER_BUILDING_BELT_END_BACK;
-		p_tileManager->tiles[8]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_BACK;
-
-		p_tileManager->tiles[2]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_FORWARD;
-		p_tileManager->tiles[3]->cornerBuildings[2] = CORNER_BUILDING_BELT_MIDDLE_BACK;
-		p_tileManager->tiles[0]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_FORWARD;
-		p_tileManager->tiles[1]->cornerBuildings[3] = CORNER_BUILDING_BELT_END_BACK;
-		p_tileManager->tiles[4]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_FORWARD;
-		p_tileManager->tiles[5]->cornerBuildings[2] = CORNER_BUILDING_BELT_END_BACK;*/
-
+		//p_basisManager->addBasis(p_tileManager->tiles[4], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_SINK);
+		//
+		//p_tileManager->tiles[0]->forceLocalDirection = LOCAL_DIRECTION_3;
+		//p_tileManager->tiles[2]->forceLocalDirection = LOCAL_DIRECTION_3;
+		//
+		//p_entityManager->createEntity(2, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3, LOCAL_ORIENTATION_0);
+		//p_entityManager->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3, LOCAL_ORIENTATION_0);
 	}
 
-	void updateGraphicsAPI() {
+	void updateGraphicsAPI()
+	{
 		glfwPollEvents();
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void updateWorld() {
+	void updateWorld()
+	{
 		p_tileManager->update();
 
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
@@ -194,23 +182,25 @@ struct App {
 		}
 	}
 
-	void updateGui() {
-#ifdef USE_GUI_WINDOW
+	void updateGui()
+	{
+		#ifdef USE_GUI_WINDOW
 		glfwMakeContextCurrent(window.window);
-#endif
+		#endif
 		updateGraphicsAPI();
 		p_guiManager->render();
 		glfwSwapBuffers(window.window);
 
-#ifdef USE_GUI_WINDOW
+		#ifdef USE_GUI_WINDOW
 		glfwMakeContextCurrent(imGuiWindow.window);
 		updateGraphicsAPI();
 		p_guiManager->renderImGuiDebugWindows();
 		glfwSwapBuffers(imGuiWindow.window);
-#endif
+		#endif
 	}
-	
-	void run() {
+
+	void run()
+	{
 		int counter = 0;
 		int lastFPS = 0;
 		float runningFPS = 0;
@@ -226,9 +216,12 @@ struct App {
 			p_buttonManager->updateButtons();
 			p_currentSelection->update();
 			updateWorld();
-			camera.update();
-			updateGui();
 			
+			camera.update();
+			p_tileManager->updateVisuals();
+
+			updateGui();
+
 			auto end = std::chrono::high_resolution_clock::now();
 			float thisFrameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();
 			//std::cout << FrameTime << std::endl;

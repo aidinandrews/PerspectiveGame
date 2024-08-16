@@ -64,11 +64,23 @@ enum LocalPosition {
 };
 
 // Directions are pointing in the corrisponding 
-enum LocalDirection {
-	LOCAL_DIRECTION_0, LOCAL_DIRECTION_1, LOCAL_DIRECTION_2, LOCAL_DIRECTION_3,
-	LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_INVALID
+enum LocalAlignment {
+	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
+	LOCAL_ALIGNMENT_STATIC, LOCAL_ALIGNMENT_INVALID
 };
-#define LocalOrientation LocalDirection
+typedef LocalAlignment LocalDirection;
+#define LOCAL_DIRECTION_0 LOCAL_ALIGNMENT_0
+#define LOCAL_DIRECTION_1 LOCAL_ALIGNMENT_1
+#define LOCAL_DIRECTION_2 LOCAL_ALIGNMENT_2
+#define LOCAL_DIRECTION_3 LOCAL_ALIGNMENT_3
+#define LOCAL_DIRECTION_STATIC LOCAL_ALIGNMENT_STATIC
+#define LOCAL_DIRECTION_INVALID LOCAL_ALIGNMENT_INVALID
+typedef LocalAlignment LocalOrientation;
+#define LOCAL_ORIENTATION_0 LOCAL_ALIGNMENT_0
+#define LOCAL_ORIENTATION_1 LOCAL_ALIGNMENT_1
+#define LOCAL_ORIENTATION_2 LOCAL_ALIGNMENT_2
+#define LOCAL_ORIENTATION_3 LOCAL_ALIGNMENT_3
+#define LOCAL_ORIENTATION_INVALID LOCAL_ALIGNMENT_INVALID
 
 // Tiles exist in 3D space, and thus can be described with cartesian coordinates x, y, and z. 
 	// Thus, there are 6 primary directions: left, right, forward, back, up, and down. 

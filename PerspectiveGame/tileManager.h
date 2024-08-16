@@ -130,6 +130,7 @@ public: // INITIALIZERS:
 public: // MEMBER FUNCTIONS:
 
 	void update();
+	void updateVisuals();
 
 	void updateTileGpuInfoIndices();
 	void getRelativePovPosGpuInfos();
@@ -142,6 +143,15 @@ public: // MEMBER FUNCTIONS:
 	glm::vec2 getRelativePovPosTopLeft(TileTarget & target);
 	glm::vec2 getRelativePovPosBottomRight(TileTarget & target);
 	glm::vec2 getRelativePovPosBottomLeft(TileTarget & target);
+
+	void clearEntityIndices()
+	{
+		for (Tile* tile : tiles) {
+			for (int i = 0; i < 9; i++) {
+				tile->entityIndices[i] = -1;
+			}
+		}
+	}
 
 	// The tiles are drawn one by one, and need to know when they are off screen.  This is 
 	// done by translating the edges of the window to scene coordinates, in this function.

@@ -17,64 +17,80 @@ struct Entity {
 public: // MEMBER VARIABLES:
 
 	int index; // Index into the entity vector in entityManager.
+	EntityType type;
+	glm::vec4 color;
+
+private:
 	// If the entity is on an edge, it 'resides' in both tiles. Hence [2].
 	// tileIndices[1] is always the 'leaving tile' or the only tile the entity is in.
 	// tileIndices[0] is always the 'going tile' or -1 (not indexing anywhere).
 	int tileIndices[2];
-	int leaderListIndex;
-	int leadingEntityIndex;
-	int followingEntityIndex;
-
-	// indexes into the static entity list in entityManager.  used for trying to promote static entities.
-	// -1 if entity is not static.
-	int staticListIndex; 
-
-	EntityType type;
-
 	LocalPosition  localPositions[2];
 	LocalDirection localDirections[2];
-	LocalDirection lastLocalDirections[2];
-	LocalDirection localOrientations[2];
-
-	glm::vec4 color;
-	float opacity;
+	LocalOrientation localOrientations[2];
 
 public: // MEMBER FUNCTIONS
 
-	Entity(EntityType type, LocalPosition position, LocalDirection direction, LocalOrientation orientation, 
-		float opacity, int leaderIndex, int followerIndex, glm::vec4 color) {
+	Entity(int entityIndex, int tileIndex, EntityType type, LocalDirection direction,
+		   LocalOrientation orientation, glm::vec4 color) : type(type), color(color), index(entityIndex)
+	{
 
-		this->type = type;
+		tileIndices[0] = tileIndex;
+		localPositions[0] = LOCAL_POSITION_CENTER; // This keeps collision ties impossible.
+		localDirections[0] = direction;
+		localOrientations[0] = orientation;
 
-		this->index = 0;
-		this->tileIndices[0] = -1;
-		this->tileIndices[1] = -1;
-		this->leaderListIndex = -1;
-		this->staticListIndex = -1;
-
-		this->localPositions[0] = position;
-		this->localPositions[1] = LOCAL_POSITION_INVALID;
-		this->localDirections[0] = direction;
-		this->localDirections[1] = LOCAL_DIRECTION_INVALID;
-		this->lastLocalDirections[0] = LOCAL_DIRECTION_INVALID;
-		this->lastLocalDirections[1] = LOCAL_DIRECTION_INVALID;
-		this->localOrientations[0] = orientation;
-		this->localOrientations[1] = LOCAL_DIRECTION_INVALID;
-
-		this->opacity = opacity;
-		this->leadingEntityIndex = leaderIndex;
-		this->followingEntityIndex = followerIndex;
-		this->color = color;
+		// Because entities MUST be created in the center of a tile, they cannot be in 
+		// two tiles at once and thus cannot have valid info in the following variables:
+		tileIndices[1] = -1;
+		localPositions[1] = LOCAL_POSITION_INVALID;
+		localDirections[1] = LOCAL_DIRECTION_INVALID;
+		localOrientations[1] = LOCAL_DIRECTION_INVALID;
 	}
 
-	bool isStatic() { return staticListIndex != -1; }
+	int getTileIndex() { return tileIndices[0]; }
+	LocalPosition getPosition() { return localPositions[0]; }
+	LocalOrientation getOrientation() { return localOrientations[0]; }
+	LocalDirection getDirection() { return localDirections[0]; }
 
-	bool isLeader() { return leaderListIndex >= 0; }
-	bool hasLeader() { return leadingEntityIndex != -1; }
-	bool hasNoLeader() { return !hasLeader(); }
+	void setTileIndex(int index) { tileIndices[0] = index; }
+	void setPosition(LocalPosition position) { localPositions[0] = position; }
+	void setDirection(LocalDirection direction) { localDirections[0] = direction; }
+	void setOrientation(LocalOrientation orientation) { localOrientations[0] = orientation; }
 
-	bool hasFollower() { return followingEntityIndex != -1; }
-	bool hasNoFollower() { return !hasFollower(); }
+	// - 'Leaving' designates that this tile is the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	int getLeavingTileIndex() { return tileIndices[1]; }
+	// - 'Leaving' designates return is the local position relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	LocalPosition getLeavingPosition() { return localPositions[1]; }
+	// - 'Leaving' designates return is the local direction relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	LocalDirection getLeavingDirection() { return localDirections[1]; }
+	// - 'Leaving' designates return is the local orientation relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	LocalOrientation getLeavingOrientation() { return localOrientations[1]; }
+
+	// - 'Leaving' designates that this tile is the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	void setLeavingTileIndex(int index) { tileIndices[1] = index; }
+	// - 'Leaving' designates return is the local position relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	void setLeavingPosition(LocalPosition position) { localPositions[1] = position; }
+	// - 'Leaving' designates return is the local direction relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	void setLeavingDirection(LocalDirection direction) { localDirections[1] = direction; }
+	// - 'Leaving' designates return is the local orientation relative to the tile the entity is moving away from.
+	// - Entity MUST be in an edge position/have 2 tiles it has information on.
+	void setLeavingOrientation(LocalOrientation orientation) { localOrientations[1] = orientation; }
+
+	void swapArrivingAndLeavingInfos()
+	{
+		std::swap(tileIndices[0], tileIndices[1]);
+		std::swap(localPositions[0], localPositions[1]);
+		std::swap(localDirections[0], localDirections[1]);
+		std::swap(localOrientations[0], localOrientations[1]);
+	}
 
 	bool inMiddlePosition() { return ((localPositions[0] > 3) && (localPositions[0] < 8)); }
 	bool inEdgePosition() { return localPositions[0] < 4; }
@@ -86,49 +102,38 @@ public: // MEMBER FUNCTIONS
 
 	bool movingToEdge() { return inMiddlePosition() && (localDirections[0] == (localPositions[0] - 4)); }
 	bool movingToCenter() { return inMiddlePosition() && (localDirections[0] == ((localPositions[0] - 2) % 4)); }
-
-	/*Entity& operator=(const Entity& other) {
-		index = other.index;
-		tileIndex[0] = other.tileIndex[0];
-		tileIndex[1] = other.tileIndex[1];
-		type = other.type;
-		localPosition = other.localPosition;
-		localDirection = other.localDirection;
-		lastLocalDirection = other.lastLocalDirection;
-		localOrientation = other.localOrientation;
-		opacity = other.opacity;
-		leadingEntityIndex = other.leadingEntityIndex;
-		followingEntityIndex = other.followingEntityIndex;
-		color = other.color;
-
-		return *this;
-	}*/
 };
 
 struct alignas(16) EntityGpuInfo {
 	alignas(16) glm::vec4 color;
 
-	alignas(8) int localOrientation[2];
-	alignas(8) int localDirection[2];
-	
-	alignas(8) int lastLocalDirection[2];
-	alignas(4) int type;
-	alignas(4) int padding;
-	
+	alignas(8)  int localOrientation[2];
+	alignas(8)  int localDirection[2];
+			   
+	alignas(8)  int position[2];
+	alignas(4)  int type;
+	alignas(4)  int padding;
 
-	EntityGpuInfo(Entity* entity) {
+	EntityGpuInfo(Entity* entity)
+	{
 		type = entity->type;
-		for (int i = 0; i < 2; i++) {
-			localOrientation[i] = entity->localOrientations[i];
-			localDirection[i] = entity->localDirections[i];
-			lastLocalDirection[i] = entity->lastLocalDirections[i];
+		color = entity->color;
+		
+		position[0] = entity->getPosition();
+		localDirection[0] = entity->getDirection();
+		localOrientation[0] = entity->getOrientation();
+		
+		if (entity->inEdgePosition()) {
+			position[1] = entity->getLeavingPosition();
+			localDirection[1] = entity->getLeavingDirection();
+			localOrientation[1] = entity->getLeavingOrientation();
+		}
+		else {
+			position[1] = LOCAL_POSITION_INVALID;
+			localDirection[1] = LOCAL_DIRECTION_INVALID;
+			localOrientation[1] = LOCAL_ORIENTATION_INVALID;
 		}
 
-		if (entity->isLeader())
-			color = glm::vec4(0, 1, 0, 1);
-		else
-			color = glm::vec4(0, 0, 0, 1);
-
-		//color = entity->color;
+		padding = 0;
 	}
 };

@@ -21,16 +21,14 @@ Tile::Tile(TileSubType tileSubType, glm::ivec3 maxVert) : type(tileSubType), max
 	sideInfos.texCoords[2] = glm::vec2(0, 0);
 	sideInfos.texCoords[3] = glm::vec2(0, 1);
 
-	for (int i = 0; i < 9; i++) {
-		entityIndices[i] = -1;
-		entityInfoIndices[i] = 0;
-	}
+	unsafeCorners[0] = false;
+	unsafeCorners[1] = false;
+	unsafeCorners[2] = false;
+	unsafeCorners[3] = false;
 
-	obstructionMask = 0;
+	obstructionMask = 0b0000000000000000;
 
 	forceLocalDirection = LOCAL_DIRECTION_INVALID;
-
-	for (int i = 0; i < 4; i++) { cornerBuildings[i] = CORNER_BUILDING_NONE; }
 }
 
 glm::ivec3 Tile::normal() {
@@ -182,23 +180,13 @@ TileGpuInfo::TileGpuInfo(Tile *tile) {
 	basisType = (int)tile->basis.type;
 	basisOrientation = tile->basis.localOrientation;
 
-	hasForce = (int)tile->hasForce();
-	forceDirection = tile->forceLocalDirection;
-
-	for (int i = 0; i < 9; i++) {
-		entityIndices[i] = tile->entityIndices[i];
-	}
-
 	tileSubType = (int)tile->type;
 
 	for (int i = 0; i < 4; i++) {
 		neighborIndices[i] = tile->sideInfos.connectedTiles[i]->index;
 		neighborMirrored[i] = (int)tile->sideInfos.connectionsMirrored[i];
 		neighborSideIndex[i] = tile->sideInfos.connectedSideIndices[i];
-
 		texCoords[i] = tile->sideInfos.texCoords[i];
-
-		cornerBuildingTypes[i] = (int)tile->cornerBuildings[i];
 	}
 
 	obstructionMask = tile->obstructionMask;

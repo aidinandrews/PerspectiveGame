@@ -11,10 +11,12 @@
 
 struct QueuedEntity {
 	int tileIndex;
-	EntityType entityType;
-	LocalDirection entityOrientation;
-	QueuedEntity(int tileIndex, EntityType entityType, LocalDirection entityOrientation) :
-		tileIndex(tileIndex), entityType(entityType), entityOrientation(entityOrientation)\
+	EntityType type;
+	LocalOrientation orientation;
+	LocalDirection direction;
+
+	QueuedEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation orientation) :
+		tileIndex(tileIndex), type(type), orientation(orientation), direction(direction)
 	{}
 };
 
@@ -38,6 +40,7 @@ struct CurrentSelection {
 
 	Tile::Basis heldBasis;
 	Entity* heldEntity;
+	LocalDirection heldEntityDirection;
 
 	std::vector<QueuedEntity> queuedEntities;
 
@@ -67,8 +70,7 @@ struct CurrentSelection {
 		heldTileColor = glm::vec3(1, 0, 0);
 
 		canEditEntities = true;
-		heldEntity = new Entity(ENTITY_TYPE_OMNI, LOCAL_POSITION_CENTER, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_0, 1.0f, -1, -1, glm::vec4(1, 0, 0, 1));
-
+		heldEntity = new Entity(-1, -1, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, LOCAL_ORIENTATION_0, glm::vec4(0, 0, 0, 0));
 		canEditBases = false;
 		heldBasis.type = BASIS_TYPE_FORCE_SINK;
 	}
@@ -80,7 +82,7 @@ struct CurrentSelection {
 
 	void addQueuedEntities() {
 		for (QueuedEntity e : queuedEntities) {
-			p_entityManager->createEntity(e.tileIndex, e.entityType, e.entityOrientation, false);
+			p_entityManager->createEntity(e.tileIndex, e.type, e.direction, e.orientation);
 		}
 		queuedEntities.clear();
 	}
@@ -227,11 +229,12 @@ struct CurrentSelection {
 	}
 	void tryEditEntities() {
 		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
-			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type, heldEntity->localOrientations[0]));
+			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type, 
+												  heldEntity->getDirection(), heldEntity->getOrientation()));
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			for (int i = 0; i < 9; i++) {
-				if (hoveredTile->hasEntity(LocalPosition(i))) {
+				if (hoveredTile->hasEntity(i)) {
 					p_entityManager->deleteEntity(&p_entityManager->entities[hoveredTile->entityIndices[i]]);
 				}
 			}
@@ -254,7 +257,7 @@ struct CurrentSelection {
 				std::cout << heldBasis.localOrientation << std::endl;
 			}
 			if (canEditEntities) {
-				heldEntity->localOrientations[0] = LocalDirection((heldEntity->localOrientations[0] + 1) % 4);
+				heldEntity->setOrientation(LocalOrientation((heldEntity->getOrientation() + 1) % 4));
 			}
 		}
 
