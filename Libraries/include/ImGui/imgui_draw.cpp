@@ -1721,7 +1721,7 @@ enum ImTriangulatorNodeType
 
 struct ImTriangulatorNode
 {
-    ImTriangulatorNodeType  Type;
+    ImTriangulatorNodeType  TileType;
     int                     Index;
     ImVec2                  Pos;
     ImTriangulatorNode*     Next;
@@ -1781,7 +1781,7 @@ void ImTriangulator::BuildNodes(const ImVec2* points, int points_count)
 {
     for (int i = 0; i < points_count; i++)
     {
-        _Nodes[i].Type = ImTriangulatorNodeType_Convex;
+        _Nodes[i].TileType = ImTriangulatorNodeType_Convex;
         _Nodes[i].Index = i;
         _Nodes[i].Pos = points[i];
         _Nodes[i].Next = _Nodes + i + 1;
@@ -1798,7 +1798,7 @@ void ImTriangulator::BuildReflexes()
     {
         if (ImTriangleIsClockwise(n1->Prev->Pos, n1->Pos, n1->Next->Pos))
             continue;
-        n1->Type = ImTriangulatorNodeType_Reflex;
+        n1->TileType = ImTriangulatorNodeType_Reflex;
         _Reflexes.push_back(n1);
     }
 }
@@ -1808,11 +1808,11 @@ void ImTriangulator::BuildEars()
     ImTriangulatorNode* n1 = _Nodes;
     for (int i = _TrianglesLeft; i >= 0; i--, n1 = n1->Next)
     {
-        if (n1->Type != ImTriangulatorNodeType_Convex)
+        if (n1->TileType != ImTriangulatorNodeType_Convex)
             continue;
         if (!IsEar(n1->Prev->Index, n1->Index, n1->Next->Index, n1->Prev->Pos, n1->Pos, n1->Next->Pos))
             continue;
-        n1->Type = ImTriangulatorNodeType_Ear;
+        n1->TileType = ImTriangulatorNodeType_Ear;
         _Ears.push_back(n1);
     }
 }
@@ -1825,7 +1825,7 @@ void ImTriangulator::GetNextTriangle(unsigned int out_triangle[3])
 
         ImTriangulatorNode* node = _Nodes;
         for (int i = _TrianglesLeft; i >= 0; i--, node = node->Next)
-            node->Type = ImTriangulatorNodeType_Convex;
+            node->TileType = ImTriangulatorNodeType_Convex;
         _Reflexes.Size = 0;
         BuildReflexes();
         BuildEars();
@@ -1904,17 +1904,17 @@ void ImTriangulator::ReclassifyNode(ImTriangulatorNode* n1)
         type = ImTriangulatorNodeType_Convex;
 
     // Update lists when a type changes
-    if (type == n1->Type)
+    if (type == n1->TileType)
         return;
-    if (n1->Type == ImTriangulatorNodeType_Reflex)
+    if (n1->TileType == ImTriangulatorNodeType_Reflex)
         _Reflexes.find_erase_unsorted(n1->Index);
-    else if (n1->Type == ImTriangulatorNodeType_Ear)
+    else if (n1->TileType == ImTriangulatorNodeType_Ear)
         _Ears.find_erase_unsorted(n1->Index);
     if (type == ImTriangulatorNodeType_Reflex)
         _Reflexes.push_back(n1);
     else if (type == ImTriangulatorNodeType_Ear)
         _Ears.push_back(n1);
-    n1->Type = type;
+    n1->TileType = type;
 }
 
 // Use ear-clipping algorithm to triangulate a simple polygon (no self-interaction, no holes).

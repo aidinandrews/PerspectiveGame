@@ -118,7 +118,7 @@ namespace calc3 {
 			d = -(norm.x * -P.x + norm.y * -P.y + norm.z * -P.z);
 		}
 
-		Point3D normal() {
+		Point3D getNormal() {
 			return Point3D(a, b, c);
 		}
 
@@ -151,7 +151,7 @@ namespace calc3 {
 	}
 
 	inline float angleBetweenPlanes(Plane A, Plane B) {
-		return angleBetweenVectors(A.normal(), B.normal());
+		return angleBetweenVectors(A.getNormal(), B.getNormal());
 	}
 
 	inline Point3D intersection(Plane P, Line3D L) {
@@ -171,7 +171,7 @@ namespace calc3 {
 	inline Point3D closestPoint(Point3D P, Plane Q) {
 		float t = (Q.d - Q.a * P.x - Q.b * P.y - Q.c * P.z)
 			/ (Q.a * Q.a + Q.b * Q.b + Q.c * Q.c);
-		return P + (Q.normal() * t);
+		return P + (Q.getNormal() * t);
 	}
 
 	inline void volumeOfParallelepiped(Point3D a, Point3D b, Point3D c) {
@@ -226,13 +226,13 @@ namespace calc3 {
 		cmina.print();
 		std::cout << "||\n\n";
 
-		Point3D normal = cross(bmina, cmina);
+		Point3D getNormal = cross(bmina, cmina);
 
 		std::cout << "Which simplifies to:\n\t(1/2) * ||";
-		normal.print();
+		getNormal.print();
 		std::cout << "||\n\n";
 
-		float result = normal.magnitude();
+		float result = getNormal.magnitude();
 
 		std::cout << "Which simplifies to:\n\t(1/2) * " << result << "\n\n";
 

@@ -34,14 +34,14 @@ bool TileManager::tileIsUnique(Tile& newTile) {
 		// is impossible for two tiles that share all verices to share those vertices in a 
 		// differing order, so all that is needed to check if the tile is the same is to 
 		// check if they are the same type and have a position in common at the same index!
-		if (t->type == newTile.type && t->maxVert == newTile.maxVert) {
+		if (t->type == newTile.type && t->position == newTile.position) {
 			return false;
 		}
 	}
 	return true;
 }
 
-bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
+bool TileManager::createTilePair(TileType tileType, glm::ivec3 maxPoint,
 	glm::vec3 frontTileColor, glm::vec3 backTileColor) {
 	Tile* frontTile = new Tile(Tile::tileSubType(tileType, true), maxPoint);
 	Tile* backTile = new Tile(Tile::tileSubType(tileType, false), maxPoint);
@@ -55,46 +55,64 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 	frontTile->sibling = backTile;
 	backTile->sibling = frontTile;
 
-	switch (tileType) {
-	case Tile::TILE_TYPE_XY:
-		frontTile->type = TileSubType::TILE_TYPE_XY_FRONT;
-		backTile->type = TileSubType::TILE_TYPE_XY_BACK;
-		break;
-	case Tile::TILE_TYPE_XZ:
-		frontTile->type = TileSubType::TILE_TYPE_XZ_FRONT;
-		backTile->type = TileSubType::TILE_TYPE_XZ_BACK;
-		break;
-	case Tile::TILE_TYPE_YZ:
-		frontTile->type = TileSubType::TILE_TYPE_YZ_FRONT;
-		backTile->type = TileSubType::TILE_TYPE_YZ_BACK;
-		break;
-	}
-
 	frontTile->color = frontTileColor;
 	backTile->color = backTileColor;
+
+	switch (tileType) {
+	case TILE_TYPE_XY:
+		frontTile->type = TILE_TYPE_XYF;
+		backTile->type = TILE_TYPE_XYB;
+		break;
+	case TILE_TYPE_XZ:
+		frontTile->type = TILE_TYPE_XZF;
+		backTile->type = TILE_TYPE_XZB;
+		break;
+	case TILE_TYPE_YZ:
+		frontTile->type = TILE_TYPE_YZF;
+		backTile->type = TILE_TYPE_YZB;
+		break;
+	}
 
 	for (int i = 0; i < 4; i++) {
 		// As we have not yet checked if there are other tiles connected to this tile pair, 
 		// it can only be known that these two tiles see each other.  This will be changed 
 		// if other tiles are connected and are seen to be the visible connection:
-		frontTile->sideInfos.connectedTiles[i] = backTile;
-		backTile->sideInfos.connectedTiles[i] = frontTile;
+		frontTile->neighborTilePtrs[i] = backTile;
+		backTile->neighborTilePtrs[i] = frontTile;
 		// When drawing and shuffling items between tiles, it is important to know 
 		// what sides are connected so that the tile sides can be properly indexed:
-		frontTile->sideInfos.connectedSideIndices[i] = i;
-		backTile->sideInfos.connectedSideIndices[i] = i;
+		frontTile->neighborConnectedSideIndices[i] = i;
+		backTile->neighborConnectedSideIndices[i] = i;
 		// When on the edge of one tile and looking around to the face of the glued 
 		// tile, it would seem that the other tile has been 'flipped up.'  This makes 
 		// it look like the tile has been mirrored and so when drawing the 2D 3rd person 
 		// POV, it is important to know that we go counter clockwise around the vertices 
 		// instead of clockwise, as would be proper for other types of tile connections.
-		frontTile->sideInfos.connectionsMirrored[i] = true;
-		backTile->sideInfos.connectionsMirrored[i] = true;
+		frontTile->isNeighborConnectionsMirrored[i] = true;
+		backTile->isNeighborConnectionsMirrored[i] = true;
 	}
 
 	// Connect up the new tiles to the other ones in the scene:
 	connectUpNewTile(frontTile);
 	connectUpNewTile(backTile);
+
+	updateCornerSafety(frontTile);
+	updateCornerSafety(backTile);
+	for (int i = 0; i < 4; i++) {
+		Tile* neighbor1 = frontTile->getNeighbor(LocalDirection(i));
+		Tile* neighbor1a = neighbor1->getNeighbor(tnav::orientationToOrientationMap(frontTile->type, neighbor1->type, LocalDirection(i), LocalDirection((i + 1) % 4)));
+		Tile* neighbor1b = neighbor1->getNeighbor(tnav::orientationToOrientationMap(frontTile->type, neighbor1->type, LocalDirection(i), LocalDirection((i + 3) % 4)));
+		updateCornerSafety(neighbor1);
+		updateCornerSafety(neighbor1a);
+		updateCornerSafety(neighbor1b);
+
+		neighbor1 = backTile->getNeighbor(LocalDirection(i));
+		neighbor1a = neighbor1->getNeighbor(tnav::orientationToOrientationMap(backTile->type, neighbor1->type, LocalDirection(i), LocalDirection((i + 1) % 4)));
+		neighbor1b = neighbor1->getNeighbor(tnav::orientationToOrientationMap(backTile->type, neighbor1->type, LocalDirection(i), LocalDirection((i + 3) % 4)));
+		updateCornerSafety(neighbor1);
+		updateCornerSafety(neighbor1a);
+		updateCornerSafety(neighbor1b);
+	}
 
 	// Finally, we can add them to the list!
 	frontTile->index = (int)tiles.size();
@@ -103,8 +121,8 @@ bool TileManager::createTilePair(Tile::Type tileType, glm::ivec3 maxPoint,
 	tiles.push_back(frontTile);
 	tiles.push_back(backTile);
 
-	tileGpuInfos.push_back(TileGpuInfo(frontTile));
-	tileGpuInfos.push_back(TileGpuInfo(backTile));
+	tileGpuInfos.push_back(GPU_TileInfo(frontTile));
+	tileGpuInfos.push_back(GPU_TileInfo(backTile));
 
 	updateTileGpuInfoIndices();
 
@@ -118,182 +136,182 @@ void TileManager::connectUpNewTile(Tile* subjectTile) {
 	TileSubType connectableTilesSubType[4][3];
 	glm::ivec3 connectableTilesMaxPoint[4][3]; // tile.sideInfos[0].pos is always the max vert.
 	const int SIDE_A = 0, SIDE_B = 1, SIDE_C = 2, SIDE_D = 3;
-	glm::ivec3 subjectTileMaxPoint = subjectTile->maxVert;
+	glm::ivec3 subjectTileMaxPoint = subjectTile->position;
 	
 	// Big honkin' list of all the possible tiles that can connect to this tile, depending on what tile sub 
 	// type this new tile is.  Index into it to get the exact position that the connected tile's 1st vertex 
 	// (max vertex) must have to actually be connected to it.
 	switch (subjectTile->type) {
-	case TileSubType::TILE_TYPE_XY_FRONT:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZ_BACK;
+	case TileSubType::TILE_TYPE_XYF:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		break;
-	case TileSubType::TILE_TYPE_XY_BACK:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZ_BACK;
+	case TileSubType::TILE_TYPE_XYB:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XYB;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XYB;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 1);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XYB;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 1);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XY_BACK;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XYB;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		break;
-	case TileSubType::TILE_TYPE_XZ_FRONT:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XY_BACK;
+	case TileSubType::TILE_TYPE_XZF:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(-1, 1, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, 1, -1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		break;
-	case TileSubType::TILE_TYPE_XZ_BACK:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XY_BACK;
+	case TileSubType::TILE_TYPE_XZB:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_XZB;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_XZB;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(-1, 0, 0);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(-1, 1, 0);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_XZB;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, 1, -1);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZ_BACK;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZ_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_XZB;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_YZB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		break;
-	case TileSubType::TILE_TYPE_YZ_FRONT:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZ_BACK;
+	case TileSubType::TILE_TYPE_YZF:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(1, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(1, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZ_FRONT;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZF;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		break;
-	case TileSubType::TILE_TYPE_YZ_BACK:
-		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZ_BACK;
+	case TileSubType::TILE_TYPE_YZB:
+		connectableTilesSubType[SIDE_A][0] = TileSubType::TILE_TYPE_YZB;
+		connectableTilesSubType[SIDE_A][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_A][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_A][0] = subjectTileMaxPoint + glm::ivec3(0, 1, 0);
 		connectableTilesMaxPoint[SIDE_A][1] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_A][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
 
-		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_B][0] = TileSubType::TILE_TYPE_YZB;
+		connectableTilesSubType[SIDE_B][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_B][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_B][0] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][1] = subjectTileMaxPoint + glm::ivec3(0, 0, -1);
 		connectableTilesMaxPoint[SIDE_B][2] = subjectTileMaxPoint + glm::ivec3(1, 0, -1);
 
-		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZ_FRONT;
-		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZ_BACK;
+		connectableTilesSubType[SIDE_C][0] = TileSubType::TILE_TYPE_YZB;
+		connectableTilesSubType[SIDE_C][1] = TileSubType::TILE_TYPE_XZF;
+		connectableTilesSubType[SIDE_C][2] = TileSubType::TILE_TYPE_XZB;
 		connectableTilesMaxPoint[SIDE_C][0] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][1] = subjectTileMaxPoint + glm::ivec3(0, -1, 0);
 		connectableTilesMaxPoint[SIDE_C][2] = subjectTileMaxPoint + glm::ivec3(1, -1, 0);
 
-		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZ_BACK;
-		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XY_FRONT;
-		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XY_BACK;
+		connectableTilesSubType[SIDE_D][0] = TileSubType::TILE_TYPE_YZB;
+		connectableTilesSubType[SIDE_D][1] = TileSubType::TILE_TYPE_XYF;
+		connectableTilesSubType[SIDE_D][2] = TileSubType::TILE_TYPE_XYB;
 		connectableTilesMaxPoint[SIDE_D][0] = subjectTileMaxPoint + glm::ivec3(0, 0, 1);
 		connectableTilesMaxPoint[SIDE_D][1] = subjectTileMaxPoint + glm::ivec3(1, 0, 0);
 		connectableTilesMaxPoint[SIDE_D][2] = subjectTileMaxPoint + glm::ivec3(0, 0, 0);
@@ -301,7 +319,7 @@ void TileManager::connectUpNewTile(Tile* subjectTile) {
 	}
 
 	for (Tile* otherTile : tiles) {
-		glm::ivec3 otherTileMaxPoint = otherTile->maxVert;
+		glm::ivec3 otherTileMaxPoint = otherTile->position;
 		for (int sideIndex = 0; sideIndex < 4; sideIndex++) {
 			for (int connectionType = 0; connectionType < 3; connectionType++) {
 
@@ -312,6 +330,35 @@ void TileManager::connectUpNewTile(Tile* subjectTile) {
 			}
 
 		}
+	}
+}
+
+void TileManager::updateCornerSafety(Tile* tile)
+{
+	for (int i = 0; i < 4; i++) {
+		int cornerIndex = i;
+		LocalDirection dir1 = LocalDirection(i);
+		LocalDirection dir2 = LocalDirection((dir1 + 3) % 4);
+		Tile* neighbor1 = tile->getNeighbor(dir1);
+		Tile* neighbor2 = tile->getNeighbor(dir2);
+
+		if (neighbor1->index == neighbor2->index) {
+			tile->cornerSafety[i] = Tile::CORNER_UNSAFE;
+			continue;
+		}
+
+		LocalDirection dir1a = tnav::orientationToOrientationMap(tile->type, neighbor1->type, dir1, dir2);
+		LocalDirection dir2a = tnav::orientationToOrientationMap(tile->type, neighbor2->type, dir2, dir1);
+		Tile* neighborNeighbor1 = neighbor1->getNeighbor(dir1a);
+		Tile* neighborNeighbor2 = neighbor2->getNeighbor(dir2a);
+
+		if (neighborNeighbor1->index == neighborNeighbor2->index) {
+			tile->cornerSafety[i] = Tile::CORNER_SAFE;
+		}
+		else {
+			tile->cornerSafety[i] = Tile::CORNER_UNSAFE;
+		}
+
 	}
 }
 
@@ -418,7 +465,7 @@ const int TILE_VISIBILITY[6][4][6] = {
 // connection visibility will be queried.  
 // *Note that the index follows Tile (not DrawTile) ordering.
 const int tileVisibility(Tile* tile, int sideIndex) {
-	TileSubType connectionTileType = tile->sideInfos.connectedTiles[sideIndex]->type;
+	TileSubType connectionTileType = tile->neighborTilePtrs[sideIndex]->type;
 	return TILE_VISIBILITY[tile->type][sideIndex][connectionTileType];
 }
 
@@ -497,13 +544,13 @@ bool TileManager::tryConnect(Tile* subject, Tile* other) {
 		// Finally, we make sure that when drawing, we know if this connection is clockwise 
 		// or counterclockwise and what the connection is connecting to.  This helps us know 
 		// how to orient the draw tile and what tile side corrosponds to what draw tile side.
-		subject->sideInfos.connectedTiles[subjectConnectionIndex] = other;
-		subject->sideInfos.connectedSideIndices[subjectConnectionIndex] = otherConnections[0];
-		subject->sideInfos.connectionsMirrored[subjectConnectionIndex] = isMirroredConnection;
+		subject->neighborTilePtrs[subjectConnectionIndex] = other;
+		subject->neighborConnectedSideIndices[subjectConnectionIndex] = otherConnections[0];
+		subject->isNeighborConnectionsMirrored[subjectConnectionIndex] = isMirroredConnection;
 		// If one tile sees the other, the other tile must see it, and they will have the same winding:
-		other->sideInfos.connectedTiles[otherConnections[0]] = subject;
-		other->sideInfos.connectedSideIndices[otherConnections[0]] = subjectConnections[0];
-		other->sideInfos.connectionsMirrored[otherConnections[0]] = isMirroredConnection;
+		other->neighborTilePtrs[otherConnections[0]] = subject;
+		other->neighborConnectedSideIndices[otherConnections[0]] = subjectConnections[0];
+		other->isNeighborConnectionsMirrored[otherConnections[0]] = isMirroredConnection;
 		return true;
 	}
 	return false;
@@ -576,14 +623,14 @@ TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSid
 		connectionIndex = currentPov->sideIndex(drawTileSideIndex);
 	Tile* newTarget;
 
-	if (currentPov->tile->sideInfos.connectionsMirrored[connectionIndex]) {
+	if (currentPov->tile->isNeighborConnectionsMirrored[connectionIndex]) {
 		newSideInfosOffset = (currentPov->sideInfosOffset + 2) % 4;
 	}
 	else {
 		newSideInfosOffset = currentPov->sideInfosOffset;
 	}
 
-	newInitialSideIndex = currentPov->tile->sideInfos.connectedSideIndices[connectionIndex];
+	newInitialSideIndex = currentPov->tile->neighborConnectedSideIndices[connectionIndex];
 	newInitialSideIndex += VERT_INFO_OFFSETS[drawTileSideIndex] * newSideInfosOffset;
 	newInitialSideIndex %= 4;
 
@@ -594,7 +641,7 @@ TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSid
 		newInitialTexIndex = newInitialSideIndex;
 	}
 
-	newTarget = currentPov->tile->sideInfos.connectedTiles[connectionIndex];
+	newTarget = currentPov->tile->neighborTilePtrs[connectionIndex];
 
 	return TileTarget(newTarget, newSideInfosOffset, newInitialSideIndex, newInitialTexIndex);
 }
@@ -650,7 +697,7 @@ glm::vec3 TileManager::getPovTilePos() {
 
 void TileManager::collisionDetectUnsafeCorners() {
 	int cornerIndex1, cornerIndex2;
-	glm::vec2 closestCorner(0, 0);
+	auto closestCorner = glm::vec2(0, 0);
 	TileTarget target = povTile;
 
 	if (p_camera->viewPlanePos.x > 0.5f) {
@@ -687,8 +734,8 @@ void TileManager::collisionDetectUnsafeCorners() {
 	if (isUnsafeCorner) {
 		glm::vec2 vecFromPosToCorner = closestCorner - (glm::vec2)p_camera->viewPlanePos;
 		float distToCorner = glm::length(vecFromPosToCorner);
-		if (distToCorner < 0.25f) {
-			float scale = (0.25f - distToCorner) / 0.25f;
+		if (distToCorner < 0.5f) {
+			float scale = (0.5f - distToCorner) / 0.5f;
 			glm::vec2 offset = -vecFromPosToCorner * scale;
 			p_camera->viewPlanePos += glm::vec3(offset, 0);
 		}
@@ -700,12 +747,12 @@ void TileManager::update3dRotationAdj() {
 		- povTile.tile->getVertPos(povTile.vertIndex(1));
 	glm::mat4 rotate(1);
 	switch (povTile.tile->type) {
-	case TileSubType::TILE_TYPE_XY_FRONT: rotate = glm::mat4(1); break;
-	case TileSubType::TILE_TYPE_XY_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 1, 0)); break;
-	case TileSubType::TILE_TYPE_XZ_FRONT: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
-	case TileSubType::TILE_TYPE_XZ_BACK: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
-	case TileSubType::TILE_TYPE_YZ_FRONT: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
-	case TileSubType::TILE_TYPE_YZ_BACK: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_XYF: rotate = glm::mat4(1); break;
+	case TileSubType::TILE_TYPE_XYB: rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_XZF: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
+	case TileSubType::TILE_TYPE_XZB: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
+	case TileSubType::TILE_TYPE_YZF: rotate = glm::rotate(glm::mat4(1), -float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
+	case TileSubType::TILE_TYPE_YZB: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(0, 1, 0)); break;
 	default: std::cout << "updatePovTile tile type enum out of scope!" << std::endl;
 	}
 
@@ -721,14 +768,14 @@ void TileManager::update3dRotationAdj() {
 		rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 0, 1)) * rotate;
 	}
 
-	glm::vec3 povTileNormal = povTile.tile->normal();
+	glm::vec3 povTileNormal = povTile.tile->getNormal();
 	glm::vec3 adjPovTileNormal = glm::vec3(rotate * glm::vec4(povTileNormal, 1));
 	glm::vec3 targetNormal = povTileNormal;
 	glm::vec3 targetNormalAdj(0, 0, 0);
 	glm::vec3 flippedNormalAdj(0, 0, 0);
 	TileTarget target;
 	if (p_camera->viewPlanePos.x > 0.5f) {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 0).tile->normal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 0).tile->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= -((p_camera->viewPlanePos.x - 0.5f) * 2.0f - 1.0f);
 			flippedNormalAdj += glm::vec3(1, 0, 0) * (p_camera->viewPlanePos.x - 0.5f) * 2.0f;
@@ -738,7 +785,7 @@ void TileManager::update3dRotationAdj() {
 		}
 	}
 	else {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 2).tile->normal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 2).tile->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= p_camera->viewPlanePos.x * 2.0f;
 			flippedNormalAdj += glm::vec3(-1, 0, 0) * -((p_camera->viewPlanePos.x * 2.0f) - 1.0f);
@@ -748,7 +795,7 @@ void TileManager::update3dRotationAdj() {
 		}
 	}
 	if (p_camera->viewPlanePos.y > 0.5f) {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 3).tile->normal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 3).tile->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			glm::vec3 pensive = povTileNormal * -((p_camera->viewPlanePos.y - 0.5f) * 2.0f - 1.0f);
 			if (glm::length(pensive) < glm::length(targetNormal)) {
@@ -760,7 +807,7 @@ void TileManager::update3dRotationAdj() {
 			targetNormalAdj += neighborNormal * (p_camera->viewPlanePos.y - 0.5f) * 2.0f;
 	}
 	else {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 1).tile->normal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 1).tile->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			glm::vec3 pensive = povTileNormal * p_camera->viewPlanePos.y * 2.0f;
 			if (glm::length(pensive) < glm::length(targetNormal)) {
@@ -799,71 +846,25 @@ void TileManager::update3dRotationAdj() {
 		* tilePosToOrigin;
 }
 
-void TileManager::deleteBuilding(Tile* tile) {
-	// We dont have to care about manually deleting materials as they are not referenced by anything besides the
-	// tile itsef, which is being deleted anyway.  Some entities are buildings though and have vectors of structs
-	// corrosponding to them.  Those we have to find and delete so they are no longer referencing a tile that 
-	// doesn't exist.
-	/*if (tile->hasEntity() == false) {
-		return;
-	}
-	switch (tile->entity->type) {
-	case EntityType::BUILDING_COMPRESSOR:
-
-		break;
-	case EntityType::BUILDING_FORCE_BLOCK:
-
-		break;
-	case EntityType::BUILDING_FORCE_MIRROR:
-
-		break;
-	}
-
-	switch (tile->basis.type) {
-	case BASIS_TYPE_PRODUCER:
-		for (int i = 0; i < producers.size(); i++) {
-			if (producers[i].tileIndex == tile->index) {
-				producers[i] = producers[producers.size() - 1];
-				producers.pop_back();
-			}
-		}
-		break;
-	case BASIS_TYPE_CONSUMER:
-		for (int i = 0; i < consumers.size(); i++) {
-			if (consumers[i].tileIndex == tile->index) {
-				consumers[i] = consumers[consumers.size() - 1];
-				consumers.pop_back();
-			}
-		}
-		break;
-	}*/
-}
-
-
-
-void TileManager::deleteTile(Tile* tile) {
+void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile) {
 	// Stuff will break if you delete the tile you are on.  Don't do that:
-	if (tile == povTile.tile || tile->sibling == povTile.tile) {
+	if (!allowDeletePovTile && (tile == povTile.tile || tile->sibling == povTile.tile)) {
 		return;
 	}
 
 	Tile* sibling = tile->sibling;
-	if (sibling == nullptr) { // Just in case.
-		std::cout << "NO SIBLING FOUND TO DELETE!" << std::endl;
-		return;
+	if (sibling == nullptr) {
+		throw std::runtime_error("NO SIBLING FOUND TO DELETE!");
 	}
 
-	deleteBuilding(tile);
-	deleteBuilding(sibling);
-
 	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
-	Tile* connectedTiles[8];
+	Tile* neighborTilePtrs[8];
 	int connectedTileIndices[8];
 	for (int i = 0; i < 4; i++) {
-		connectedTiles[i] = tile->sideInfos.connectedTiles[i];
-		connectedTiles[i + 4] = sibling->sideInfos.connectedTiles[i];
-		connectedTileIndices[i] = tile->sideInfos.connectedSideIndices[i];
-		connectedTileIndices[i + 4] = sibling->sideInfos.connectedSideIndices[i];
+		neighborTilePtrs[i] = tile->neighborTilePtrs[i];
+		neighborTilePtrs[i + 4] = sibling->neighborTilePtrs[i];
+		connectedTileIndices[i] = tile->neighborConnectedSideIndices[i];
+		connectedTileIndices[i + 4] = sibling->neighborConnectedSideIndices[i];
 	}
 
 	int firstIndex = std::min(tile->index, sibling->index);
@@ -877,11 +878,22 @@ void TileManager::deleteTile(Tile* tile) {
 	for (int i = 0; i < 8; i++) {
 		// connectUpNewTile expects the input tile to be connected to *something* on all 4 edges, so here
 		// we can just connect the orphaned edges to the tile's sibling:
-		connectedTiles[i]->sideInfos.connectionsMirrored[connectedTileIndices[i]] = true;
-		connectedTiles[i]->sideInfos.connectedSideIndices[connectedTileIndices[i]] = connectedTileIndices[i];
-		connectedTiles[i]->sideInfos.connectedTiles[connectedTileIndices[i]] = connectedTiles[i]->sibling;
-		connectUpNewTile(connectedTiles[i]);
+		neighborTilePtrs[i]->isNeighborConnectionsMirrored[connectedTileIndices[i]] = true;
+		neighborTilePtrs[i]->neighborConnectedSideIndices[connectedTileIndices[i]] = connectedTileIndices[i];
+		neighborTilePtrs[i]->neighborTilePtrs[connectedTileIndices[i]] = neighborTilePtrs[i]->sibling;
+		connectUpNewTile(neighborTilePtrs[i]);
 	}
+
+	// Now that the tiles are all connected, we need to make sure that they have up to date info reguarding the
+	// corner safety for player and entity movement updating:
+	for (int i = 0; i < 8; i++) {
+		updateCornerSafety(neighborTilePtrs[i]);
+		// TODO: clean this up a little.  No need to update all these tiles
+		for (int j = 0; j < 4; j++) {
+			updateCornerSafety(neighborTilePtrs[i]->getNeighbor(LocalDirection(j)));
+		}
+	}
+
 	// The index values stored in the tiles are messed up, so we need to update the gpu info for all the messed
 	// up tiles:
 	updateTileGpuInfoIndices();
@@ -895,7 +907,7 @@ void TileManager::deleteTile(Tile* tile) {
 // the next, it may have to be altered.  This function does that.  Given a tile and a direction from that tile,
 // it will return the corrisponding direction once translated into the neghboring tile.
 int adjustedDirection(Tile* initialTile, int initialDirection) {
-	int orientationOffset = initialDirection - (initialTile->sideInfos.connectedSideIndices[initialDirection] + 2) % 4;
+	int orientationOffset = initialDirection - (initialTile->neighborConnectedSideIndices[initialDirection] + 2) % 4;
 	if (orientationOffset < 0) {
 		orientationOffset *= -3;
 	}
@@ -1245,7 +1257,7 @@ glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 void TileManager::updateTileGpuInfoIndices() {
 	tileGpuInfos.clear();
 	for (Tile* tile : tiles) {
-		tileGpuInfos.push_back(TileGpuInfo(tile));
+		tileGpuInfos.push_back(GPU_TileInfo(tile));
 	}
 }
 
@@ -1258,10 +1270,10 @@ void TileManager::draw2D3rdPerson() {
 
 	// Draw the povTile itself to start:
 	std::vector<glm::vec2> croppedDrawTileTexCoords = {
-		povTile.tile->sideInfos.texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 0) % 4],
-		povTile.tile->sideInfos.texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 1) % 4],
-		povTile.tile->sideInfos.texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 2) % 4],
-		povTile.tile->sideInfos.texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 3) % 4],
+		povTile.tile->texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 0) % 4],
+		povTile.tile->texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 1) % 4],
+		povTile.tile->texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 2) % 4],
+		povTile.tile->texCoords[(povTile.initialVertIndex + povTile.sideInfosOffset * 3) % 4],
 	};
 	std::vector<glm::vec2> povTileDrawVerts = {
 		glm::vec2(1, 1),glm::vec2(1, 0),glm::vec2(0, 0),glm::vec2(0, 1)
@@ -1285,18 +1297,18 @@ void TileManager::draw2D3rdPerson() {
 
 		int newSideOffset, newInitialSideIndex, newInitialTexIndex;
 		int sideIndex = (povTile.initialSideIndex + povTile.sideInfosOffset * drawTileSideIndex) % 4;
-		Tile::SideInfos* currentSideInfo = &povTile.tile->sideInfos;
+
 		// The next draw tile can be either mirrored or unmirrored.  Mirrored tiles are 
 		// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
 		// tiles have the same winding, so no adjustment is necessary.  As the side index 
 		// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
-		if (currentSideInfo->connectionsMirrored[sideIndex]) {
+		if (povTile.tile->isNeighborConnectionsMirrored[sideIndex]) {
 			newSideOffset = (povTile.sideInfosOffset + 2) % 4;
 		}
 		else { // Current connection is unmirrored:
 			newSideOffset = povTile.sideInfosOffset;
 		}
-		newInitialSideIndex = (currentSideInfo->connectedSideIndices[sideIndex]
+		newInitialSideIndex = (povTile.tile->neighborConnectedSideIndices[sideIndex]
 			+ VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 		newInitialTexIndex = newInitialSideIndex;
 		if (newSideOffset == 3) {
@@ -1319,15 +1331,15 @@ void TileManager::draw2D3rdPerson() {
 			INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
 			nullptr);
 		newTileOpacity = INITIAL_OPACITY;
-		if (currentSideInfo->connectedTiles[sideIndex]->type != povTile.tile->type) {
+		if (povTile.tile->neighborTilePtrs[sideIndex]->type != povTile.tile->type) {
 			newTileOpacity -= DRAW_TILE_OPACITY_DECRIMENT_STEP;
 		}
-		if (edgeDist < 0.5f && currentSideInfo->connectedTiles[sideIndex]->type != povTile.tile->type) {
+		if (edgeDist < 0.5f && povTile.tile->neighborTilePtrs[sideIndex]->type != povTile.tile->type) {
 			newTileOpacity += (-((edgeDist * 2) - 1)) * 0.1f;
 		}
 
 		// Finally!  We can actually go onto drawing the next tile:
-		drawTiles(currentSideInfo->connectedTiles[sideIndex], newTileVerts,
+		drawTiles(povTile.tile->neighborTilePtrs[sideIndex], newTileVerts,
 			newInitialSideIndex, newInitialTexIndex, newSideOffset,
 			newFrustum, newPreviousSides, newTileOpacity);
 		//break;
@@ -1352,10 +1364,10 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 
 	std::vector<glm::vec2> croppedDrawTileVerts = createNewDrawTileVerts(drawTileVerts, glm::vec2(0, 0));
 	std::vector<glm::vec2> croppedDrawTileTexCoords = {
-		tile->sideInfos.texCoords[initialTexIndex],
-		tile->sideInfos.texCoords[(initialTexIndex + tileVertInfoOffset) % 4],
-		tile->sideInfos.texCoords[(initialTexIndex + tileVertInfoOffset * 2) % 4],
-		tile->sideInfos.texCoords[(initialTexIndex + tileVertInfoOffset * 3) % 4],
+		tile->texCoords[initialTexIndex],
+		tile->texCoords[(initialTexIndex + tileVertInfoOffset) % 4],
+		tile->texCoords[(initialTexIndex + tileVertInfoOffset * 2) % 4],
+		tile->texCoords[(initialTexIndex + tileVertInfoOffset * 3) % 4],
 	};
 
 	frustum[0] += (glm::vec2)p_camera->viewPlanePos;
@@ -1403,13 +1415,13 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 		// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
 		// tiles have the same winding, so no adjustment is necessary.  As the side index 
 		// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
-		if (tile->sideInfos.connectionsMirrored[sideIndex]) {
+		if (tile->isNeighborConnectionsMirrored[sideIndex]) {
 			newSideOffset = (tileVertInfoOffset + 2) % 4;
 		}
 		else { // Current connection is unmirrored:
 			newSideOffset = tileVertInfoOffset;
 		}
-		newInitialSideIndex = (tile->sideInfos.connectedSideIndices[sideIndex]
+		newInitialSideIndex = (tile->neighborConnectedSideIndices[sideIndex]
 			+ VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 		newInitialTexIndex = newInitialSideIndex;
 		if (newSideOffset == 3) {
@@ -1426,7 +1438,7 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 		float newTileOpacity = tileOpacity;
 		// We want a smooth transition from one tile opacity to another, so
 		// it should fade as you get closer to the next draw tile's edge:
-		if (tile->sideInfos.connectedTiles[sideIndex]->type != tile->type) {
+		if (tile->neighborTilePtrs[sideIndex]->type != tile->type) {
 			float edgeDist = distToLineSeg((glm::vec2)p_camera->viewPlanePos,
 				drawTileVerts[drawTileSideIndex],
 				drawTileVerts[(drawTileSideIndex + 1) % 4], nullptr);
@@ -1439,7 +1451,7 @@ void TileManager::drawTiles(Tile* tile, std::vector<glm::vec2>& drawTileVerts,
 		}
 
 		// Finally!  We can actually go onto drawing the next tile:
-		drawTiles(tile->sideInfos.connectedTiles[sideIndex], newTileVerts,
+		drawTiles(tile->neighborTilePtrs[sideIndex], newTileVerts,
 			newInitialSideIndex, newInitialTexIndex, newSideOffset,
 			newFrustum, newPreviousSides, newTileOpacity);
 	}
@@ -1497,15 +1509,15 @@ void TileManager::draw3DTile(Tile* tile) {
 		verts.push_back((GLfloat)tile->color.g);
 		verts.push_back((GLfloat)tile->color.b);
 		// texture coord:
-		verts.push_back(tile->sideInfos.texCoords[i].x);
-		verts.push_back(tile->sideInfos.texCoords[i].y);
+		verts.push_back(tile->texCoords[i].x);
+		verts.push_back(tile->texCoords[i].y);
 		// tile index:
 		verts.push_back((GLfloat)tile->index);
 	}
 
-	if (tile->type == TileSubType::TILE_TYPE_XY_BACK ||
-		tile->type == TileSubType::TILE_TYPE_XZ_BACK ||
-		tile->type == TileSubType::TILE_TYPE_YZ_BACK) {
+	if (tile->type == TileSubType::TILE_TYPE_XYB ||
+		tile->type == TileSubType::TILE_TYPE_XZB ||
+		tile->type == TileSubType::TILE_TYPE_YZB) {
 		indices.push_back(0);
 		indices.push_back(1);
 		indices.push_back(3);

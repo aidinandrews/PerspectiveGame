@@ -83,7 +83,7 @@ void Camera::updatePos() {
 		viewPlanePos += glm::vec3(screenPosToWorldPos(cursorPlanePos) - screenPosToWorldPos(lastFrameCursorPos), 0);
 	}
 
-	float moveSpeed = 1.0f;
+	float moveSpeed = 2.0f;
 	glm::vec3 posAdj(0.0f, 0.0f, 0.0f);
 	if (p_inputManager->keys[MOVE_LEFT_KEY].pressed) {
 		posAdj -= glm::vec3(moveSpeed * DeltaTime, 0.0f, 0.0f);

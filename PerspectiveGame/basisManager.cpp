@@ -56,14 +56,14 @@ void BasisManager::deleteBasis(Tile* tile) {
 //			p_entityManager->deleteEntity(&p_entityManager->entities[tile->entityIndices[i]]);
 //		}
 //	}
-//	p_entityManager->obstructionMaskChanges.push_back(ObstructionMaskSelectiveShift(tile->index, 0xffff, tile->index, 0xffff));
+//	p_entityManager->internals.obstructionInfoChanges.push_back(internals.obstructionInfoSelectiveShift(tile->index, 0xffff, tile->index, 0xffff));
 //
 //	return true;
 //}
 //
 //void BasisManager::deleteForceSink(Tile* tile) {
 //	tile->basis.type = BASIS_TYPE_NONE;
-//	p_entityManager->obstructionMaskChanges.push_back(ObstructionMaskSelectiveShift(tile->index, 0xffff, tile->index, 0));
+//	p_entityManager->internals.obstructionInfoChanges.push_back(internals.obstructionInfoSelectiveShift(tile->index, 0xffff, tile->index, 0));
 //
 //	// When deleting a force sink, it may be that the sink was blocking a line of force.
 //	// Now that the sink is not blocking it, that line of force has to be propogated out:
@@ -141,7 +141,7 @@ void BasisManager::updateConsumers() {
 		/*if (consumerTile->hadEntity) {
 			p_entityManager->deleteEntity(consumerTile->getNeighbor(consumerTile->lastEntityDir));
 		}
-		else if (consumerTile->hasEntity(LocalPosition::LOCAL_POSITION_CENTER)) {
+		else if (consumerTile->hasEntity(LocalPosition::OLD_LOCAL_POSITIONCENTER)) {
 			p_entityManager->deleteEntity(consumerTile);
 		}*/
 	}

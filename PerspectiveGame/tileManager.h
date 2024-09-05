@@ -40,8 +40,7 @@ public: // CONST MEMBER VARIABLES:
 	static const int VERT_INFO_OFFSETS[4];
 	static std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS;
 
-public: // DYNAMIC MEMBER VARIABLES:
-
+public:
 	// Other Managers:
 	Camera *p_camera;
 	ShaderManager *p_shaderManager;
@@ -55,22 +54,17 @@ public: // DYNAMIC MEMBER VARIABLES:
 	std::vector<GLfloat> verts;
 	std::vector<GLuint> indices;
 
-	std::vector<Tile *> tiles;
-	/*std::vector<Producer> producers;
-	std::vector<Consumer> consumers;
-	std::vector<ForceSink> forceSinks;*/
-
-	float TOTAL_TIME = 0;
-
 	// Drawing stuff:
 	glm::mat4 tempMat;
 	std::vector<glm::vec2> windowFrustum;
 	float windowFrustumDiagonalLength = 0;
 	int drawnTiles = 0;
 
+	std::vector<Tile*> tiles;
+
+	float elapsedTime;
+
 	// Center of flatlander POV, used for making frustums:
-	glm::vec3 povPos;
-	glm::vec2 povRelativePos;
 	glm::vec2 relativePos[5];
 	int relativePosTileIndices[5];
 	// Tile that the flatlander POV 'eye' is stood on:
@@ -87,7 +81,7 @@ public: // DYNAMIC MEMBER VARIABLES:
 	glm::vec3 lerpCamPosOffset;
 
 	GLuint tileInfosBufferID;
-	std::vector<TileGpuInfo> tileGpuInfos;
+	std::vector<GPU_TileInfo> tileGpuInfos;
 
 	std::vector<int> movedTiles;
 	std::vector<Tile*> entityLeaders;
@@ -112,10 +106,9 @@ public: // INITIALIZERS:
 		p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
 
 		// by this point there should be two tiles in the scene:
-		createTilePair(Tile::Type::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.8));
+		createTilePair(TileType::TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.8));
 
 		povTile.tile = tiles[0];
-		povPos = glm::vec3(0.5f, 0.5f, 0.0f);
 		povTile.initialSideIndex = 0;
 		povTile.initialVertIndex = 0;
 		povTile.sideInfosOffset = 1;
@@ -144,21 +137,14 @@ public: // MEMBER FUNCTIONS:
 	glm::vec2 getRelativePovPosBottomRight(TileTarget & target);
 	glm::vec2 getRelativePovPosBottomLeft(TileTarget & target);
 
-	void clearEntityIndices()
-	{
-		for (Tile* tile : tiles) {
-			for (int i = 0; i < 9; i++) {
-				tile->entityIndices[i] = -1;
-			}
-		}
-	}
-
 	// The tiles are drawn one by one, and need to know when they are off screen.  This is 
 	// done by translating the edges of the window to scene coordinates, in this function.
 	void updateWindowFrustum();
 
-	void deleteTile(Tile *tile);
+	void deleteTilePair(Tile *tile, bool allowDeletePovTile);
 	void deleteBuilding(Tile *tile);
+
+	void updateCornerSafety(Tile* tile);
 
 	// Because of space wrapping, there are times when going over a corner of a tile would actually rip or stretch
 	// an object in a way that is unacceptable.  These corners are 'unsafe' corners, and should not be traversable.
@@ -189,7 +175,7 @@ public: // MEMBER FUNCTIONS:
 	// scene. The 'maxPoint' is the maximum vertex of the new tile pair.  I.e. a tile with 
 	// vertices (0,0,0), (1,0,0), (1,0,1), and (0,0,1) would have a maxPoint of (1,0,1).  This 
 	// makes sure that all tiles of the same type have their vertices in the correct order!
-	bool createTilePair(Tile::Type tileType, glm::ivec3 maxPoint, glm::vec3 frontTileColor, glm::vec3 backTileColor);
+	bool createTilePair(TileType tileType, glm::ivec3 maxPoint, glm::vec3 frontTileColor, glm::vec3 backTileColor);
 	
 	// In the creation of a tile, it needs to be connected to it's neighbors so that things can move from
 	// one tile to another.

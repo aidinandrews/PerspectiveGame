@@ -1,4 +1,7 @@
 #pragma once
+
+//#define RUNNING_TEST_SCENARIOS
+
 #include<iostream>
 #include <string>
 #include<iomanip>
@@ -34,6 +37,7 @@
 #include "forceManager.h"
 #include "currentSelection.h"
 #include "frameBuffer.h"
+#include "scenarioSetup.h"
 
 struct App {
 	Window window;
@@ -138,21 +142,7 @@ struct App {
 
 	void setupWorld()
 	{
-		// This is the initial two tiles that must exist for the player to even move around at all:
-		for (int w = 1; w < 5; w++) {
-			for (int h = 1; h < 5; h++) {
-				p_tileManager->createTilePair(Tile::TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
-			}
-		}
-		//p_basisManager->addBasis(p_tileManager->tiles[0], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
-		//p_basisManager->addBasis(p_tileManager->tiles[8], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_GENERATOR);
-		//p_basisManager->addBasis(p_tileManager->tiles[4], LOCAL_DIRECTION_3, BASIS_TYPE_FORCE_SINK);
-		//
-		//p_tileManager->tiles[0]->forceLocalDirection = LOCAL_DIRECTION_3;
-		//p_tileManager->tiles[2]->forceLocalDirection = LOCAL_DIRECTION_3;
-		//
-		//p_entityManager->createEntity(2, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3, LOCAL_ORIENTATION_0);
-		//p_entityManager->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3, LOCAL_ORIENTATION_0);
+		setupTestScenario(0, p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()
@@ -173,12 +163,18 @@ struct App {
 
 			if (CurrentTick % 4 == 0) {
 				p_currentSelection->addQueuedEntities();
-				p_forceManager->update();
-				p_basisManager->update();
+				//p_forceManager->update();
+				//p_basisManager->update();
 			}
 
 			p_tileManager->updateTileGpuInfoIndices();
+			p_entityManager->updateGpuInfos();
+
 			CurrentTick++;
+
+			#ifdef RUNNING_TEST_SCENARIOS
+			TICKS_IN_SCENARIO++;
+			#endif
 		}
 	}
 
@@ -210,6 +206,14 @@ struct App {
 
 		while (!glfwWindowShouldClose(window.window)) {
 			auto start = std::chrono::high_resolution_clock::now();
+
+			#ifdef RUNNING_TEST_SCENARIOS
+			if (CURRENT_SCENARIO_ID == 0 || TICKS_IN_SCENARIO > ticksPerScenario(CURRENT_SCENARIO_ID)) {
+				setupTestScenario(CURRENT_SCENARIO_ID % NUM_OF_SCENARIOS, p_tileManager, p_entityManager, p_currentSelection);
+				CURRENT_SCENARIO_ID++;
+				TICKS_IN_SCENARIO = 0;
+			}
+			#endif
 
 			updateGlobalVariables(window.window);
 			inputManager.update();

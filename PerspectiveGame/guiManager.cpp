@@ -360,11 +360,11 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	// Tile buffer:
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, p_tileManager->tileInfosBufferID);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-		p_tileManager->tileGpuInfos.size() * sizeof(TileGpuInfo),
+		p_tileManager->tileGpuInfos.size() * sizeof(GPU_TileInfo),
 		nullptr,
 		GL_DYNAMIC_DRAW);
-	TileGpuInfo* tileData = (TileGpuInfo*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 
-		sizeof(TileGpuInfo) * p_tileManager->tileGpuInfos.size(), 
+	GPU_TileInfo* tileData = (GPU_TileInfo*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 
+		sizeof(GPU_TileInfo) * p_tileManager->tileGpuInfos.size(), 
 		GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	for (int i = 0; i < p_tileManager->tileGpuInfos.size(); ++i) {
 		tileData[i] = p_tileManager->tileGpuInfos[i];
@@ -378,17 +378,26 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	// Entity buffer:
 	glBindBuffer(GL_UNIFORM_BUFFER, p_entityManager->entityGpuBufferID);
 	glBufferData(GL_UNIFORM_BUFFER,
-		p_entityManager->entityGpuInfos.size() * sizeof(EntityGpuInfo),
-		p_entityManager->entityGpuInfos.data(),
+		p_entityManager->GPU_entityInfos.size() * sizeof(GPU_EntityInfo),
+		p_entityManager->GPU_entityInfos.data(),
 		GL_DYNAMIC_DRAW);
 	GLuint entityInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "entityInfosBuffer");
 	GLuint entityInfosBindingPoint = 2;
 	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, entityInfosBlockID, entityInfosBindingPoint);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityInfosBindingPoint, p_entityManager->entityGpuBufferID);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
+	// Entity Tile Info Buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_entityManager->entityTileInfoGpuBufferID);
+	glBufferData(GL_UNIFORM_BUFFER,
+				 p_entityManager->GPU_entityTileInfos.size() * sizeof(GPU_EntityTileInfo),
+				 p_entityManager->GPU_entityTileInfos.data(),
+				 GL_DYNAMIC_DRAW);
+	GLuint entityTileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "entityTileInfosBuffer");
+	GLuint entityTileInfosBindingPoint = 3;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, entityTileInfosBlockID, entityTileInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityTileInfosBindingPoint, p_entityManager->entityTileInfoGpuBufferID);
 
-	//std::cout << sizeof(TileGpuInfo) << std::endl;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
 }
 
 void GuiManager::bindUniforms2d3rdPerson() {

@@ -1,0 +1,25 @@
+Perspective Game TODO
+
+Entity Loop:
+1) solve collisions
+	initialize: find collisions and flag them
+	1a) propagate flagged collisions to colliding entities
+	1b) find any remaining collisions and flag them
+	1c) if no remaining collisions: escape, else: loop to step 1a.
+2) send data to GPU
+3) move entities
+
+TODO:
+1) get the entities to move around both orthogonally and diagonally
+2) collisions
+	- find direct collisions
+	- find shifted collisions
+	- find corner collisions
+3) solving
+	- swap opposing forces and make sure both entities are flagged for solving next solve step
+	- pseudo directions need to be added to static entities.
+		-* pseudo directions do not swap, but spread flagged-ness to other entities!
+	- allow for force combination/division by adding a designated float to each force
+		- force combination adds 1 force unit/added force of the same direction to an entity
+		- force division adds (force float / 2) to each effected entity
+			-* floating point error will be an issue with this step for long sequences of division!

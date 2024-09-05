@@ -10,7 +10,7 @@ std::chrono::steady_clock::time_point ProgramStart;
 std::chrono::steady_clock::time_point FrameStart;
 float DeltaTime;
 float TimeSinceProgramStart;
-float UpdateTime = 1.0f;
+float UpdateTime = 1.0/1.0;
 float LastUpdateTime = 0.0f;
 
 int PixelsPerGuiGridUnit = 60;
@@ -23,3 +23,7 @@ int CurrentTick = 0;
 float leftEdit = -1, rightEdit = 1, topEdit = 1, bottomEdit = -1;
 
 bool CanEditSubWindows = false;
+
+int TICKS_IN_SCENARIO = 0;
+int CURRENT_SCENARIO_ID = 0;
+int NUM_OF_SCENARIOS = 5;

@@ -47,29 +47,43 @@ uniform mat4      inPovRelativePositions;
 
 struct TileInfo {
 	vec2 texCoords[4];
+	
 	int neighborIndices[4];
 	int neighborMirrored[4];
+	
 	int neighborSideIndex[4];
 	vec4 color;
-	int entityIndices[9]; // 36
+
+	int entityIndices[4];
+	int entityInfoIndices[4];
+
+	int cornerSafety[4];
 	int basisType;
 	int basisOrientation;
 	int tileSubType;
-	int obstructionMask;
-	int padding[3];
+	int obstructionFlags;
+
+	//alignas(4) int padding[];
 };
 
 struct EntityInfo {
 	vec4 color;
-	int localOrientation[2];
-	int localDirection[2];
-	int position[2];
+	int tileInfoIndex[4];
+
 	int type;
-	int padding;
+	int padding[3];
+};
+
+struct EntityTileInfo {
+	int orientation;
+	int direction;
+	int position;
+	int isLeavings;
 };
 
 layout (std430, binding = 1) buffer tileInfosBuffer   { TileInfo tileInfos[];     };
 layout (std430, binding = 2) buffer entityInfosBuffer { EntityInfo entityInfos[]; };
+layout (std430, binding = 3) buffer entityTileInfosBuffer { EntityTileInfo entityTileInfos[]; };
 
 
 
@@ -158,9 +172,14 @@ const int ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4] = { // Key: [Current Tile T
 #undef X
 };
 const vec2 LOCAL_POS_INDEX_TO_VEC2[] = { 
-	vec2(1.0f,  0.5f), vec2(0.5f, 0.0f ), vec2(0.0f,  0.5f), vec2(0.5f, 1.0f ), 
-	vec2(0.75f, 0.5f), vec2(0.5f, 0.25f), vec2(0.25f, 0.5f), vec2(0.5f, 0.75f), 
-	vec2(0.5f,  0.5f) 
+	vec2(1.0f, 0.5f), vec2(0.5f, 0.0f), vec2(0.0f, 0.5f), vec2(0.5f, 1.0f ), 
+	vec2(1.0f, 0.0f), vec2(0.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f), 
+	vec2(0.5f, 0.5f) 
+};
+const vec2 LOCAL_DIR_TO_VEC2[] = {
+	vec2(1.0f, 0.0f), vec2(0.0f, -1.0f), vec2(-1.0f, 0.0f), vec2(0.0f, 1.0f ), 
+	vec2(1.0f, -1.0f), vec2(-1.0f, -1.0f), vec2(-1.0f, 1.0f), vec2(1.0f, 1.0f), 
+	vec2(0.0f, 0.0f) 
 };
 
 const vec2  povPosToPixelPos = fragWorldPos - povPos;
@@ -203,18 +222,6 @@ vec2 vertB;
 // Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
 int orientationToOrientationMap(int currentTileType, int neighborTileType, int exitingSide, int currentOrientation) {
 	return ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
-}
-
-const uint coordToObstructionMask[2][4] = { { 0x8888, 0x4444, 0x2222, 0x1111 }, { 0x000f, 0x00f0, 0x0f00, 0xf000, } };
-uint vec2ToObstructionMask(vec2 v) {
-	uint xFlag = coordToObstructionMask[0][int(v.x * 4)];
-	uint yFlag = coordToObstructionMask[1][int(v.y * 4)];
-	return xFlag & yFlag;
-}
-bool fragInObstructionMask() {
-	uint posFlag = vec2ToObstructionMask(fragLocalBasisPos);
-	if ((posFlag & CurrentTile.obstructionMask) != 0) { return true; }
-	return false;
 }
 
 
@@ -285,7 +292,7 @@ bool isInsidePlayer() {
 
 	vec2 drawTilePlayerPos =  vertOrigin + a1 + b1;
 
-	if (length(fragDrawTilePos - drawTilePlayerPos) < 0.25) {
+	if (length(fragDrawTilePos - drawTilePlayerPos) < 0.5) {
 		return true;
 	} 
 	// There are cases where the tile has more than one copy of player data.
@@ -296,27 +303,49 @@ bool isInsidePlayer() {
 
 		drawTilePlayerPos =  vertOrigin + a1 + b1;
 
-		if (length(fragDrawTilePos - drawTilePlayerPos) < 0.25) {
+		if (length(fragDrawTilePos - drawTilePlayerPos) < 0.5) {
 			return true;
 		}
 	}
 	return false;
 }
 
-bool colorEntity(int position) {
-	vec2 entityCenter = LOCAL_POS_INDEX_TO_VEC2[position];
-	if (max(abs(fragLocalBasisPos.x - entityCenter.x), abs(fragLocalBasisPos.y - entityCenter.y)) < 0.25) {
-		gl_FragColor = CurrentEntity(position).color;
-		return true;
-	}
-	return false;
-}
+//bool colorEntity(int entityIndicesIndex) {
+//	vec2 entityCenter = LOCAL_POS_INDEX_TO_VEC2[position];
+//	if (max(abs(fragLocalBasisPos.x - entityCenter.x), abs(fragLocalBasisPos.y - entityCenter.y)) < 0.25) {
+//		//gl_FragColor = CurrentEntity(position).color;
+//
+//		gl_FragColor = entityInfos[entityIndicesIndex].color;
+//		//gl_FragColor = entityInfos[0].color;
+//		return true;
+//	}
+//	return false;
+//}
 bool isInsideEntity() {
-	for (int i = 0; i<9; i++) {
-		if (CurrentTile.entityIndices[i] != -1) {
-			if (colorEntity(i)) {
-				return true;
-			}
+	for (int i = 0; i < 4; i++) {
+		if (CurrentTile.entityIndices[i] == -1) {
+			continue;
+		}
+
+		int entityIndex = CurrentTile.entityIndices[i];
+		int infoIndex = CurrentTile.entityInfoIndices[i];
+		EntityInfo entity = entityInfos[entityIndex];
+		EntityTileInfo tileInfo = entityTileInfos[entity.tileInfoIndex[infoIndex]];
+
+		vec2 entityCenter = LOCAL_POS_INDEX_TO_VEC2[tileInfo.position];
+		vec2 localDirVec = 0.5f * LOCAL_DIR_TO_VEC2[tileInfo.direction];
+		vec2 interpolatedCenter;
+
+		if (tileInfo.isLeavings == TRUE) {
+			interpolatedCenter = entityCenter + localDirVec * updateProgress;
+		} 
+		else {
+			interpolatedCenter = entityCenter - localDirVec * (1 - updateProgress);
+		}
+
+		if (max(abs(fragLocalBasisPos.x - interpolatedCenter.x), abs(fragLocalBasisPos.y - interpolatedCenter.y)) < 0.5) {
+			gl_FragColor = entity.color;
+			return true;
 		}
 	}
 	return false;
@@ -350,37 +379,6 @@ bool drawForceGenerator(int orientation) {
 		return true;
 	}
 	return false;
-
-
-//	// Find the vertices of the arrow:
-//	vec2 A, B, C;
-//	switch(tempOrientationOverride) {
-//	case(0):
-//		A = vertOrigin + vertB;
-//		B = vertOrigin + vertA + vertB/2.0f;
-//		C = vertOrigin;
-//		break;
-//	case(1):
-//		A = vertOrigin + vertA + vertB;
-//		B = vertOrigin + vertA/2.0f;
-//		C = vertOrigin + vertB;
-//		break;
-//	case(2):
-//		A = vertOrigin + vertA;
-//		B = vertOrigin + vertB/2.0f;
-//		C = vertOrigin + vertA + vertB;
-//		break;
-//	case(3):
-//		A = vertOrigin;
-//		B = vertOrigin + vertA/2.0f + vertB;
-//		C = vertOrigin + vertA;
-//		break;
-//	}
-//	A += entityForward;
-//	B += entityForward;
-//	C += entityForward;
-
-	
 }
 // Colors the fragment if it is inside a basis.  Returns true if inside one.
 bool isInsideBasis() {
@@ -655,6 +653,21 @@ void findTile() {
 }
 
 
+bool isCloseToCorner() 
+{
+	for (int i = 0; i < 4; i++) {
+		if (abs(length(fragLocalBasisPos - DRAW_TILE_COORDS[i])) < 0.1f) {
+			if (CurrentTile.cornerSafety[i] == 1)
+				gl_FragColor = vec4(0,1,0,1);
+			else {
+				gl_FragColor = vec4(1,0,0,1);
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 
 // Given a local draw tile coordinate, will return the color of the base texture of a tile.
 vec4 tileTexColor() {
@@ -676,12 +689,9 @@ void colorPixel() {
 	// Rendering heierarchy (player 'drawn last'): 
 	// player > entity > basis > force
 
-	#ifdef PEEK_OBSTRUCTION_MAPS
-	if (fragInObstructionMask() && sin(128 * fragLocalBasisPos.x) > 0) { gl_FragColor = vec4(1, 0, 0, 1); return; }
-	#endif
-
 	if (isInsidePlayer()) { gl_FragColor = vec4(0.984, 0.953, 0.835, 1); }
-	//else if (isInsideEntity()) {} 
+	//else if (isCloseToCorner()) {}
+	else if (isInsideEntity()) {} 
 	//else if (isInsideBasis()) {}
 	else { gl_FragColor = mix(tileTexColor(), tileInfos[currentTileIndex].color, 0.5); }
 }

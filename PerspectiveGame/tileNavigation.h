@@ -2,16 +2,54 @@
 #include <iostream>
 
 #define NO_ENTITY_INDEX -1
+#define NO_TILE_INDEX -1
+#define NO_SUB_TILE_INDEX -1
+
+// Each tile has a type corrosponding to what principal/coordinate plane (XY, XA, and YZ) the tile is 
+	// parallel to.  This type means that a tile can be fully described with a type and a point on the 
+	// corrosponding coordinaate plane that corrosponds to one of it's vertices.
+enum TileType {
+	TILE_TYPE_XY = 0,
+	TILE_TYPE_XZ = 1,
+	TILE_TYPE_YZ = 2,
+};
+
+// Inside each tile are four edges.  Each edge will be parallel to an axis of R3 (X, Y, or Z). 
+// Thus, each edge can be described partially by what axis it is parallel to.  
+// An edge type and a vertex corrosponding to its 'tail' are all that is needed to fully descibe an edge. 
+enum TileEdgeType {
+	TILE_EDGE_TYPE_X,
+	TILE_EDGE_TYPE_Y,
+	TILE_EDGE_TYPE_Z,
+};
+
+// Tiles are all square and can differ from each other in location and angle.  
+// They are either parallel with the XY, XZ, or YZ planes, so they can either have a 'dihedral angle' 
+// (internal angle of 90, 180, or 270 degrees).  
+// Both 90 and 270 are interchangeable depending on the perspective between two tiles, 
+// but it can be useful to desribe them as different in certain circumstances.
+enum TileDihedral {
+	TILE_DIHEDRAL_90,
+	TILE_DIHEDRAL_180,
+	TILE_DIHEDRAL_270,
+};
+
+enum TileRelation {
+	TILE_RELATION_FLAT,
+	TILE_RELATION_UP,
+	TILE_RELATION_DOWN,
+	TILE_RELATION_FLIPPED,
+};
 
 // Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
 // should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
 enum TileSubType {
-	TILE_TYPE_XY_FRONT = 0,
-	TILE_TYPE_XY_BACK = 1,
-	TILE_TYPE_XZ_FRONT = 2,
-	TILE_TYPE_XZ_BACK = 3,
-	TILE_TYPE_YZ_FRONT = 4,
-	TILE_TYPE_YZ_BACK = 5,
+	TILE_TYPE_XYF,
+	TILE_TYPE_XYB,
+	TILE_TYPE_XZF,
+	TILE_TYPE_XZB,
+	TILE_TYPE_YZF,
+	TILE_TYPE_YZB,
 };
 
 enum BasisType {
@@ -35,109 +73,126 @@ enum CornerBuildingType {
 	CORNER_BUILDING_BELT_END_BACK,
 };
 
-// Each entity has one of 9 positions on the tile (see ascii diagram below), but some positions are
-	// not valid depending on tile type.  Positions ZERO and ONE are invalid for front-facing tiles and
-	// positions TWO and THREE are invalid for back-facing tiles.  If an entity moves to an invalid space,
-	// it must be transfered to the tile's neighbor, hence the NIEGHBOR_ prefix.  If an entity is at a valid
-	// edge already and moves further away from the tile, it must be transfered to a neighboring tile but
-	// inward from that neighbor's edge, so NEIGHBOR_ZERO_ZERO means to transfer the entity onto the neighbor
-	// in the zero direction, then move it again in that direction (whatever the new local direction is) once
-	// on the neighboring tile.
-	// 
-	//  __________3__________
-	//  |    |    |    |    |
-	//	|____|____7____|____|
-	//  |    |    |    |    |
-	//	2____6____8____4____0
-	//  |    |    |    |    |
-	//	|____|____5____|____|
-	//  |    |    |    |    |
-	//	|____|____1____|____|
-	// 
-	// Notice that the positions on the outer edges of the tile match the enums that describe local tile directions.
-	// This allows for more simple transitions from one tile to another.
-enum LocalPosition {
-	LOCAL_POSITION_EDGE_0, LOCAL_POSITION_EDGE_1, LOCAL_POSITION_EDGE_2, LOCAL_POSITION_EDGE_3,
-	LOCAL_POSITION_MIDDLE_0, LOCAL_POSITION_MIDDLE_1, LOCAL_POSITION_MIDDLE_2, LOCAL_POSITION_MIDDLE_3,
-	LOCAL_POSITION_CENTER,
-	LOCAL_POSITION_INVALID,
+// Specifies information about movement for various entities.
+enum LocalAlignment {
+	LOCAL_ALIGNMENT_0, 
+	LOCAL_ALIGNMENT_1, 
+	LOCAL_ALIGNMENT_2, 
+	LOCAL_ALIGNMENT_3,
+	LOCAL_ALIGNMENT_01,
+	LOCAL_ALIGNMENT_12,
+	LOCAL_ALIGNMENT_23,
+	LOCAL_ALIGNMENT_30,
+	LOCAL_ALIGNMENT_NONE, 
+	LOCAL_ALIGNMENT_ERROR
 };
 
-// Directions are pointing in the corrisponding 
-enum LocalAlignment {
-	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
-	LOCAL_ALIGNMENT_STATIC, LOCAL_ALIGNMENT_INVALID
-};
+typedef LocalAlignment LocalPosition;
+#define LOCAL_POSITION_0 LOCAL_ALIGNMENT_0
+#define LOCAL_POSITION_1 LOCAL_ALIGNMENT_1
+#define LOCAL_POSITION_2 LOCAL_ALIGNMENT_2
+#define LOCAL_POSITION_3 LOCAL_ALIGNMENT_3
+#define LOCAL_POSITION_01 LOCAL_ALIGNMENT_01
+#define LOCAL_POSITION_12 LOCAL_ALIGNMENT_12
+#define LOCAL_POSITION_23 LOCAL_ALIGNMENT_23
+#define LOCAL_POSITION_30 LOCAL_ALIGNMENT_30
+#define LOCAL_POSITION_CENTER LOCAL_ALIGNMENT_NONE
+#define LOCAL_POSITION_ERROR LOCAL_ALIGNMENT_ERROR
+
 typedef LocalAlignment LocalDirection;
 #define LOCAL_DIRECTION_0 LOCAL_ALIGNMENT_0
 #define LOCAL_DIRECTION_1 LOCAL_ALIGNMENT_1
 #define LOCAL_DIRECTION_2 LOCAL_ALIGNMENT_2
 #define LOCAL_DIRECTION_3 LOCAL_ALIGNMENT_3
-#define LOCAL_DIRECTION_STATIC LOCAL_ALIGNMENT_STATIC
-#define LOCAL_DIRECTION_INVALID LOCAL_ALIGNMENT_INVALID
+#define LOCAL_DIRECTION_01 LOCAL_ALIGNMENT_01
+#define LOCAL_DIRECTION_12 LOCAL_ALIGNMENT_12
+#define LOCAL_DIRECTION_23 LOCAL_ALIGNMENT_23
+#define LOCAL_DIRECTION_30 LOCAL_ALIGNMENT_30
+#define LOCAL_DIRECTION_STATIC LOCAL_ALIGNMENT_NONE
+#define LOCAL_DIRECTION_ERROR LOCAL_ALIGNMENT_ERROR
+
 typedef LocalAlignment LocalOrientation;
 #define LOCAL_ORIENTATION_0 LOCAL_ALIGNMENT_0
 #define LOCAL_ORIENTATION_1 LOCAL_ALIGNMENT_1
 #define LOCAL_ORIENTATION_2 LOCAL_ALIGNMENT_2
 #define LOCAL_ORIENTATION_3 LOCAL_ALIGNMENT_3
-#define LOCAL_ORIENTATION_INVALID LOCAL_ALIGNMENT_INVALID
+#define LOCAL_ORIENTATION_NONE LOCAL_ALIGNMENT_NONE
+#define LOCAL_ORIENTATION_ERROR LOCAL_ALIGNMENT_ERROR
 
 // Tiles exist in 3D space, and thus can be described with cartesian coordinates x, y, and z. 
-	// Thus, there are 6 primary directions: left, right, forward, back, up, and down. 
-	// Less relative are: x+, x-, y+, y-, z+, z-.  
-	// The latter is what has been used for a naming convention in this enum.
-enum GlobalDirection {
-	X_POSITIVE, X_NEGATIVE,
-	Y_POSITIVE, Y_NEGATIVE,
-	Z_POSITIVE, Z_NEGATIVE
+// Thus, there are 6 primary directions: left, right, forward, back, up, and down. 
+// Less relative are: x+, x-, y+, y-, z+, z-.  
+// The latter is what has been used for a naming convention in this enum.
+enum GlobalAlignment {
+	GLOBAL_ALIGNMENT_pX,
+	GLOBAL_ALIGNMENT_nX,
+	GLOBAL_ALIGNMENT_pY,
+	GLOBAL_ALIGNMENT_nY,
+	GLOBAL_ALIGNMENT_pZ,
+	GLOBAL_ALIGNMENT_nZ,
+	GLOBAL_ALIGNMENT_pXpY,
+	GLOBAL_ALIGNMENT_pXnY,
+	GLOBAL_ALIGNMENT_nXpY,
+	GLOBAL_ALIGNMENT_nXnY,
+	GLOBAL_ALIGNMENT_pXpZ,
+	GLOBAL_ALIGNMENT_pXnZ,
+	GLOBAL_ALIGNMENT_nXpZ,
+	GLOBAL_ALIGNMENT_nXnZ,
+	GLOBAL_ALIGNMENT_pYpZ,
+	GLOBAL_ALIGNMENT_pYnZ,
+	GLOBAL_ALIGNMENT_nYpZ,
+	GLOBAL_ALIGNMENT_nYnZ,
+	GLOBAL_ALIGNMENT_NONE,
+	GLOBAL_ALIGNMENT_ERROR
 };
 
-struct TileNavigator {
-private:
-	// Returns the adjusted local orientation of an entity/basis when going from one tile to another.
-	static const LocalDirection ORIENTATION_TO_ORIENTATION_MAP[6][6][4][4];
-
-	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
-	static const GlobalDirection LOCAL_DIR_TO_GLOBAL_DIR[6][4];
-
-	// Gives the next position given the tile's facing direction, a current position, and a direction.
-	// format: NEXT_POSITION[isFrontFacing][currentPosition][direction].
-	static const LocalPosition NEXT_LOCAL_POSITION[9][4];
-
-	// Given a position, returns the uint16_t mask that represents its obstruction from within the tile:
-	static const uint16_t ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[10];
-
-public:
-	// Returns the adjusted local direction of an entity/basis when going from one tile to another.
-	inline static LocalDirection dirToDirMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide) {
-		return TileNavigator::ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][exitingSide];
-	}
-
+namespace tnav { // tnav is short for 'tile navigation'
+	
+	LocalAlignment alignmentToAlignmentMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
+	// Returns the local position of relative to the new tile when going from one tile to the next.
+	LocalPosition positionToPositionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingDirection, LocalPosition position);
+	// Can handle diagonal direction mappings.
+	LocalDirection directionToDirectionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalDirection direction);
 	// Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
-	inline static LocalDirection orientationToOrientationMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalDirection currentOrientation) {
-		return TileNavigator::ORIENTATION_TO_ORIENTATION_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
-	}
-
+	LocalOrientation orientationToOrientationMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalOrientation currentOrientation);
+	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
-	inline static GlobalDirection localToGlobalDir(TileSubType type, LocalDirection direction) {
-		return LOCAL_DIR_TO_GLOBAL_DIR[type][direction];
+	GlobalAlignment localToGlobalDir(TileSubType type, LocalDirection direction);
+	
+	LocalDirection oppositeDirection(LocalDirection currentDirection);
+	
+	const LocalDirection* localDirectionComponents(LocalDirection direction);
+	const bool localDirectionHasComponent(LocalDirection direction, LocalDirection component);
+	const LocalDirection combineLocalDirections(LocalDirection direction1, LocalDirection direction2);
+	
+	const int* getSurroundingSubTileIndices(LocalPosition position);
+	
+	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
+	
+	const static int* localPositionToSubTileIndices(LocalPosition position);
+	const static int nextSubTileIndex(int subTileIndex, LocalDirection direction);
+	const static int nextSubTileShift(int subTileIndex, LocalDirection direction);
+	inline void println(LocalDirection d)
+	{
+		switch (d) {
+		case LOCAL_DIRECTION_0: std::cout << "LOCAL_DIRECTION_0"; break;
+		case LOCAL_DIRECTION_1: std::cout << "LOCAL_DIRECTION_1"; break;
+		case LOCAL_DIRECTION_2: std::cout << "LOCAL_DIRECTION_2"; break;
+		case LOCAL_DIRECTION_3: std::cout << "LOCAL_DIRECTION_3"; break;
+		case LOCAL_DIRECTION_01: std::cout << "LOCAL_DIRECTION_01"; break;
+		case LOCAL_DIRECTION_12: std::cout << "LOCAL_DIRECTION_12"; break;
+		case LOCAL_DIRECTION_23: std::cout << "LOCAL_DIRECTION_23"; break;
+		case LOCAL_DIRECTION_30: std::cout << "LOCAL_DIRECTION_30"; break;
+		case LOCAL_DIRECTION_STATIC: std::cout << "LOCAL_DIRECTION_STATIC"; break;
+		case LOCAL_DIRECTION_ERROR: std::cout << "LOCAL_DIRECTION_INVALID"; break;
+		default: std::cout << "OUT OF SCOPE";
+		} std::cout << std::endl;
 	}
+	
+	bool isOrthogonal(LocalDirection direction);
+	bool isDiagonal(LocalDirection direction);
 
-	// Given a local position and a direction, will give the immediate next position in that direction.  
-	// If the next position is impossible (i.e. trying to go in direction 1/3 at position Edge_0), INVALID_POSIITON will be returned.
-	// FIX THIS: If the next position is inside of a neighboring tile, INVALID_POSITION will be returned.
-	inline static LocalPosition nextLocalPosition(LocalPosition localPos, LocalDirection direction) {
-		return NEXT_LOCAL_POSITION[localPos][direction];
-	}
+	const uint8_t getLocalDirectionFlag(LocalDirection direction);
+	const LocalDirection getLocalDirection(uint8_t directionFlag);
 
-	inline static LocalDirection oppositeDirection(LocalDirection currentDirection) {
-		return LocalDirection((int(currentDirection) + 2) % 4);
-	}
-
-	inline static uint16_t getObstructionMask(LocalPosition position) {
-		return ENTITY_LOCAL_POSITION_TO_OBSTRUCTION_MASK[position];
-	}
-
-	static void print(LocalDirection d);
-	static void print(LocalPosition p);
-};
+}

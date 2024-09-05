@@ -198,10 +198,12 @@
     <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
     <ClInclude Include="portal.h" />
+    <ClInclude Include="scenarioSetup.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaderManager.h" />
     <ClInclude Include="textureManager.h" />
     <ClInclude Include="tile.h" />
+    <ClInclude Include="tileInternals.h" />
     <ClInclude Include="tileManager.h" />
     <ClInclude Include="tileNavigation.h" />
     <ClInclude Include="vectorHelperFunctions.h" />
@@ -232,6 +234,7 @@
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="textureManager.cpp" />
     <ClCompile Include="tile.cpp" />
+    <ClCompile Include="tileInternals.cpp" />
     <ClCompile Include="tileManager.cpp" />
     <ClCompile Include="tileNavigation.cpp" />
     <ClCompile Include="vectorHelperFunctions.cpp" />

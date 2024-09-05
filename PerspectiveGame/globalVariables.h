@@ -38,6 +38,11 @@ extern float bottomEdit;
 
 extern bool CanEditSubWindows;
 
+
+extern int TICKS_IN_SCENARIO;
+extern int CURRENT_SCENARIO_ID;
+extern int NUM_OF_SCENARIOS;
+
 inline void updateGlobalVariables(GLFWwindow* window) {
 	glfwGetWindowSize(window, &WindowSize.x, &WindowSize.y);
 	glfwGetWindowPos(window, &WindowPos.x, &WindowPos.y);

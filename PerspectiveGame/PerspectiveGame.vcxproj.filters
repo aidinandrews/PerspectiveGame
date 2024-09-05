@@ -162,6 +162,12 @@
     <ClInclude Include="tileNavigation.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
+    <ClInclude Include="tileInternals.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scenarioSetup.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -247,6 +253,9 @@
     </ClCompile>
     <ClCompile Include="basisManager.cpp">
       <Filter>Source Files\World</Filter>
+    </ClCompile>
+    <ClCompile Include="tileInternals.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
