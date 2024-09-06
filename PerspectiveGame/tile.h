@@ -56,7 +56,7 @@ public:
 	glm::fvec3 color;
 	
 	int entityIndices[9];
-	uint_fast8_t entityInfoIndices[9];
+	int entityInfoIndices[9];
 
 	glm::vec2 texCoords[4];
 	bool cornerSafety[4];

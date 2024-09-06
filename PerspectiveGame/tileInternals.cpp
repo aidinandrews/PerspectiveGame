@@ -35,10 +35,10 @@ void TileInternals::addMovementInfo(int subTileIndex, LocalDirection direction)
 }
 void TileInternals::addMovementInfo(LocalPosition position, LocalDirection direction)
 {
-	const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
+	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
 		addMovementInfo(subTileIndices[i], direction);
-	}
+	}*/
 }
 
 void TileInternals::removeMovementInfo(int subTileIndex, LocalDirection direction)
@@ -47,10 +47,10 @@ void TileInternals::removeMovementInfo(int subTileIndex, LocalDirection directio
 }
 void TileInternals::removeMovementInfo(LocalPosition position, LocalDirection direction)
 {
-	const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
+	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
 		removeMovementInfo(subTileIndices[i], direction);
-	}
+	}*/
 }
 
 void TileInternals::clearMovementInfo(int subTileIndex)
@@ -59,10 +59,10 @@ void TileInternals::clearMovementInfo(int subTileIndex)
 }
 void TileInternals::clearMovementInfo(LocalPosition position)
 {
-	const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
+	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
 		clearMovementInfo(subTileIndices[i]);
-	}
+	}*/
 }
 
 void TileInternals::setMovementInfo(int subTileIndex, LocalDirection direction)

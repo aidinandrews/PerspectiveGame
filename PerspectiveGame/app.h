@@ -159,13 +159,13 @@ struct App {
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
 			LastUpdateTime = TimeSinceProgramStart;
 
-			p_entityManager->update();
-
 			if (CurrentTick % 4 == 0) {
 				p_currentSelection->addQueuedEntities();
 				//p_forceManager->update();
 				//p_basisManager->update();
 			}
+
+			p_entityManager->update();
 
 			p_tileManager->updateTileGpuInfoIndices();
 			p_entityManager->updateGpuInfos();

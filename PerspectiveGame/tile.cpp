@@ -20,6 +20,34 @@ Tile::Tile(TileSubType tileSubType, glm::ivec3 position) : type(tileSubType), po
 		entityInfoIndices[i] = -1;
 	}
 
+	/*for (int i = 0; i < 4; i++) {
+		nextEntityInfoFromCenter[i].direct;
+		nextEntityInfoFromCenter[i].offset1;
+		nextEntityInfoFromCenter[i].offset2;
+		nextEntityInfoFromCenter[i].corner1;
+		nextEntityInfoFromCenter[i].corner2;
+
+		nextEntityInfoFromEdge[i].direct;
+		nextEntityInfoFromEdge[i].offset1;
+		nextEntityInfoFromEdge[i].offset2;
+		nextEntityInfoFromEdge[i].corner1;
+		nextEntityInfoFromEdge[i].corner2;
+
+		nextEntityInfoFromCorner[i].directB;
+		nextEntityInfoFromCorner[i].offsetA1;
+		nextEntityInfoFromCorner[i].offsetA2;
+		nextEntityInfoFromCorner[i].cornerA;
+		nextEntityInfoFromCorner[i].directA;
+		nextEntityInfoFromCorner[i].offsetB1;
+		nextEntityInfoFromCorner[i].offsetB2;
+		nextEntityInfoFromCorner[i].cornerB;
+		nextEntityInfoFromCorner[i].cornerC;
+
+		cornerEquivelentInfoMap[i].tileIndex;
+		cornerEquivelentInfoMap[i].position;
+		cornerEquivelentInfoMap[i].direction;
+	}*/
+
 }
 
 glm::ivec3 Tile::getNormal()

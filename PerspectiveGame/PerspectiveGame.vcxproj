@@ -194,6 +194,7 @@
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
+    <ClInclude Include="nextEntityInfo1.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
@@ -230,6 +231,7 @@
     <ClCompile Include="guiManager.cpp" />
     <ClCompile Include="inputManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="nextEntityInfo1.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="textureManager.cpp" />

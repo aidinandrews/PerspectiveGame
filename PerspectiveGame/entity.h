@@ -47,7 +47,7 @@ public:
 		tileIndices[0] = tileIndex;
 		positions[0] = LOCAL_POSITION_CENTER;
 		directions[0] = direction;
-		directionFlags[0] = tnav::getLocalDirectionFlag(direction);
+		directionFlags[0] = tnav::getDirectionFlag(direction);
 		orientations[0] = orientation;
 		tileInfoIsLeavings[0] = false;
 
@@ -72,7 +72,7 @@ public:
 	void setDirectionFlag(int infoIndex, uint8_t flag) { directionFlags[infoIndex] = flag; }
 	void setDirection(int infoIndex, LocalDirection direction) { 
 		directions[infoIndex] = direction; 
-		setDirectionFlag(infoIndex, tnav::getLocalDirectionFlag(direction));
+		setDirectionFlag(infoIndex, tnav::getDirectionFlag(direction));
 	}
 	void setOrientation(int infoIndex, LocalOrientation orientation) { orientations[infoIndex] = orientation; }
 	
@@ -95,7 +95,7 @@ public:
 		tileIndices[infoIndex] = tileIndex;
 		positions[infoIndex] = position;
 		directions[infoIndex] = direction;
-		directionFlags[infoIndex] = tnav::getLocalDirectionFlag(direction);
+		directionFlags[infoIndex] = tnav::getDirectionFlag(direction);
 		orientations[infoIndex] = orientation;
 	}
 	void clearTileInfo(int infoIndex)
@@ -103,7 +103,7 @@ public:
 		tileIndices[infoIndex] = NO_TILE_INDEX;
 		positions[infoIndex] = LOCAL_POSITION_ERROR;
 		directions[infoIndex] = LOCAL_DIRECTION_ERROR;
-		directionFlags[infoIndex] = tnav::getLocalDirectionFlag(LOCAL_DIRECTION_ERROR);
+		directionFlags[infoIndex] = tnav::getDirectionFlag(LOCAL_DIRECTION_ERROR);
 		orientations[infoIndex] = LOCAL_ORIENTATION_ERROR;
 		tileInfoIsLeavings[infoIndex] = false;
 	}

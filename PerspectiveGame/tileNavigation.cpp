@@ -37,38 +37,39 @@ const LocalAlignment META_TO_LOCAL_ALIGNMENT[6][19] = {
 
 // Breaks down diagonal directions into their components.
 // Orthogonal components are just duplicated.
-const LocalDirection DIRECTION_COMPONENTS[8][2] = {
+const LocalDirection ALIGNMENT_COMPONENTS[8][2] = {
 	// Orthogonal:
-	{ LOCAL_DIRECTION_0, LOCAL_DIRECTION_0 }, // LOCAL_DIRECTION_0
-	{ LOCAL_DIRECTION_1, LOCAL_DIRECTION_1 }, // LOCAL_DIRECTION_1
-	{ LOCAL_DIRECTION_2, LOCAL_DIRECTION_2 }, // LOCAL_DIRECTION_2
-	{ LOCAL_DIRECTION_3, LOCAL_DIRECTION_3 }, // LOCAL_DIRECTION_3
+	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_0 }, // LOCAL_DIRECTION_0
+	{ LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_1 }, // LOCAL_DIRECTION_1
+	{ LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_2 }, // LOCAL_DIRECTION_2
+	{ LOCAL_ALIGNMENT_3, LOCAL_ALIGNMENT_3 }, // LOCAL_DIRECTION_3
 	// Diagonal:
-	{ LOCAL_DIRECTION_0, LOCAL_DIRECTION_1 }, // LOCAL_DIRECTION_01
-	{ LOCAL_DIRECTION_1, LOCAL_DIRECTION_2 }, // LOCAL_DIRECTION_12
-	{ LOCAL_DIRECTION_2, LOCAL_DIRECTION_3 }, // LOCAL_DIRECTION_23
-	{ LOCAL_DIRECTION_3, LOCAL_DIRECTION_0 }  // LOCAL_DIRECTION_30
+	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1 }, // LOCAL_DIRECTION_01
+	{ LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2 }, // LOCAL_DIRECTION_12
+	{ LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3 }, // LOCAL_DIRECTION_23
+	{ LOCAL_ALIGNMENT_3, LOCAL_ALIGNMENT_0 }  // LOCAL_DIRECTION_30
 };
 
-const LocalDirection* tnav::localDirectionComponents(LocalDirection direction)
+const LocalAlignment* tnav::localAlignmentComponents(LocalAlignment alignment)
 {
-	return DIRECTION_COMPONENTS[direction];
+	return ALIGNMENT_COMPONENTS[alignment];
 }
 
 // Given two orthogonal LocalDirections, combines them into an orthogonal or diagonal direction.
 // Directions facing opposite ways are combined into the static enum.
-const LocalDirection COMBINED_DIRECTIONS[4][4] = {
-	{ LOCAL_DIRECTION_0, LOCAL_DIRECTION_01, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_30 },
-	{ LOCAL_DIRECTION_01, LOCAL_DIRECTION_1, LOCAL_DIRECTION_12, LOCAL_DIRECTION_STATIC },
-	{ LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_12, LOCAL_DIRECTION_2, LOCAL_DIRECTION_23 },
-	{ LOCAL_DIRECTION_30, LOCAL_DIRECTION_STATIC, LOCAL_DIRECTION_23, LOCAL_DIRECTION_3 }
+const LocalDirection COMBINED_ALIGNMENTS[4][4] = {
+	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_01, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_30 },
+	{ LOCAL_ALIGNMENT_01, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_12, LOCAL_ALIGNMENT_NONE },
+	{ LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_12, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_23 },
+	{ LOCAL_ALIGNMENT_30, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_23, LOCAL_ALIGNMENT_3 }
 };
 
-const LocalDirection tnav::combineLocalDirections(LocalDirection direction1, LocalDirection direction2)
+const LocalAlignment tnav::combineLocalAlignments(LocalAlignment a, LocalAlignment b)
 {
-	return COMBINED_DIRECTIONS[direction1][direction2];
+	return COMBINED_ALIGNMENTS[a][b];
 }
 
+// [local Position][local direction]
 const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
 #define _0__ LOCAL_POSITION_0
 #define _1__ LOCAL_POSITION_1
@@ -307,69 +308,33 @@ LocalAlignment tnav::alignmentToAlignmentMap(TileSubType currentTileType, TileSu
 	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingSide][alignment];
 }
 
-LocalPosition tnav::positionToPositionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingDirection, LocalPosition position)
-{
-	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingDirection][position];
-}
-
-LocalDirection tnav::directionToDirectionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingDirection, LocalDirection direction)
-{
-	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingDirection][direction];
-}
-
-// Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
-LocalOrientation tnav::orientationToOrientationMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalOrientation currentOrientation)
-{
-	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingSide][currentOrientation];
-}
-
 // Given a local direction and a tile type, will return the global euclidean direction equivelant.
 GlobalAlignment tnav::localToGlobalDir(TileSubType type, LocalDirection direction)
 {
 	return LOCAL_DIR_TO_GLOBAL_DIR[type][direction];
 }
 
-const static int* tnav::localPositionToSubTileIndices(LocalPosition position)
-{
-	return LOCAL_POSITION_TO_SUB_TILE_AREA_INDICES[position];
-}
-
-const static int tnav::nextSubTileIndex(int subTileIndex, LocalDirection direction)
-{
-	return NEXT_SUB_TILE_AREA_INDICES[subTileIndex][direction];
-}
-
-const static int tnav::nextSubTileShift(int subTileIndex, LocalDirection direction)
-{
-	return NEXT_SUB_TILE_AREA_SHIFTS[subTileIndex][direction];
-}
-
-const int* tnav::getSurroundingSubTileIndices(LocalPosition position)
-{
-	return LOCAL_POSITION_TO_SUB_TILE_AREA_INDICES[position];
-}
-
 bool tnav::isOrthogonal(LocalDirection direction) { return direction < 4; }
 
 bool tnav::isDiagonal(LocalDirection direction) { return 3 < direction && direction < 8; }
 
-LocalDirection tnav::oppositeDirection(LocalDirection currentDirection)
+LocalDirection tnav::oppositeAlignment(LocalAlignment alignment)
 {
-	int diagonalOffset = (currentDirection > 3) * 4;
-	return LocalDirection((currentDirection + 2) % 4 + diagonalOffset);
+	int diagonalOffset = (alignment > 3) * 4;
+	return LocalDirection((alignment + 2) % 4 + diagonalOffset);
 }
 
-const bool tnav::localDirectionHasComponent(LocalDirection direction, LocalDirection component)
+const bool tnav::localAlignmentHasComponent(LocalAlignment alignment, LocalAlignment component)
 {
-	return HAS_COMPONENT[direction][component];
+	return HAS_COMPONENT[alignment][component];
 }
 
-const uint8_t tnav::getLocalDirectionFlag(LocalDirection direction)
+const uint8_t tnav::getDirectionFlag(LocalDirection direction)
 {
 	return LOCAL_DIRECTION_TO_LOCAL_DIRECTION_FLAG[direction];
 }
 
-const LocalDirection tnav::getLocalDirection(uint8_t directionFlag)
+const LocalDirection tnav::getDirection(uint8_t directionFlag)
 {
 	switch (directionFlag) {
 	case 0b0001: return LOCAL_DIRECTION_0;
@@ -383,6 +348,6 @@ const LocalDirection tnav::getLocalDirection(uint8_t directionFlag)
 	case 0b0000: return LOCAL_DIRECTION_STATIC;
 	case 0b0101: return LOCAL_DIRECTION_STATIC;
 	case 0b1010: return LOCAL_DIRECTION_STATIC;
-	case 0b1111: return LOCAL_DIRECTION_ERROR;
+	default: return LOCAL_DIRECTION_ERROR;
 	}
 }

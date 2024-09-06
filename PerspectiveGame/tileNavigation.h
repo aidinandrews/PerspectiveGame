@@ -148,30 +148,36 @@ enum GlobalAlignment {
 
 namespace tnav { // tnav is short for 'tile navigation'
 	
-	LocalAlignment alignmentToAlignmentMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
-	// Returns the local position of relative to the new tile when going from one tile to the next.
-	LocalPosition positionToPositionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingDirection, LocalPosition position);
-	// Can handle diagonal direction mappings.
-	LocalDirection directionToDirectionMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalDirection direction);
-	// Returns the adjusted relative orientation of an entity/basis when going from one tile to another.
-	LocalOrientation orientationToOrientationMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalOrientation currentOrientation);
-	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
 	GlobalAlignment localToGlobalDir(TileSubType type, LocalDirection direction);
 	
-	LocalDirection oppositeDirection(LocalDirection currentDirection);
+	LocalAlignment alignmentToAlignmentMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
+	#define positionToPositionMap alignmentToAlignmentMap
+	#define directionToDirectionMap alignmentToAlignmentMap
+	#define orientationToOrientationMap alignmentToAlignmentMap
 	
-	const LocalDirection* localDirectionComponents(LocalDirection direction);
-	const bool localDirectionHasComponent(LocalDirection direction, LocalDirection component);
-	const LocalDirection combineLocalDirections(LocalDirection direction1, LocalDirection direction2);
+	LocalDirection oppositeAlignment(LocalDirection direction);
+	#define oppositeDirection oppositeAlignment
+	#define oppositePosition oppositeAlignment
+	#define oppositeOrientation oppositeAlignment
 	
-	const int* getSurroundingSubTileIndices(LocalPosition position);
+	const LocalAlignment* localAlignmentComponents(LocalAlignment alignment);
+	#define directionComponents localAlignmentComponents
+	#define positionComponents localAlignmentComponents
+	#define orientationComponents localAlignmentComponents
+	
+	const bool localAlignmentHasComponent(LocalDirection direction, LocalDirection component);
+	#define directionHasComponent localAlignmentHasComponent
+	#define positionHasComponent localAlignmentHasComponent
+	#define orientationHasComponent localAlignmentHasComponent
+	
+	const LocalDirection combineLocalAlignments(LocalAlignment a, LocalAlignment b);
+	#define combineDirections combineLocalAlignments
+	#define combinePositions combineLocalAlignments
+	#define combineOrientations combineLocalAlignments
 	
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
-	
-	const static int* localPositionToSubTileIndices(LocalPosition position);
-	const static int nextSubTileIndex(int subTileIndex, LocalDirection direction);
-	const static int nextSubTileShift(int subTileIndex, LocalDirection direction);
+
 	inline void println(LocalDirection d)
 	{
 		switch (d) {
@@ -192,7 +198,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 	bool isOrthogonal(LocalDirection direction);
 	bool isDiagonal(LocalDirection direction);
 
-	const uint8_t getLocalDirectionFlag(LocalDirection direction);
-	const LocalDirection getLocalDirection(uint8_t directionFlag);
+	const uint8_t getDirectionFlag(LocalDirection direction);
+	const LocalDirection getDirection(uint8_t directionFlag);
 
 }

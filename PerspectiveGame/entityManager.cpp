@@ -59,7 +59,7 @@ void EntityManager::moveEntity(Entity* entity)
 	}
 
 	Tile* currentTile = getTile(entity, 0);
-	const LocalDirection* directionComponents = tnav::localDirectionComponents(entity->getDirection(0));
+	const LocalDirection* directionComponents = tnav::directionComponents(entity->getDirection(0));
 
 	if (tnav::isOrthogonal(entity->getDirection(0))) {
 		// It can be trusted that the 0 index of entity info is defining the arriving tile info,
@@ -106,12 +106,12 @@ void EntityManager::moveEntity(Entity* entity)
 			Tile* adjacentTile0 = currentTile->getNeighbor(directionComponents[0]);
 			LocalDirection adjacentTile0Dir = tnav::directionToDirectionMap(currentTile->type, adjacentTile0->type, directionComponents[0], entity->getDirection(0));
 			LocalOrientation adjacentTile0Ori = tnav::orientationToOrientationMap(currentTile->type, adjacentTile0->type, directionComponents[0], entity->getOrientation(0));
-			LocalPosition adjacentTile0Pos = tnav::positionToPositionMap(currentTile->type, adjacentTile0->type, directionComponents[0], tnav::combineLocalDirections(tnav::oppositeDirection(directionComponents[0]), directionComponents[1]));
+			LocalPosition adjacentTile0Pos = tnav::positionToPositionMap(currentTile->type, adjacentTile0->type, directionComponents[0], tnav::combineDirections(tnav::oppositeDirection(directionComponents[0]), directionComponents[1]));
 			
 			Tile* adjacentTile1 = currentTile->getNeighbor(directionComponents[1]);
 			LocalDirection adjacentTile1Dir = tnav::directionToDirectionMap(currentTile->type, adjacentTile1->type, directionComponents[1], entity->getDirection(0));
 			LocalOrientation adjacentTile1Ori = tnav::orientationToOrientationMap(currentTile->type, adjacentTile1->type, directionComponents[1], entity->getOrientation(0));
-			LocalPosition adjacentTile1Pos = tnav::positionToPositionMap(currentTile->type, adjacentTile1->type, directionComponents[1], tnav::combineLocalDirections(tnav::oppositeDirection(directionComponents[1]), directionComponents[0]));
+			LocalPosition adjacentTile1Pos = tnav::positionToPositionMap(currentTile->type, adjacentTile1->type, directionComponents[1], tnav::combineDirections(tnav::oppositeDirection(directionComponents[1]), directionComponents[0]));
 			
 			// Wow this is not going to be understandabe next time I look at it...
 			LocalDirection toArrivingFromAdjacentDir = tnav::directionToDirectionMap(currentTile->type, adjacentTile0->type, directionComponents[0], directionComponents[1]);

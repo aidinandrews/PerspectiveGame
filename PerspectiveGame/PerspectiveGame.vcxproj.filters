@@ -168,6 +168,9 @@
     <ClInclude Include="scenarioSetup.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
+    <ClInclude Include="nextEntityInfo1.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -256,6 +259,9 @@
     </ClCompile>
     <ClCompile Include="tileInternals.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nextEntityInfo1.cpp">
+      <Filter>Source Files\World</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
