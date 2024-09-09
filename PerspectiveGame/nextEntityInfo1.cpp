@@ -3,17 +3,17 @@
 // 'out' is the direction component that leads away from the tile, not along its edge.
 LocalDirection cornerOutDirection(LocalPosition position, LocalDirection direction)
 {
-	const LocalPosition* components = tnav::positionComponents(position);
+	const LocalPosition* components = tnav::getAlignmentComponents(position);
 	bool i = ((LocalDirection)components[0] != direction) ? 0 : 1;
-	return tnav::oppositeDirection(LocalDirection(components[!i]));
+	return tnav::oppositeAlignment(LocalDirection(components[!i]));
 }
 
 enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromCenterOffset1(Tile* tile, LocalDirection direction, int offset)
 {
 	Tile* neighbor = tile->getNeighbor(direction);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
-	LocalPosition nextEntityPos = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, outDirection);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(direction, outDirection);
 
 	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 								neighbor->entityInfoIndices[nextEntityPos],
@@ -24,14 +24,14 @@ enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromCenterOffset2(Tile* til
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::oppositePosition(LocalPosition(outDirection));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::oppositeAlignment(LocalPosition(outDirection));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
 	return enav::OrthogonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 								neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -42,14 +42,14 @@ enav::DiagonalEntityCollisionInfo getNextEntityInfoFromCenterCorner(Tile* tile, 
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 	
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborDirection, collisionDirection);
 
 	return enav::DiagonalEntityCollisionInfo(neighborNeighbor->entityIndices[LOCAL_POSITION_CENTER],
 											 neighborNeighbor->entityInfoIndices[LOCAL_POSITION_CENTER],
@@ -58,9 +58,9 @@ enav::DiagonalEntityCollisionInfo getNextEntityInfoFromCenterCorner(Tile* tile, 
 
 enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset1(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
-	LocalPosition nextEntityPos = tnav::combinePositions(LocalPosition(direction), LocalPosition(outDirection));
+	LocalPosition nextEntityPos = tnav::combineAlignments(LocalPosition(direction), LocalPosition(outDirection));
 
 	return enav::OrthogonalEntityCollisionInfo(tile->entityIndices[nextEntityPos],
 								tile->entityInfoIndices[nextEntityPos],
@@ -68,14 +68,14 @@ enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset1(Tile* tile,
 }
 enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset2(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
 	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
 
-	LocalPosition nextEntityPos = tnav::combinePositions(position, LocalPosition(outDirection));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, direction, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments(position, LocalPosition(outDirection));
+	nextEntityPos = tile->getMappedNeighborAlignment(direction, nextEntityPos);
 
 	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 								neighbor->entityInfoIndices[nextEntityPos],
@@ -83,18 +83,18 @@ enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset2(Tile* tile,
 }
 enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset3(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::combinePositions(position, LocalPosition(tnav::oppositeDirection(outDirection)));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments(position, LocalPosition(tnav::oppositeAlignment(outDirection)));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
 	return enav::OrthogonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 								neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -102,12 +102,12 @@ enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset3(Tile* tile,
 }
 enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset4(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
-	LocalPosition nextEntityPos = tnav::combinePositions(LocalPosition(direction), LocalPosition(tnav::oppositeDirection(outDirection)));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
+	LocalPosition nextEntityPos = tnav::combineAlignments(LocalPosition(direction), LocalPosition(tnav::oppositeAlignment(outDirection)));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
 
 	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 								neighbor->entityInfoIndices[nextEntityPos],
@@ -115,15 +115,15 @@ enav::OrthogonalEntityCollisionInfo getNextEntityInfoFromEdgeOffset4(Tile* tile,
 }
 enav::DiagonalEntityCollisionInfo getNextEntityInfoFromEdgeCorner1(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 	
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, LocalPosition(direction));
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(outDirection, LocalPosition(direction));
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
 
 	return enav::DiagonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 											 neighbor->entityInfoIndices[nextEntityPos],
@@ -131,21 +131,21 @@ enav::DiagonalEntityCollisionInfo getNextEntityInfoFromEdgeCorner1(Tile* tile, L
 }
 enav::DiagonalEntityCollisionInfo getNextEntityInfoFromEdgeCorner2(Tile* tile, LocalPosition position, int offset)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, position);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(outDirection, position);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborDirection, collisionDirection);
 
 	return enav::DiagonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 								neighbor->entityInfoIndices[nextEntityPos],
@@ -158,7 +158,7 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCenterToDirect(Ti
 	Tile* neighbor = tile->getNeighbor(direction);
 	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[LOCAL_POSITION_CENTER],
 								neighbor->entityInfoIndices[LOCAL_POSITION_CENTER],
-								tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction));
+								tile->getMappedNeighborAlignment(direction, direction));
 }
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCenterToOffsetA1(Tile* tile, LocalDirection direction)
 {
@@ -187,17 +187,17 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCenterToCornerB(Til
 
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromEdgeToDirectA(Tile* tile, LocalPosition position)
 {
-	LocalPosition oppositePos = tnav::oppositePosition(position);
+	LocalPosition oppositePos = tnav::oppositeAlignment(position);
 	return enav::OrthogonalEntityCollisionInfo(tile->entityIndices[oppositePos],
 								tile->entityInfoIndices[oppositePos],
 								LocalDirection(oppositePos));
 }
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromEdgeToDirectB(Tile* tile, LocalPosition position)
 {
-	LocalDirection direction = (LocalDirection)tnav::oppositePosition(position);
+	LocalDirection direction = (LocalDirection)tnav::oppositeAlignment(position);
 	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
-	LocalDirection nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, direction, position);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
+	LocalDirection nextEntityPos = tile->getMappedNeighborAlignment(direction, position);
 
 	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 								neighbor->entityInfoIndices[nextEntityPos],
@@ -262,9 +262,9 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToDirectA(T
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToDirectB(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, direction, position);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(direction, position);
 
 	return OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -272,14 +272,14 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToDirectB(T
 }
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToDirectC(Tile* tile, LocalPosition position, LocalDirection direction)
 {
-	const LocalPosition* posComps = tnav::positionComponents(position);
+	const LocalPosition* posComps = tnav::getAlignmentComponents(position);
 	bool matchPosCompI = ((LocalDirection)posComps[0] != direction) ? 0 : 1;
-	LocalDirection outDirection = tnav::oppositeDirection(LocalDirection(posComps[!matchPosCompI]));
+	LocalDirection outDirection = tnav::oppositeAlignment(LocalDirection(posComps[!matchPosCompI]));
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, direction, tnav::oppositePosition(position));
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(direction, tnav::oppositeAlignment(position));
 
 	return OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -290,14 +290,14 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToDirectD(T
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::combinePositions((LocalPosition)tnav::oppositeDirection(direction), (LocalPosition)tnav::oppositeDirection(outDirection));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments((LocalPosition)tnav::oppositeAlignment(direction), (LocalPosition)tnav::oppositeAlignment(outDirection));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
 	return OrthogonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -308,9 +308,9 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToOffsetA1(
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, LocalPosition(direction));
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(outDirection, LocalPosition(direction));
 
 	return OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -321,13 +321,13 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToOffsetA2(
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, tnav::oppositePosition(LocalPosition(direction)));
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(outDirection, tnav::oppositeAlignment(LocalPosition(direction)));
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
 	return OrthogonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -342,10 +342,10 @@ enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToOffsetB1(
 enav::OrthogonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToOffsetB2(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
 
-	LocalPosition nextEntityPos = tnav::oppositePosition(LocalPosition(direction));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, direction, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::oppositeAlignment(LocalPosition(direction));
+	nextEntityPos = tile->getMappedNeighborAlignment(direction, nextEntityPos);
 
 	return OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -356,13 +356,13 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerA1(Ti
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	LocalPosition nextEntityPos = tnav::nextPosition(tnav::nextPosition(position, direction), direction);
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, LocalPosition(direction));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, LocalPosition(direction));
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -373,17 +373,17 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerA2(Ti
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, position);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tile->getMappedNeighborAlignment(outDirection, position);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -394,19 +394,19 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerA3(Ti
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
-	LocalDirection neighborOutDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, outDirection);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
+	LocalDirection neighborOutDirection = tile->getMappedNeighborAlignment(outDirection, outDirection);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborOutDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborOutDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborOutDirection, neighborDirection);
 
-	LocalPosition nextEntityPos = tnav::oppositePosition(position);
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborOutDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::oppositeAlignment(position);
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborOutDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -417,24 +417,24 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerA4(Ti
 	LocalDirection outDirection = cornerOutDirection(position, direction);
 
 	Tile* neighbor = tile->getNeighbor(outDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, direction);
-	LocalDirection neighborOutDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, outDirection);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(outDirection, direction);
+	LocalDirection neighborOutDirection = tile->getMappedNeighborAlignment(outDirection, outDirection);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborOutDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborOutDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborOutDirection, neighborDirection);
 
 	Tile* neighborNeighborNeighbor = neighborNeighbor->getNeighbor(neighborNeighborDirection);
-	LocalDirection neighborNeighborNeighborDirection = tnav::directionToDirectionMap(neighborNeighbor->type, neighborNeighborNeighbor->type, neighborNeighborDirection, neighborNeighborDirection);
+	LocalDirection neighborNeighborNeighborDirection = neighborNeighbor->getMappedNeighborAlignment(neighborNeighborDirection, neighborNeighborDirection);
 
-	LocalPosition nextEntityPos = tnav::combinePositions(tnav::oppositePosition(LocalPosition(direction)), tnav::oppositePosition(LocalPosition(outDirection)));
-	nextEntityPos = tnav::positionToPositionMap(tile->type, neighbor->type, outDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighbor->type, neighborNeighbor->type, neighborOutDirection, nextEntityPos);
-	nextEntityPos = tnav::positionToPositionMap(neighborNeighbor->type, neighborNeighborNeighbor->type, neighborNeighborNeighborDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments(tnav::oppositeAlignment(LocalPosition(direction)), tnav::oppositeAlignment(LocalPosition(outDirection)));
+	nextEntityPos = tile->getMappedNeighborAlignment(outDirection, nextEntityPos);
+	nextEntityPos = neighbor->getMappedNeighborAlignment(neighborOutDirection, nextEntityPos);
+	nextEntityPos = neighborNeighbor->getMappedNeighborAlignment(neighborNeighborNeighborDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighborNeighbor->type, neighborNeighborNeighbor->type, neighborNeighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborDirection, collisionDirection);
+	collisionDirection = neighborNeighbor->getMappedNeighborAlignment(neighborNeighborDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],
@@ -443,7 +443,7 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerA4(Ti
 enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB1(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	LocalDirection outDirection = cornerOutDirection(position, direction);
-	LocalPosition nextEntityPos = tnav::combinePositions(LocalPosition(direction), tnav::oppositePosition(LocalPosition(outDirection)));
+	LocalPosition nextEntityPos = tnav::combineAlignments(LocalPosition(direction), tnav::oppositeAlignment(LocalPosition(outDirection)));
 	LocalDirection collisionDirection = outDirection;
 	
 	return DiagonalEntityCollisionInfo(tile->entityIndices[nextEntityPos],
@@ -453,16 +453,16 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB1(Ti
 enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB2(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	LocalDirection outDirection = cornerOutDirection(position, direction);
-	LocalDirection inverseOutDirection = tnav::oppositePosition(LocalPosition(outDirection));
+	LocalDirection inverseOutDirection = tnav::oppositeAlignment(LocalPosition(outDirection));
 
 	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, direction, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(direction, direction);
 
-	LocalPosition nextEntityPos = tnav::combinePositions(tnav::oppositePosition(LocalPosition(direction)), LocalPosition(inverseOutDirection));
-	nextEntityPos = tnav::directionToDirectionMap(tile->type, neighbor->type, inverseOutDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments(tnav::oppositeAlignment(LocalPosition(direction)), LocalPosition(inverseOutDirection));
+	nextEntityPos = tile->getMappedNeighborAlignment(inverseOutDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -471,16 +471,16 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB2(Ti
 enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB3(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	LocalDirection outDirection = cornerOutDirection(position, direction);
-	LocalDirection inverseOutDirection = tnav::oppositePosition(LocalPosition(outDirection));
+	LocalDirection inverseOutDirection = tnav::oppositeAlignment(LocalPosition(outDirection));
 
 	Tile* neighbor = tile->getNeighbor(inverseOutDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, inverseOutDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(inverseOutDirection, direction);
 
-	LocalPosition nextEntityPos = tnav::combinePositions(LocalPosition(direction), LocalPosition(outDirection));
-	nextEntityPos = tnav::directionToDirectionMap(tile->type, neighbor->type, inverseOutDirection, nextEntityPos);
+	LocalPosition nextEntityPos = tnav::combineAlignments(LocalPosition(direction), LocalPosition(outDirection));
+	nextEntityPos = tile->getMappedNeighborAlignment(inverseOutDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
 						  neighbor->entityInfoIndices[nextEntityPos],
@@ -489,21 +489,21 @@ enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB3(Ti
 enav::DiagonalEntityCollisionInfo enav::getNextEntityInfoFromCornerToCornerB4(Tile* tile, LocalPosition position, LocalDirection direction)
 {
 	LocalDirection outDirection = cornerOutDirection(position, direction);
-	LocalDirection inverseOutDirection = tnav::oppositePosition(LocalPosition(outDirection));
+	LocalDirection inverseOutDirection = tnav::oppositeAlignment(LocalPosition(outDirection));
 
 	Tile* neighbor = tile->getNeighbor(inverseOutDirection);
-	LocalDirection neighborDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, inverseOutDirection, direction);
+	LocalDirection neighborDirection = tile->getMappedNeighborAlignment(inverseOutDirection, direction);
 
 	Tile* neighborNeighbor = neighbor->getNeighbor(neighborDirection);
-	LocalDirection neighborNeighborDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborDirection, neighborDirection);
+	LocalDirection neighborNeighborDirection = neighbor->getMappedNeighborAlignment(neighborDirection, neighborDirection);
 
 	LocalPosition nextEntityPos = position;
-	nextEntityPos = tnav::directionToDirectionMap(tile->type, neighbor->type, inverseOutDirection, nextEntityPos);
-	nextEntityPos = tnav::directionToDirectionMap(tile->type, neighbor->type, neighborNeighborDirection, nextEntityPos);
+	nextEntityPos = tile->getMappedNeighborAlignment(inverseOutDirection, nextEntityPos);
+	nextEntityPos = tile->getMappedNeighborAlignment(neighborNeighborDirection, nextEntityPos);
 
-	LocalDirection collisionDirection = tnav::oppositeDirection(outDirection);
-	collisionDirection = tnav::directionToDirectionMap(tile->type, neighbor->type, outDirection, collisionDirection);
-	collisionDirection = tnav::directionToDirectionMap(neighbor->type, neighborNeighbor->type, neighborNeighborDirection, collisionDirection);
+	LocalDirection collisionDirection = tnav::oppositeAlignment(outDirection);
+	collisionDirection = tile->getMappedNeighborAlignment(outDirection, collisionDirection);
+	collisionDirection = neighbor->getMappedNeighborAlignment(neighborNeighborDirection, collisionDirection);
 
 	return DiagonalEntityCollisionInfo(neighborNeighbor->entityIndices[nextEntityPos],
 						  neighborNeighbor->entityInfoIndices[nextEntityPos],

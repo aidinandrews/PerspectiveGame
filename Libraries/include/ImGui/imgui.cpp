@@ -1350,7 +1350,7 @@ void ImGuiIO::AddInputCharacter(unsigned int c)
         return;
 
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_Text;
+    e.SuperTileType = ImGuiInputEventType_Text;
     e.Source = ImGuiInputSource_Keyboard;
     e.EventId = g.InputEventsNextEventId++;
     e.Text.Char = c;
@@ -1452,7 +1452,7 @@ static ImGuiInputEvent* FindLatestInputEvent(ImGuiContext* ctx, ImGuiInputEventT
     for (int n = g.InputEventsQueue.Size - 1; n >= 0; n--)
     {
         ImGuiInputEvent* e = &g.InputEventsQueue[n];
-        if (e->TileType != type)
+        if (e->SuperTileType != type)
             continue;
         if (type == ImGuiInputEventType_Key && e->Key.Key != arg)
             continue;
@@ -1501,7 +1501,7 @@ void ImGuiIO::AddKeyAnalogEvent(ImGuiKey key, bool down, float analog_value)
 
     // Add event
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_Key;
+    e.SuperTileType = ImGuiInputEventType_Key;
     e.Source = ImGui::IsGamepadKey(key) ? ImGuiInputSource_Gamepad : ImGuiInputSource_Keyboard;
     e.EventId = g.InputEventsNextEventId++;
     e.Key.Key = key;
@@ -1566,7 +1566,7 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
         return;
 
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_MousePos;
+    e.SuperTileType = ImGuiInputEventType_MousePos;
     e.Source = ImGuiInputSource_Mouse;
     e.EventId = g.InputEventsNextEventId++;
     e.MousePos.PosX = pos.x;
@@ -1590,7 +1590,7 @@ void ImGuiIO::AddMouseButtonEvent(int mouse_button, bool down)
         return;
 
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_MouseButton;
+    e.SuperTileType = ImGuiInputEventType_MouseButton;
     e.Source = ImGuiInputSource_Mouse;
     e.EventId = g.InputEventsNextEventId++;
     e.MouseButton.Button = mouse_button;
@@ -1610,7 +1610,7 @@ void ImGuiIO::AddMouseWheelEvent(float wheel_x, float wheel_y)
         return;
 
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_MouseWheel;
+    e.SuperTileType = ImGuiInputEventType_MouseWheel;
     e.Source = ImGuiInputSource_Mouse;
     e.EventId = g.InputEventsNextEventId++;
     e.MouseWheel.WheelX = wheel_x;
@@ -1640,7 +1640,7 @@ void ImGuiIO::AddFocusEvent(bool focused)
         return;
 
     ImGuiInputEvent e;
-    e.TileType = ImGuiInputEventType_Focus;
+    e.SuperTileType = ImGuiInputEventType_Focus;
     e.EventId = g.InputEventsNextEventId++;
     e.AppFocused.Focused = focused;
     g.InputEventsQueue.push_back(e);
@@ -3148,7 +3148,7 @@ void ImGui::PushStyleVar(ImGuiStyleVar idx, float val)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiDataVarInfo* var_info = GetStyleVarInfo(idx);
-    if (var_info->TileType == ImGuiDataType_Float && var_info->Count == 1)
+    if (var_info->SuperTileType == ImGuiDataType_Float && var_info->Count == 1)
     {
         float* pvar = (float*)var_info->GetVarPtr(&g.Style);
         g.StyleVarStack.push_back(ImGuiStyleMod(idx, *pvar));
@@ -3162,7 +3162,7 @@ void ImGui::PushStyleVar(ImGuiStyleVar idx, const ImVec2& val)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiDataVarInfo* var_info = GetStyleVarInfo(idx);
-    if (var_info->TileType == ImGuiDataType_Float && var_info->Count == 2)
+    if (var_info->SuperTileType == ImGuiDataType_Float && var_info->Count == 2)
     {
         ImVec2* pvar = (ImVec2*)var_info->GetVarPtr(&g.Style);
         g.StyleVarStack.push_back(ImGuiStyleMod(idx, *pvar));
@@ -3186,8 +3186,8 @@ void ImGui::PopStyleVar(int count)
         ImGuiStyleMod& backup = g.StyleVarStack.back();
         const ImGuiDataVarInfo* info = GetStyleVarInfo(backup.VarIdx);
         void* data = info->GetVarPtr(&g.Style);
-        if (info->TileType == ImGuiDataType_Float && info->Count == 1)      { ((float*)data)[0] = backup.BackupFloat[0]; }
-        else if (info->TileType == ImGuiDataType_Float && info->Count == 2) { ((float*)data)[0] = backup.BackupFloat[0]; ((float*)data)[1] = backup.BackupFloat[1]; }
+        if (info->SuperTileType == ImGuiDataType_Float && info->Count == 1)      { ((float*)data)[0] = backup.BackupFloat[0]; }
+        else if (info->SuperTileType == ImGuiDataType_Float && info->Count == 2) { ((float*)data)[0] = backup.BackupFloat[0]; ((float*)data)[1] = backup.BackupFloat[1]; }
         g.StyleVarStack.pop_back();
         count--;
     }
@@ -3714,7 +3714,7 @@ void ImGui::Shutdown()
 ImGuiID ImGui::AddContextHook(ImGuiContext* ctx, const ImGuiContextHook* hook)
 {
     ImGuiContext& g = *ctx;
-    IM_ASSERT(hook->Callback != NULL && hook->HookId == 0 && hook->TileType != ImGuiContextHookType_PendingRemoval_);
+    IM_ASSERT(hook->Callback != NULL && hook->HookId == 0 && hook->SuperTileType != ImGuiContextHookType_PendingRemoval_);
     g.Hooks.push_back(*hook);
     g.Hooks.back().HookId = ++g.HookIdNext;
     return g.HookIdNext;
@@ -3727,7 +3727,7 @@ void ImGui::RemoveContextHook(ImGuiContext* ctx, ImGuiID hook_id)
     IM_ASSERT(hook_id != 0);
     for (ImGuiContextHook& hook : g.Hooks)
         if (hook.HookId == hook_id)
-            hook.TileType = ImGuiContextHookType_PendingRemoval_;
+            hook.SuperTileType = ImGuiContextHookType_PendingRemoval_;
 }
 
 // Call context hooks (used by e.g. test engine)
@@ -3736,7 +3736,7 @@ void ImGui::CallContextHooks(ImGuiContext* ctx, ImGuiContextHookType hook_type)
 {
     ImGuiContext& g = *ctx;
     for (ImGuiContextHook& hook : g.Hooks)
-        if (hook.TileType == hook_type)
+        if (hook.SuperTileType == hook_type)
             hook.Callback(&g, &hook);
 }
 
@@ -4567,7 +4567,7 @@ void ImGui::NewFrame()
     // Remove pending delete hooks before frame start.
     // This deferred removal avoid issues of removal while iterating the hook vector
     for (int n = g.Hooks.Size - 1; n >= 0; n--)
-        if (g.Hooks[n].TileType == ImGuiContextHookType_PendingRemoval_)
+        if (g.Hooks[n].SuperTileType == ImGuiContextHookType_PendingRemoval_)
             g.Hooks.erase(&g.Hooks[n]);
 
     CallContextHooks(&g, ImGuiContextHookType_NewFramePre);
@@ -9221,12 +9221,12 @@ static const char* GetMouseSourceName(ImGuiMouseSource source)
 static void DebugPrintInputEvent(const char* prefix, const ImGuiInputEvent* e)
 {
     ImGuiContext& g = *GImGui;
-    if (e->TileType == ImGuiInputEventType_MousePos)    { if (e->MousePos.PosX == -FLT_MAX && e->MousePos.PosY == -FLT_MAX) IMGUI_DEBUG_LOG_IO("[io] %s: MousePos (-FLT_MAX, -FLT_MAX)\n", prefix); else IMGUI_DEBUG_LOG_IO("[io] %s: MousePos (%.1f, %.1f) (%s)\n", prefix, e->MousePos.PosX, e->MousePos.PosY, GetMouseSourceName(e->MousePos.MouseSource)); return; }
-    if (e->TileType == ImGuiInputEventType_MouseButton) { IMGUI_DEBUG_LOG_IO("[io] %s: MouseButton %d %s (%s)\n", prefix, e->MouseButton.Button, e->MouseButton.Down ? "Down" : "Up", GetMouseSourceName(e->MouseButton.MouseSource)); return; }
-    if (e->TileType == ImGuiInputEventType_MouseWheel)  { IMGUI_DEBUG_LOG_IO("[io] %s: MouseWheel (%.3f, %.3f) (%s)\n", prefix, e->MouseWheel.WheelX, e->MouseWheel.WheelY, GetMouseSourceName(e->MouseWheel.MouseSource)); return; }
-    if (e->TileType == ImGuiInputEventType_Key)         { IMGUI_DEBUG_LOG_IO("[io] %s: Key \"%s\" %s\n", prefix, ImGui::GetKeyName(e->Key.Key), e->Key.Down ? "Down" : "Up"); return; }
-    if (e->TileType == ImGuiInputEventType_Text)        { IMGUI_DEBUG_LOG_IO("[io] %s: Text: %c (U+%08X)\n", prefix, e->Text.Char, e->Text.Char); return; }
-    if (e->TileType == ImGuiInputEventType_Focus)       { IMGUI_DEBUG_LOG_IO("[io] %s: AppFocused %d\n", prefix, e->AppFocused.Focused); return; }
+    if (e->SuperTileType == ImGuiInputEventType_MousePos)    { if (e->MousePos.PosX == -FLT_MAX && e->MousePos.PosY == -FLT_MAX) IMGUI_DEBUG_LOG_IO("[io] %s: MousePos (-FLT_MAX, -FLT_MAX)\n", prefix); else IMGUI_DEBUG_LOG_IO("[io] %s: MousePos (%.1f, %.1f) (%s)\n", prefix, e->MousePos.PosX, e->MousePos.PosY, GetMouseSourceName(e->MousePos.MouseSource)); return; }
+    if (e->SuperTileType == ImGuiInputEventType_MouseButton) { IMGUI_DEBUG_LOG_IO("[io] %s: MouseButton %d %s (%s)\n", prefix, e->MouseButton.Button, e->MouseButton.Down ? "Down" : "Up", GetMouseSourceName(e->MouseButton.MouseSource)); return; }
+    if (e->SuperTileType == ImGuiInputEventType_MouseWheel)  { IMGUI_DEBUG_LOG_IO("[io] %s: MouseWheel (%.3f, %.3f) (%s)\n", prefix, e->MouseWheel.WheelX, e->MouseWheel.WheelY, GetMouseSourceName(e->MouseWheel.MouseSource)); return; }
+    if (e->SuperTileType == ImGuiInputEventType_Key)         { IMGUI_DEBUG_LOG_IO("[io] %s: Key \"%s\" %s\n", prefix, ImGui::GetKeyName(e->Key.Key), e->Key.Down ? "Down" : "Up"); return; }
+    if (e->SuperTileType == ImGuiInputEventType_Text)        { IMGUI_DEBUG_LOG_IO("[io] %s: Text: %c (U+%08X)\n", prefix, e->Text.Char, e->Text.Char); return; }
+    if (e->SuperTileType == ImGuiInputEventType_Focus)       { IMGUI_DEBUG_LOG_IO("[io] %s: AppFocused %d\n", prefix, e->AppFocused.Focused); return; }
 }
 #endif
 
@@ -9252,7 +9252,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
     for (; event_n < g.InputEventsQueue.Size; event_n++)
     {
         ImGuiInputEvent* e = &g.InputEventsQueue[event_n];
-        if (e->TileType == ImGuiInputEventType_MousePos)
+        if (e->SuperTileType == ImGuiInputEventType_MousePos)
         {
             if (g.IO.WantSetMousePos)
                 continue;
@@ -9264,7 +9264,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
             io.MouseSource = e->MousePos.MouseSource;
             mouse_moved = true;
         }
-        else if (e->TileType == ImGuiInputEventType_MouseButton)
+        else if (e->SuperTileType == ImGuiInputEventType_MouseButton)
         {
             // Trickling Rule: Stop processing queued events if we got multiple action on the same button
             const ImGuiMouseButton button = e->MouseButton.Button;
@@ -9277,7 +9277,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
             io.MouseSource = e->MouseButton.MouseSource;
             mouse_button_changed |= (1 << button);
         }
-        else if (e->TileType == ImGuiInputEventType_MouseWheel)
+        else if (e->SuperTileType == ImGuiInputEventType_MouseWheel)
         {
             // Trickling Rule: Stop processing queued events if we got multiple action on the event
             if (trickle_fast_inputs && (mouse_moved || mouse_button_changed != 0))
@@ -9287,7 +9287,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
             io.MouseSource = e->MouseWheel.MouseSource;
             mouse_wheeled = true;
         }
-        else if (e->TileType == ImGuiInputEventType_Key)
+        else if (e->SuperTileType == ImGuiInputEventType_Key)
         {
             // Trickling Rule: Stop processing queued events if we got multiple action on the same button
             ImGuiKey key = e->Key.Key;
@@ -9308,7 +9308,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
                 io.KeysDown[io.KeyMap[key_data_index]] = key_data->Down;
 #endif
         }
-        else if (e->TileType == ImGuiInputEventType_Text)
+        else if (e->SuperTileType == ImGuiInputEventType_Text)
         {
             // Trickling Rule: Stop processing queued events if keys/mouse have been interacted with
             if (trickle_fast_inputs && ((key_changed && trickle_interleaved_keys_and_text) || mouse_button_changed != 0 || mouse_moved || mouse_wheeled))
@@ -9318,7 +9318,7 @@ void ImGui::UpdateInputEvents(bool trickle_fast_inputs)
             if (trickle_interleaved_keys_and_text)
                 text_inputted = true;
         }
-        else if (e->TileType == ImGuiInputEventType_Focus)
+        else if (e->SuperTileType == ImGuiInputEventType_Focus)
         {
             // We intentionally overwrite this and process in NewFrame(), in order to give a chance
             // to multi-viewports backends to queue AddFocusEvent(false) + AddFocusEvent(true) in same frame.

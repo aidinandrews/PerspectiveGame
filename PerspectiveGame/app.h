@@ -1,6 +1,7 @@
 #pragma once
 
 //#define RUNNING_TEST_SCENARIOS
+#define RUNNING_DEBUG
 
 #include<iostream>
 #include <string>
@@ -142,7 +143,7 @@ struct App {
 
 	void setupWorld()
 	{
-		setupTestScenario(0, p_tileManager, p_entityManager, p_currentSelection);
+		setupCollisionScenario4(p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()
@@ -167,7 +168,7 @@ struct App {
 
 			p_entityManager->update();
 
-			p_tileManager->updateTileGpuInfoIndices();
+			p_tileManager->updateTileGpuInfos();
 			p_entityManager->updateGpuInfos();
 
 			CurrentTick++;
@@ -222,7 +223,7 @@ struct App {
 			updateWorld();
 			
 			camera.update();
-			p_tileManager->updateVisuals();
+			p_tileManager->updateVisualInfos();
 
 			updateGui();
 

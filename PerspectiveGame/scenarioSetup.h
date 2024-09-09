@@ -65,7 +65,7 @@ void setupScenarioCornerCollisionFromCenter(TileManager* tm, EntityManager* em, 
 	std::cout << "Scenario setup: Corner orthogonal collision from center positions." << std::endl;
 }
 
-void setupScenarioDirectCollisoinFromEdge(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+void setupScenarioDirectCollisionFromEdge(TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	clearWorld(tm, em);
 	create4x4TileGrid(tm);
@@ -74,11 +74,20 @@ void setupScenarioDirectCollisoinFromEdge(TileManager* tm, EntityManager* em, Cu
 	std::cout << "Scenario setup: Direct orthogonal collision from edge positions." << std::endl;
 }
 
+void setupCollisionScenario4(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+{
+	clearWorld(tm, em);
+	create4x4TileGrid(tm);
+	em->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3_0, LOCAL_ORIENTATION_0);
+	em->createEntity(24, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_2_3, LOCAL_ORIENTATION_0);
+	std::cout << "Scenario setup: Direct orthogonal collision from edge positions." << std::endl;
+}
+
 void setupTestScenario(int scenarioID, TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	switch (scenarioID) {
 	case 0: 
-		setupScenarioDirectCollisoinFromEdge(tm, em, cs);
+		setupCollisionScenario4(tm, em, cs);
 		break;
 	case 1: 
 		setupScenarioDirectStaticOrthogonalCollisionFromCenter(tm, em, cs); 

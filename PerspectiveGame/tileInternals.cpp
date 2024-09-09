@@ -10,10 +10,10 @@ uint64_t TileInternals::get4BitDirectionFlag(LocalDirection direction)
 	case LOCAL_DIRECTION_2: return (uint64_t)0b0100;
 	case LOCAL_DIRECTION_3: return (uint64_t)0b1000;
 		// Diagonal:
-	case LOCAL_DIRECTION_01: return (uint64_t)0b0011;
-	case LOCAL_DIRECTION_12: return (uint64_t)0b0110;
-	case LOCAL_DIRECTION_23: return (uint64_t)0b1100;
-	case LOCAL_DIRECTION_30: return (uint64_t)0b1001;
+	case LOCAL_DIRECTION_0_1: return (uint64_t)0b0011;
+	case LOCAL_DIRECTION_1_2: return (uint64_t)0b0110;
+	case LOCAL_DIRECTION_2_3: return (uint64_t)0b1100;
+	case LOCAL_DIRECTION_3_0: return (uint64_t)0b1001;
 		// Special:
 	case LOCAL_DIRECTION_STATIC: return (uint64_t)0b0000;
 	//case LOCAL_DIRECTION_STATIC: return (uint64_t)0b1111;

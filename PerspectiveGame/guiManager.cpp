@@ -353,7 +353,7 @@ void GuiManager::draw2d3rdPersonCpuCropping() {
 	p_tileManager->windowFrustum.push_back(topRight);
 	p_tileManager->windowFrustum.push_back(bottomRight);
 	p_tileManager->windowFrustum.push_back(bottomLeft);
-	p_tileManager->draw2D3rdPerson();
+	draw2D3rdPerson();
 }
 
 void GuiManager::bindSSBOs2d3rdPerson() {
@@ -443,12 +443,15 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 
 	bindUniforms2d3rdPerson();
 
+	glm::vec2 relativePos[5];
+	int relativePosTileIndices[5];
+	p_tileManager->getRelativePovPosGpuInfos(relativePos, relativePosTileIndices);
 	// Pack relative position data into a mat4:
 	glm::mat4 relativePosData = {
-		p_tileManager->relativePos[0].x, p_tileManager->relativePos[0].y, p_tileManager->relativePosTileIndices[0],	p_tileManager->relativePos[4].x,
-		p_tileManager->relativePos[1].x, p_tileManager->relativePos[1].y, p_tileManager->relativePosTileIndices[1],	p_tileManager->relativePos[4].y,
-		p_tileManager->relativePos[2].x, p_tileManager->relativePos[2].y, p_tileManager->relativePosTileIndices[2],	p_tileManager->relativePosTileIndices[4],
-		p_tileManager->relativePos[3].x, p_tileManager->relativePos[3].y, p_tileManager->relativePosTileIndices[3],	0,
+		relativePos[0].x, relativePos[0].y, relativePosTileIndices[0],	relativePos[4].x,
+		relativePos[1].x, relativePos[1].y, relativePosTileIndices[1],	relativePos[4].y,
+		relativePos[2].x, relativePos[2].y, relativePosTileIndices[2],	relativePosTileIndices[4],
+		relativePos[3].x, relativePos[3].y, relativePosTileIndices[3],	0,
 	};
 	GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
 	glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
@@ -488,7 +491,6 @@ void GuiManager::draw2d3rdPerson() {
 	if (p_currentSelection->canEditTiles) {
 		setVertAttribVec3PosVec3NormVec3ColorVec2TextCoord1Index();
 		p_shaderManager->simpleShader.use();
-		p_tileManager->drawAddTilePreview();
 	}
 
 	p_framebuffer->unbind_framebuffer();
@@ -502,7 +504,7 @@ void GuiManager::draw3d3rdPerson() {
 	setupFramebufferForButtonRender(ButtonManager::pov3d3rdPersonViewButtonIndex, 
 									p_framebuffer->pov3D3rdPersonTextureID);
 	
-	p_tileManager->draw3Dview();
+	draw3Dview();
 	//p_tileManager->drawPlayerPos();
 
 	p_framebuffer->unbind_framebuffer();

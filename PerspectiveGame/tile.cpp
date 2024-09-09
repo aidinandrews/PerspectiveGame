@@ -1,7 +1,7 @@
 #include "tile.h"
 #include "building.h"
 
-Tile::Tile(TileSubType tileSubType, glm::ivec3 position) : type(tileSubType), position(position)
+Tile::Tile(TileType getTileType, glm::ivec3 position) : type(getTileType), position(position)
 {
 	texCoords[0] = glm::vec2(1, 1);
 	texCoords[1] = glm::vec2(1, 0);
@@ -11,8 +11,9 @@ Tile::Tile(TileSubType tileSubType, glm::ivec3 position) : type(tileSubType), po
 	for (int i = 0; i < 4; i++) {
 		cornerSafety[i] = true;
 		neighborTilePtrs[i] = nullptr;
-		neighborConnectedSideIndices[i] = -1;
-		isNeighborConnectionsMirrored[i] = false;
+		neighborAlignmentMapIndex[i] = -1;
+		//neighborConnectedSideIndices[i] = -1;
+		//isNeighborConnectionsMirrored[i] = false;
 	}
 
 	for (int i = 0; i < 9; i++) {
@@ -93,7 +94,7 @@ glm::ivec3 Tile::getVertPos(int index)
 	}
 }
 
-const TileType Tile::getTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3)
+const SuperTileType Tile::getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3)
 {
 	if      (tileVert1.z == tileVert2.z && tileVert1.z == tileVert3.z) { return TILE_TYPE_XY; }
 	else if (tileVert1.y == tileVert2.y && tileVert1.y == tileVert3.y) { return TILE_TYPE_XZ; }
@@ -107,17 +108,17 @@ glm::ivec3 Tile::getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3
 					  std::max(std::max(std::max(A.z, B.z), C.z), D.z));
 }
 
-TileType Tile::superTileType(TileSubType subType)
+SuperTileType Tile::superTileType(TileType subType)
 {
-	return TileType(int(subType) / 2);
+	return SuperTileType(int(subType) / 2);
 }
 
-TileSubType Tile::tileSubType(TileType tileType, bool isFront)
+TileType Tile::getTileType(SuperTileType tileType, bool isFront)
 {
-	return TileSubType(int(tileType)*2 + int(!isFront));
+	return TileType(int(tileType)*2 + int(!isFront));
 }
 
-TileSubType Tile::inverseTileType(TileSubType type)
+TileType Tile::inverseTileType(TileType type)
 {
 	switch (type) {
 	case TILE_TYPE_XYF: return TILE_TYPE_XYB;
@@ -136,12 +137,15 @@ GPU_TileInfo::GPU_TileInfo(Tile* tile)
 	basisType = (int)tile->basis.type;
 	basisOrientation = tile->basis.localOrientation;
 
-	tileSubType = (int)tile->type;
+	getTileType = (int)tile->type;
 
 	for (int i = 0; i < 4; i++) {
 		neighborIndices[i] = tile->neighborTilePtrs[i]->index;
-		neighborMirrored[i] = (int)tile->isNeighborConnectionsMirrored[i];
-		neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
+		//neighborMirrored[i] = (int)tile->isNeighborConnectionsMirrored[i];
+		//neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
+// TODO: fix gpu-info/shaders to use the new alignment mappings
+		neighborMirrored[i] = int(tile->neighborAlignmentMapIndex[i] > 3);
+		neighborSideIndex[i] = tnav::getMappedAlignment(tile->neighborAlignmentMapIndex[i], tnav::oppositeAlignment(LocalAlignment(i)));
 		texCoords[i] = tile->texCoords[i];
 		cornerSafety[i] = tile->cornerSafety[i];
 	}

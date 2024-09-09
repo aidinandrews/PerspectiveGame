@@ -1249,7 +1249,7 @@ struct ImGuiPtrOrIndex
 
 struct ImGuiDataVarInfo
 {
-    ImGuiDataType   TileType;
+    ImGuiDataType   SuperTileType;
     ImU32           Count;      // 1+
     ImU32           Offset;     // Offset in parent structure
     void* GetVarPtr(void* parent) const { return (void*)((unsigned char*)parent + Offset); }
@@ -1364,7 +1364,7 @@ struct ImGuiInputEventAppFocused    { bool Focused; };
 
 struct ImGuiInputEvent
 {
-    ImGuiInputEventType             TileType;
+    ImGuiInputEventType             SuperTileType;
     ImGuiInputSource                Source;
     ImU32                           EventId;        // Unique, sequential increasing integer to identify an event (if you need to correlate them to other data).
     union
@@ -1903,7 +1903,7 @@ enum ImGuiContextHookType { ImGuiContextHookType_NewFramePre, ImGuiContextHookTy
 struct ImGuiContextHook
 {
     ImGuiID                     HookId;     // A unique ID assigned by AddContextHook()
-    ImGuiContextHookType        TileType;
+    ImGuiContextHookType        SuperTileType;
     ImGuiID                     Owner;
     ImGuiContextHookCallback    Callback;
     void*                       UserData;

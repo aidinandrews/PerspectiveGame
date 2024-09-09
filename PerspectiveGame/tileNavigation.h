@@ -8,7 +8,7 @@
 // Each tile has a type corrosponding to what principal/coordinate plane (XY, XA, and YZ) the tile is 
 	// parallel to.  This type means that a tile can be fully described with a type and a point on the 
 	// corrosponding coordinaate plane that corrosponds to one of it's vertices.
-enum TileType {
+enum SuperTileType {
 	TILE_TYPE_XY = 0,
 	TILE_TYPE_XZ = 1,
 	TILE_TYPE_YZ = 2,
@@ -43,7 +43,7 @@ enum TileRelation {
 
 // Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
 // should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
-enum TileSubType {
+enum TileType {
 	TILE_TYPE_XYF,
 	TILE_TYPE_XYB,
 	TILE_TYPE_XZF,
@@ -75,27 +75,30 @@ enum CornerBuildingType {
 
 // Specifies information about movement for various entities.
 enum LocalAlignment {
-	LOCAL_ALIGNMENT_0, 
-	LOCAL_ALIGNMENT_1, 
-	LOCAL_ALIGNMENT_2, 
-	LOCAL_ALIGNMENT_3,
-	LOCAL_ALIGNMENT_01,
-	LOCAL_ALIGNMENT_12,
-	LOCAL_ALIGNMENT_23,
-	LOCAL_ALIGNMENT_30,
+	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
+	LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0,
 	LOCAL_ALIGNMENT_NONE, 
 	LOCAL_ALIGNMENT_ERROR
 };
+// It might make more sense at some point to refer to the diagonal alignment values by a different order:
+#define LOCAL_ALIGNMENT_1_0 LOCAL_ALIGNMENT_0_1
+#define LOCAL_ALIGNMENT_2_1 LOCAL_ALIGNMENT_1_2
+#define LOCAL_ALIGNMENT_3_2 LOCAL_ALIGNMENT_2_3
+#define LOCAL_ALIGNMENT_0_3 LOCAL_ALIGNMENT_3_0
 
 typedef LocalAlignment LocalPosition;
 #define LOCAL_POSITION_0 LOCAL_ALIGNMENT_0
 #define LOCAL_POSITION_1 LOCAL_ALIGNMENT_1
 #define LOCAL_POSITION_2 LOCAL_ALIGNMENT_2
 #define LOCAL_POSITION_3 LOCAL_ALIGNMENT_3
-#define LOCAL_POSITION_01 LOCAL_ALIGNMENT_01
-#define LOCAL_POSITION_12 LOCAL_ALIGNMENT_12
-#define LOCAL_POSITION_23 LOCAL_ALIGNMENT_23
-#define LOCAL_POSITION_30 LOCAL_ALIGNMENT_30
+#define LOCAL_POSITION_0_1 LOCAL_ALIGNMENT_0_1
+#define LOCAL_POSITION_1_2 LOCAL_ALIGNMENT_1_2
+#define LOCAL_POSITION_2_3 LOCAL_ALIGNMENT_2_3
+#define LOCAL_POSITION_3_0 LOCAL_ALIGNMENT_3_0
+#define LOCAL_POSITION_1_0 LOCAL_ALIGNMENT_0_1
+#define LOCAL_POSITION_2_1 LOCAL_ALIGNMENT_1_2
+#define LOCAL_POSITION_3_2 LOCAL_ALIGNMENT_2_3
+#define LOCAL_POSITION_0_3 LOCAL_ALIGNMENT_3_0
 #define LOCAL_POSITION_CENTER LOCAL_ALIGNMENT_NONE
 #define LOCAL_POSITION_ERROR LOCAL_ALIGNMENT_ERROR
 
@@ -104,10 +107,14 @@ typedef LocalAlignment LocalDirection;
 #define LOCAL_DIRECTION_1 LOCAL_ALIGNMENT_1
 #define LOCAL_DIRECTION_2 LOCAL_ALIGNMENT_2
 #define LOCAL_DIRECTION_3 LOCAL_ALIGNMENT_3
-#define LOCAL_DIRECTION_01 LOCAL_ALIGNMENT_01
-#define LOCAL_DIRECTION_12 LOCAL_ALIGNMENT_12
-#define LOCAL_DIRECTION_23 LOCAL_ALIGNMENT_23
-#define LOCAL_DIRECTION_30 LOCAL_ALIGNMENT_30
+#define LOCAL_DIRECTION_0_1 LOCAL_ALIGNMENT_0_1
+#define LOCAL_DIRECTION_1_2 LOCAL_ALIGNMENT_1_2
+#define LOCAL_DIRECTION_2_3 LOCAL_ALIGNMENT_2_3
+#define LOCAL_DIRECTION_3_0 LOCAL_ALIGNMENT_3_0
+#define LOCAL_DIRECTION_1_0 LOCAL_ALIGNMENT_0_1
+#define LOCAL_DIRECTION_2_1 LOCAL_ALIGNMENT_1_2
+#define LOCAL_DIRECTION_3_2 LOCAL_ALIGNMENT_2_3
+#define LOCAL_DIRECTION_0_3 LOCAL_ALIGNMENT_3_0
 #define LOCAL_DIRECTION_STATIC LOCAL_ALIGNMENT_NONE
 #define LOCAL_DIRECTION_ERROR LOCAL_ALIGNMENT_ERROR
 
@@ -147,35 +154,33 @@ enum GlobalAlignment {
 };
 
 namespace tnav { // tnav is short for 'tile navigation'
+
+#ifdef RUNNING_DEBUG
+	void checkOrthogonal(LocalAlignment alignment);
+#endif
 	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
-	GlobalAlignment localToGlobalDir(TileSubType type, LocalDirection direction);
+	GlobalAlignment localToGlobalDir(TileType type, LocalDirection direction);
 	
-	LocalAlignment alignmentToAlignmentMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
-	#define positionToPositionMap alignmentToAlignmentMap
-	#define directionToDirectionMap alignmentToAlignmentMap
-	#define orientationToOrientationMap alignmentToAlignmentMap
+	//LocalAlignment alignmentToAlignmentMap(TileType currentTileType, TileType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
+	//#define positionToPositionMap alignmentToAlignmentMap
+	//#define directionToDirectionMap alignmentToAlignmentMap
+	//#define orientationToOrientationMap alignmentToAlignmentMap
 	
 	LocalDirection oppositeAlignment(LocalDirection direction);
-	#define oppositeDirection oppositeAlignment
-	#define oppositePosition oppositeAlignment
-	#define oppositeOrientation oppositeAlignment
 	
-	const LocalAlignment* localAlignmentComponents(LocalAlignment alignment);
-	#define directionComponents localAlignmentComponents
-	#define positionComponents localAlignmentComponents
-	#define orientationComponents localAlignmentComponents
+	const LocalAlignment* getAlignmentComponents(LocalAlignment alignment);
 	
-	const bool localAlignmentHasComponent(LocalDirection direction, LocalDirection component);
-	#define directionHasComponent localAlignmentHasComponent
-	#define positionHasComponent localAlignmentHasComponent
-	#define orientationHasComponent localAlignmentHasComponent
+	const bool alignmentHasComponent(LocalDirection direction, LocalDirection component);
 	
-	const LocalDirection combineLocalAlignments(LocalAlignment a, LocalAlignment b);
-	#define combineDirections combineLocalAlignments
-	#define combinePositions combineLocalAlignments
-	#define combineOrientations combineLocalAlignments
+	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
 	
+	const LocalAlignment getMappedAlignment(int mapIndex, LocalAlignment currentAlignment);
+
+	int getNeighborAlignmentMapIndex(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
+
+	LocalAlignment alignmentToNeighborAlignmentMap(LocalDirection leavingDirection, LocalAlignment currentAlignment);
+
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 
 	inline void println(LocalDirection d)
@@ -185,10 +190,10 @@ namespace tnav { // tnav is short for 'tile navigation'
 		case LOCAL_DIRECTION_1: std::cout << "LOCAL_DIRECTION_1"; break;
 		case LOCAL_DIRECTION_2: std::cout << "LOCAL_DIRECTION_2"; break;
 		case LOCAL_DIRECTION_3: std::cout << "LOCAL_DIRECTION_3"; break;
-		case LOCAL_DIRECTION_01: std::cout << "LOCAL_DIRECTION_01"; break;
-		case LOCAL_DIRECTION_12: std::cout << "LOCAL_DIRECTION_12"; break;
-		case LOCAL_DIRECTION_23: std::cout << "LOCAL_DIRECTION_23"; break;
-		case LOCAL_DIRECTION_30: std::cout << "LOCAL_DIRECTION_30"; break;
+		case LOCAL_DIRECTION_0_1: std::cout << "LOCAL_DIRECTION_0_1"; break;
+		case LOCAL_DIRECTION_1_2: std::cout << "LOCAL_DIRECTION_1_2"; break;
+		case LOCAL_DIRECTION_2_3: std::cout << "LOCAL_DIRECTION_2_3"; break;
+		case LOCAL_DIRECTION_3_0: std::cout << "LOCAL_DIRECTION_3_0"; break;
 		case LOCAL_DIRECTION_STATIC: std::cout << "LOCAL_DIRECTION_STATIC"; break;
 		case LOCAL_DIRECTION_ERROR: std::cout << "LOCAL_DIRECTION_INVALID"; break;
 		default: std::cout << "OUT OF SCOPE";
@@ -200,5 +205,6 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const uint8_t getDirectionFlag(LocalDirection direction);
 	const LocalDirection getDirection(uint8_t directionFlag);
+
 
 }

@@ -1,5 +1,12 @@
 #include "tileNavigation.h"
 
+#ifdef RUNNING_DEBUG
+void tnav::checkOrthogonal(LocalAlignment alignment)
+{
+	if (alignment > 3) std::cout << "ORTHOGONAL ALIGNMENT EXPECTED BUT NOT RESPECTED!" << std::endl;
+}
+#endif
+
 // Given a [tile type] and a [meta alignment], will return the matching local alignment:
 const LocalAlignment META_TO_LOCAL_ALIGNMENT[6][19] = {
 	// Define some macros to make the below array more legible:
@@ -7,10 +14,10 @@ const LocalAlignment META_TO_LOCAL_ALIGNMENT[6][19] = {
 	#define __1__ LOCAL_ALIGNMENT_1
 	#define __2__ LOCAL_ALIGNMENT_2
 	#define __3__ LOCAL_ALIGNMENT_3
-	#define _0_1_ LOCAL_ALIGNMENT_01
-	#define _1_2_ LOCAL_ALIGNMENT_12
-	#define _2_3_ LOCAL_ALIGNMENT_23
-	#define _3_0_ LOCAL_ALIGNMENT_30
+	#define _0_1_ LOCAL_ALIGNMENT_0_1
+	#define _1_2_ LOCAL_ALIGNMENT_1_2
+	#define _2_3_ LOCAL_ALIGNMENT_2_3
+	#define _3_0_ LOCAL_ALIGNMENT_3_0
 	#define none LOCAL_ALIGNMENT_NONE
 	#define error LOCAL_ALIGNMENT_ERROR
 
@@ -44,13 +51,13 @@ const LocalDirection ALIGNMENT_COMPONENTS[8][2] = {
 	{ LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_2 }, // LOCAL_DIRECTION_2
 	{ LOCAL_ALIGNMENT_3, LOCAL_ALIGNMENT_3 }, // LOCAL_DIRECTION_3
 	// Diagonal:
-	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1 }, // LOCAL_DIRECTION_01
-	{ LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2 }, // LOCAL_DIRECTION_12
-	{ LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3 }, // LOCAL_DIRECTION_23
-	{ LOCAL_ALIGNMENT_3, LOCAL_ALIGNMENT_0 }  // LOCAL_DIRECTION_30
+	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1 }, // LOCAL_DIRECTION_0_1
+	{ LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2 }, // LOCAL_DIRECTION_1_2
+	{ LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3 }, // LOCAL_DIRECTION_2_3
+	{ LOCAL_ALIGNMENT_3, LOCAL_ALIGNMENT_0 }  // LOCAL_DIRECTION_3_0
 };
 
-const LocalAlignment* tnav::localAlignmentComponents(LocalAlignment alignment)
+const LocalAlignment* tnav::getAlignmentComponents(LocalAlignment alignment)
 {
 	return ALIGNMENT_COMPONENTS[alignment];
 }
@@ -58,48 +65,48 @@ const LocalAlignment* tnav::localAlignmentComponents(LocalAlignment alignment)
 // Given two orthogonal LocalDirections, combines them into an orthogonal or diagonal direction.
 // Directions facing opposite ways are combined into the static enum.
 const LocalDirection COMBINED_ALIGNMENTS[4][4] = {
-	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_01, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_30 },
-	{ LOCAL_ALIGNMENT_01, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_12, LOCAL_ALIGNMENT_NONE },
-	{ LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_12, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_23 },
-	{ LOCAL_ALIGNMENT_30, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_23, LOCAL_ALIGNMENT_3 }
+	{ LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_0_1, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_3_0 },
+	{ LOCAL_ALIGNMENT_0_1, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_1_2, LOCAL_ALIGNMENT_NONE },
+	{ LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_1_2, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_2_3 },
+	{ LOCAL_ALIGNMENT_3_0, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_2_3, LOCAL_ALIGNMENT_3 }
 };
 
-const LocalAlignment tnav::combineLocalAlignments(LocalAlignment a, LocalAlignment b)
+const LocalAlignment tnav::combineAlignments(LocalAlignment a, LocalAlignment b)
 {
 	return COMBINED_ALIGNMENTS[a][b];
 }
 
 // [local Position][local direction]
 const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
-#define _0__ LOCAL_POSITION_0
-#define _1__ LOCAL_POSITION_1
-#define _2__ LOCAL_POSITION_2
-#define _3__ LOCAL_POSITION_3
-#define _01_ LOCAL_POSITION_01
-#define _12_ LOCAL_POSITION_12
-#define _23_ LOCAL_POSITION_23
-#define _30_ LOCAL_POSITION_30
-#define CENT LOCAL_POSITION_CENTER
-#define XXXX LOCAL_DIRECTION_ERROR
-	{ XXXX, _01_, CENT, _30_, XXXX, _1__, _3__, XXXX },
-	{ _01_, XXXX, _2__, _3__, XXXX, XXXX, _2__, _0__ },
-	{ CENT, _12_, XXXX, _23_, _1__, XXXX, XXXX, _3__ },
-	{ _30_, CENT, _23_, XXXX, _0__, _2__, XXXX, XXXX },
-	{ XXXX, XXXX, _1__, _0__, XXXX, XXXX, CENT, XXXX },
-	{ _1__, XXXX, XXXX, _2__, XXXX, XXXX, XXXX, CENT },
-	{ _3__, _2__, XXXX, XXXX, CENT, XXXX, XXXX, XXXX },
-	{ XXXX, _0__, _3__, XXXX, XXXX, CENT, XXXX, XXXX },
-	{ _0__, _1__, _2__, _3__, _01_, _12_, _23_, _30_ }
-#undef _0__
-#undef _1__
-#undef _2__
-#undef _3__
-#undef _01_
-#undef _12_
-#undef _23_
-#undef _30_
-#undef CENT
-#undef XXXX
+#define _0_ LOCAL_POSITION_0
+#define _1_ LOCAL_POSITION_1
+#define _2_ LOCAL_POSITION_2
+#define _3_ LOCAL_POSITION_3
+#define _01 LOCAL_POSITION_0_1
+#define _12 LOCAL_POSITION_1_2
+#define _23 LOCAL_POSITION_2_3
+#define _30 LOCAL_POSITION_3_0
+#define CEN LOCAL_POSITION_CENTER
+#define XXX LOCAL_DIRECTION_ERROR
+	{ XXX, _01, CEN, _30, XXX, _1_, _3_, XXX },
+	{ _01, XXX, _2_, _3_, XXX, XXX, _2_, _0_ },
+	{ CEN, _12, XXX, _23, _1_, XXX, XXX, _3_ },
+	{ _30, CEN, _23, XXX, _0_, _2_, XXX, XXX },
+	{ XXX, XXX, _1_, _0_, XXX, XXX, CEN, XXX },
+	{ _1_, XXX, XXX, _2_, XXX, XXX, XXX, CEN },
+	{ _3_, _2_, XXX, XXX, CEN, XXX, XXX, XXX },
+	{ XXX, _0_, _3_, XXX, XXX, CEN, XXX, XXX },
+	{ _0_, _1_, _2_, _3_, _01, _12, _23, _30 }
+#undef _0_
+#undef _1_
+#undef _2_
+#undef _3_
+#undef _01
+#undef _12
+#undef _23
+#undef _30
+#undef CEN
+#undef XXX
 };
 
 LocalPosition tnav::nextPosition(LocalPosition position, LocalDirection direction)
@@ -156,7 +163,7 @@ const int NEXT_SUB_TILE_AREA_INDICES[16][8] = {
 *          4 bits to the right to go from ...AA][XXXX][BBBB] to ...AA[XXXX], where 'XXXX' is the movement info
 *          associated with sub-tile area 1.
 *
-* EXAMPLE: If the sub-tile area index == 1 and direction == LOCAL_DIRECTION_12, movementInfo will need to be shifted
+* EXAMPLE: If the sub-tile area index == 1 and direction == LOCAL_DIRECTION_1_2, movementInfo will need to be shifted
 *          16 bits to the right as the diagonal next position is 'down' 1 and 'left' 1 in local directions.
 *
 * WARNING: If the next sub-tile area is not within the current tile (i.e. going left from positions 0, 4, 8, or 12),
@@ -206,16 +213,16 @@ const uint16_t NEXT_SUB_TILE_OBSTRUCTION_MASKS[16][8] = {
 
 // Returns the adjusted local orientation of an entity/basis when going from one tile to another.
 // Input Key: ALIGNMENT_TO_ALIGNMENT_MAP[current tile-type][neighbor tile-type][ORTHOGONAL exiting direction][alignment]
-const LocalDirection ALIGNMENT_TO_ALIGNMENT_MAP[6][6][4][8] = {
+const LocalAlignment ALIGNMENT_TO_ALIGNMENT_MAP[6][6][4][8] = {
 #define XXX LOCAL_DIRECTION_ERROR
 #define __0 LOCAL_DIRECTION_0
 #define __1 LOCAL_DIRECTION_1
 #define __2 LOCAL_DIRECTION_2
 #define __3 LOCAL_DIRECTION_3
-#define _01 LOCAL_DIRECTION_01
-#define _12 LOCAL_DIRECTION_12
-#define _23 LOCAL_DIRECTION_23
-#define _30 LOCAL_DIRECTION_30
+#define _01 LOCAL_DIRECTION_0_1
+#define _12 LOCAL_DIRECTION_1_2
+#define _23 LOCAL_DIRECTION_2_3
+#define _30 LOCAL_DIRECTION_3_0
 	{ // Current Tile XYF:
 		/* Destination Tile XYF: */ { { __0, __1, __2, __3, _01, _12, _23, _30 }, { __0, __1, __2, __3, _01, _12, _23, _30 }, { __0, __1, __2, __3, _01, _12, _23, _30 }, { __0, __1, __2, __3, _01, _12, _23, _30 }, /* exiting Side 0, 1, 2, 3 */ },
 		/* Destination Tile XYB: */ { { __2, __1, __0, __3, _12, _01, _30, _23 }, { __0, __3, __2, __1, _30, _23, _12, _01 }, { __2, __1, __0, __3, _12, _01, _30, _23 }, { __0, __3, __2, __1, _30, _23, _12, _01 }, /* exiting Side 0, 1, 2, 3 */ },
@@ -303,13 +310,13 @@ const uint8_t LOCAL_DIRECTION_TO_LOCAL_DIRECTION_FLAG[10] = {
 	0b0001, 0b0010, 0b0100, 0b1000, 0b0011, 0b0110, 0b1100, 0b1001, 0b0000, 0b1111
 };
 
-LocalAlignment tnav::alignmentToAlignmentMap(TileSubType currentTileType, TileSubType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment)
-{
-	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingSide][alignment];
-}
+//LocalAlignment tnav::alignmentToAlignmentMap(TileType currentTileType, TileType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment)
+//{
+//	return ALIGNMENT_TO_ALIGNMENT_MAP[currentTileType][neighborTileType][exitingSide][alignment];
+//}
 
 // Given a local direction and a tile type, will return the global euclidean direction equivelant.
-GlobalAlignment tnav::localToGlobalDir(TileSubType type, LocalDirection direction)
+GlobalAlignment tnav::localToGlobalDir(TileType type, LocalDirection direction)
 {
 	return LOCAL_DIR_TO_GLOBAL_DIR[type][direction];
 }
@@ -324,7 +331,7 @@ LocalDirection tnav::oppositeAlignment(LocalAlignment alignment)
 	return LocalDirection((alignment + 2) % 4 + diagonalOffset);
 }
 
-const bool tnav::localAlignmentHasComponent(LocalAlignment alignment, LocalAlignment component)
+const bool tnav::alignmentHasComponent(LocalAlignment alignment, LocalAlignment component)
 {
 	return HAS_COMPONENT[alignment][component];
 }
@@ -341,13 +348,77 @@ const LocalDirection tnav::getDirection(uint8_t directionFlag)
 	case 0b0010: return LOCAL_DIRECTION_1;
 	case 0b0100: return LOCAL_DIRECTION_2;
 	case 0b1000: return LOCAL_DIRECTION_3;
-	case 0b0011: return LOCAL_DIRECTION_01;
-	case 0b0110: return LOCAL_DIRECTION_12;
-	case 0b1100: return LOCAL_DIRECTION_23;
-	case 0b1001: return LOCAL_DIRECTION_30;
+	case 0b0011: return LOCAL_DIRECTION_0_1;
+	case 0b0110: return LOCAL_DIRECTION_1_2;
+	case 0b1100: return LOCAL_DIRECTION_2_3;
+	case 0b1001: return LOCAL_DIRECTION_3_0;
 	case 0b0000: return LOCAL_DIRECTION_STATIC;
 	case 0b0101: return LOCAL_DIRECTION_STATIC;
 	case 0b1010: return LOCAL_DIRECTION_STATIC;
 	default: return LOCAL_DIRECTION_ERROR;
 	}
+}
+
+// ALIGNMENT_TRANSLATION_MAPS[map index][alignment to map]
+// Allows for a quick way to convert direction enums from one local tile space to a neighboring one.
+// Because there are only 2 axes in a 2D tile, there are only 8 ways to map x+, x-, y+, y- to each other
+// with the restriction that the 'next' direction has to be +1 or -1 'away' from the previous where
+// (x+, x-, y+, y-) -> (0, 2, 3, 1) (this ordering makes more sense in other contexts).
+const LocalAlignment ALIGNMENT_TRANSLATION_MAPS[8][10] = {
+#define _0 LOCAL_ALIGNMENT_0
+#define _1 LOCAL_ALIGNMENT_1
+#define _2 LOCAL_ALIGNMENT_2
+#define _3 LOCAL_ALIGNMENT_3
+#define _0_1 LOCAL_ALIGNMENT_0_1
+#define _1_2 LOCAL_ALIGNMENT_1_2
+#define _2_3 LOCAL_ALIGNMENT_2_3
+#define _3_0 LOCAL_ALIGNMENT_3_0
+#define NONE LOCAL_ALIGNMENT_NONE
+#define ERROR LOCAL_ALIGNMENT_ERROR
+	{ _0, _1, _2, _3, _0_1, _1_2, _2_3, _3_0, NONE, ERROR },
+	{ _1, _2, _3, _0, _1_2, _2_3, _3_0, _0_1, NONE, ERROR },
+	{ _2, _3, _0, _1, _2_3, _3_0, _0_1, _1_2, NONE, ERROR },
+	{ _3, _0, _1, _2, _3_0, _0_1, _1_2, _2_3, NONE, ERROR },
+	{ _0, _3, _2, _1, _3_0, _2_3, _1_2, _0_1, NONE, ERROR },
+	{ _1, _0, _3, _2, _0_1, _3_0, _2_3, _1_2, NONE, ERROR },
+	{ _2, _1, _0, _3, _1_2, _0_1, _3_0, _2_3, NONE, ERROR },
+	{ _3, _2, _1, _0, _2_3, _1_2, _0_1, _3_0, NONE, ERROR }
+#undef a_0
+#undef a_1
+#undef a_2
+#undef a_3
+#undef a01
+#undef a12
+#undef a23
+#undef a30
+#undef NONE
+#undef ERROR
+};
+
+// Given an index to a local alignment to local alignment map and an alignment, will convert that
+// alignment to its mapped alignment and return it.  Map indices should be stored inside tiles as
+// current tile alignments -> neighbor tile alignments maps as well as other places.
+const LocalAlignment tnav::getMappedAlignment(int mapIndex, LocalAlignment currentAlignment)
+{
+#ifdef RUNNING_DEBUG
+	if (mapIndex > 7) std::cout << "INVALID ALIGNMENT TRANSLATION MAP INDEX" << std::endl;
+#endif
+	return ALIGNMENT_TRANSLATION_MAPS[mapIndex][currentAlignment];
+}
+
+// NEIGHBOR_ALIGNMENT_MAP_INDICES[currentTileEdgeIndex][connectedNeighborEdgeIndex]
+const int NEIGHBOR_ALIGNMENT_MAP_INDICES[4][4] = {
+	{ 6, 7, 0, 1 }, { 7, 4, 3, 0 }, { 0, 1, 6, 7 }, { 3, 0, 7, 4 }
+};
+
+// I have no idea why you dont have to account for the different starting tile types.  
+// They all come out to the same map indices somehow!  
+// 6x size decreas maybe due to the layout of edge indices on different tile types being a nice pattern?
+int tnav::getNeighborAlignmentMapIndex(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
+{
+#ifdef RUNNING_DEBUG
+	checkOrthogonal(connectedCurrentTileEdgeIndex);
+	checkOrthogonal(connectedNeighborEdgeIndex);
+#endif
+	return NEIGHBOR_ALIGNMENT_MAP_INDICES[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
 }

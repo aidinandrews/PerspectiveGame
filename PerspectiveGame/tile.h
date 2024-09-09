@@ -50,7 +50,7 @@ public: // STRUCTS
 
 public:
 	int index;
-	TileSubType type;
+	TileType type;
 	glm::ivec3 position; // is the vertex with the MAX position.
 	Tile* sibling;
 	glm::fvec3 color;
@@ -62,8 +62,9 @@ public:
 	bool cornerSafety[4];
 
 	Tile* neighborTilePtrs[4];
-	int neighborConnectedSideIndices[4];
-	bool isNeighborConnectionsMirrored[4];
+	int neighborAlignmentMapIndex[4];
+	//int neighborConnectedSideIndices[4];
+	//bool isNeighborConnectionsMirrored[4];
 
 public: // MEMBER FUNCTIONS:
 
@@ -71,7 +72,7 @@ public: // MEMBER FUNCTIONS:
 	// - TileSubType: One of three Tile::Types (XY, XZ, YZ) and two directions (FRONT/BACK) -> 6 options.
 	// - maxPoint   : Vertex with the largest cartesian coordinates.  Other vertices will be defined through it.
 	//			        This vertex will always be in pos[0].
-	Tile(TileSubType tileSubType, glm::ivec3 position);
+	Tile(TileType getTileType, glm::ivec3 position);
 
 	// Returns the normal of the tile.
 	glm::ivec3 getNormal();
@@ -93,26 +94,46 @@ public: // MEMBER FUNCTIONS:
 	Tile* getNeighbor(LocalDirection side) { return neighborTilePtrs[side]; }
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
-	const static TileType getTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
+	const static SuperTileType getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
 
 	// Returns the maximum of all four vertex's coordinates.  
 	// Meant for use finding the maxVert of four vertices that will make up a tile.
 	static glm::ivec3 getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);
 	
 	// Converts a TileSubType to a Tile::Type.
-	static TileType superTileType(TileSubType subType);
+	static SuperTileType superTileType(TileType subType);
 
 	// Converts a Tile::Type to a TileSubType.
-	static TileSubType tileSubType(TileType tileType, bool isFront);
+	static TileType getTileType(SuperTileType tileType, bool isFront);
 
 	// Returns the 'opposite' TileSubType.  Front gets changed to back.
 	// Ex: TILE_SUB_TYPE_XY_FRONT -> TILE_SUB_TYPE_XY_BACK
-	static TileSubType inverseTileType(TileSubType type);
+	static TileType inverseTileType(TileType type);
 
 	// True if tile faces 'frontwards,' false if tile faces 'backwards.'
 	bool isFrontFacing() { return type % 2 == 0; }
 
 	static const int oppositeLocalDirection(int direction) { return (direction + 2) % 4; }
+
+	LocalAlignment getMappedNeighborAlignment(LocalDirection leavingDirection, LocalAlignment currentAlignment)
+	{
+#ifdef RUNNING_DEBUG
+		tnav::checkOrthogonal(leavingDirection);
+#endif
+		return tnav::getMappedAlignment(neighborAlignmentMapIndex[leavingDirection], currentAlignment);
+	}
+
+	// TODO: Try to remove this function:
+	bool isNeighborConnectionsMirrored(int dir)
+	{
+		return (neighborAlignmentMapIndex[dir] > 3);
+	}
+
+	// TODO: Try to remove this function:
+	int getNeighborConnectedSideIndex(LocalDirection dir)
+	{
+		return getMappedNeighborAlignment(dir, tnav::oppositeAlignment(dir));
+	}
 };
 
 // This struct acts as a wrapper for a tile, giving it more information that is useful when
@@ -188,7 +209,7 @@ struct alignas(32) GPU_TileInfo {
 	alignas(16) int cornerSafety[4];
 	alignas(4)  int basisType;
 	alignas(4)  int basisOrientation;
-	alignas(4)  int tileSubType;
+	alignas(4)  int getTileType;
 	alignas(4)  int obstructionFlags;
 
 //	alignas(4) int padding[];

@@ -205,8 +205,8 @@ struct CurrentSelection {
 			v4 = v2 + addTileParentTarget.tile->getNormal();
 			break;
 		}
-		TileType tileType = Tile::getTileType(v1, v2, v3);
-		TileSubType tileSubType = Tile::tileSubType(tileType, true);
+		SuperTileType tileType = Tile::getSuperTileType(v1, v2, v3);
+		TileType tileSubType = Tile::getTileType(tileType, true);
 		glm::ivec3 maxVert = Tile::getMaxVert(v1, v2, v3, v4);
 		(*heldTile) = Tile(tileSubType, maxVert);
 	}
