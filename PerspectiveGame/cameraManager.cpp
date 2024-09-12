@@ -105,7 +105,7 @@ void Camera::updatePos() {
 	if (p_inputManager->keys[MOVE_DOWN_KEY].pressed) {
 		posAdj += glm::vec3(0.0f, 0.0f, moveSpeed * DeltaTime);
 	}
-	posAdj = rotate(posAdj, yaw);
+	posAdj = vechelp::rotate(posAdj, yaw);
 	// Make the player move faster when zoomed out:
 	//posAdj *= 1 / (float)pow(2, zoom);
 	viewPlanePos += posAdj;

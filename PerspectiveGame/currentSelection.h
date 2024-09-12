@@ -54,10 +54,11 @@ struct CurrentSelection {
 	RelativeTileOrientation heldTileRelativeOrientation;
 
 	// Tile before the preview tile we want to add.  tile 'connecting' preview tile to scene:
-	TileTarget addTileParentTarget; 
+	TileTarget addTileParentTarget;
 	int addTileParentSideConnectionIndex;
-	
-	CurrentSelection(InputManager*im,TileManager*tm,EntityManager*em,ButtonManager*bm,Camera*(cam),BasisManager*bam) : p_inputManager(im),p_tileManager(tm),p_entityManager(em),p_buttonManager(bm),p_camera(cam),p_basisManager(bam) {
+
+	CurrentSelection(InputManager* im, TileManager* tm, EntityManager* em, ButtonManager* bm, Camera* (cam), BasisManager* bam) : p_inputManager(im), p_tileManager(tm), p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam)
+	{
 		hoveredTile = nullptr;
 		hoveredTileConnectionIndex = 0;
 
@@ -75,24 +76,27 @@ struct CurrentSelection {
 		heldBasis.type = BASIS_TYPE_FORCE_SINK;
 	}
 
-	~CurrentSelection() {
+	~CurrentSelection()
+	{
 		delete heldTile;
 		delete heldEntity;
 	}
 
-	void addQueuedEntities() {
+	void addQueuedEntities()
+	{
 		for (QueuedEntity e : queuedEntities) {
 			p_entityManager->createEntity(e.tileIndex, e.type, e.direction, e.orientation);
 		}
 		queuedEntities.clear();
 	}
 
-	void findHoveredTile() {
+	void findHoveredTile()
+	{
 		// find what tile the cursor is hovering over:
 		// This algorithm mirrors the on in 2D3rdPersonPOV frag shader, which is documented better.
 		Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
 		glm::mat4 inWindowToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
-			(float)sceneView->pixelHeight()));
+																					(float)sceneView->pixelHeight()));
 		glm::vec2 cursorWorldPos = glm::vec2(inWindowToWorldSpace * glm::vec4(-CursorScreenPos.x, CursorScreenPos.y, 0, 1));
 
 		// If the cursor is inside the povTile, then we dont have to do the move complex steps:
@@ -175,11 +179,14 @@ struct CurrentSelection {
 		hoveredTile = target.tile;
 
 		addTileParentSideConnectionIndex = (addTileParentTarget.initialVertIndex
-			+ drawSideIndex * addTileParentTarget.sideInfosOffset)
+											+ drawSideIndex * addTileParentTarget.sideInfosOffset)
 			% 4;
 	}
 
-	void findPreviewTile() {
+	void findPreviewTile()
+	{
+		using namespace tnav;
+
 		// Figure out the preview tile's type:
 		int infosOffset = hoveredTileConnectionIndex - addTileParentTarget.initialSideIndex;
 		if (infosOffset < 0) {
@@ -205,23 +212,27 @@ struct CurrentSelection {
 			v4 = v2 + addTileParentTarget.tile->getNormal();
 			break;
 		}
-		SuperTileType tileType = Tile::getSuperTileType(v1, v2, v3);
-		TileType tileSubType = Tile::getTileType(tileType, true);
-		glm::ivec3 maxVert = Tile::getMaxVert(v1, v2, v3, v4);
+		SuperTileType tileType = getSuperTileType(v1, v2, v3);
+		TileType tileSubType = getTileType(tileType, true);
+		glm::ivec3 maxVert = vechelp::getMaxVert(v1, v2, v3, v4);
 		(*heldTile) = Tile(tileSubType, maxVert);
 	}
 
-	void tryEditTiles() {
+	void tryEditTiles()
+	{
+		using namespace tnav;
+
 		if (p_inputManager->leftMouseButtonClicked()) {
-			std::cout << Tile::superTileType(heldTile->type) << std::endl;
+			std::cout << getSuperTileType(heldTile->type) << std::endl;
 			p_tileManager->createTilePair(
-				Tile::superTileType(heldTile->type), heldTile->position, heldTileColor, heldTileColor * 0.5f);
+				getSuperTileType(heldTile->type), heldTile->position, heldTileColor, heldTileColor * 0.5f);
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			p_tileManager->deleteTilePair(hoveredTile, false);
 		}
 	}
-	void tryEditBases() {
+	void tryEditBases()
+	{
 		if (p_inputManager->leftMouseButtonClicked()) {
 			p_basisManager->addBasis(hoveredTile, heldBasis.localOrientation, heldBasis.type);
 		}
@@ -229,9 +240,10 @@ struct CurrentSelection {
 			p_basisManager->deleteBasis(hoveredTile);
 		}
 	}
-	void tryEditEntities() {
+	void tryEditEntities()
+	{
 		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
-			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type, 
+			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type,
 												  heldEntity->getDirection(0), heldEntity->getOrientation(0)));
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
@@ -243,9 +255,10 @@ struct CurrentSelection {
 		}
 	}
 
-	void tryEditWorld() {
-		     if (canEditTiles)    { tryEditTiles();    }
-		else if (canEditBases)    { tryEditBases();    }
+	void tryEditWorld()
+	{
+		if (canEditTiles) { tryEditTiles(); }
+		else if (canEditBases) { tryEditBases(); }
 		else if (canEditEntities) { tryEditEntities(); }
 	}
 
@@ -258,7 +271,8 @@ struct CurrentSelection {
 		}
 	}
 
-	void update() {
+	void update()
+	{
 		findHoveredTile();
 		findPreviewTile();
 
@@ -279,7 +293,8 @@ struct CurrentSelection {
 		tryEditWorld();
 	}
 
-	void cyclePreviewTileOrientation() {
+	void cyclePreviewTileOrientation()
+	{
 		switch (heldTileRelativeOrientation) {
 		case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
 			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;

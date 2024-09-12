@@ -38,7 +38,7 @@ public:
 		p_shaderManager = sm;
 
 		postA = p1, postB = p2;
-		onSide = isLeft(glm::vec2(p_camera->viewPlanePos.x, -p_camera->viewPlanePos.y),
+		onSide = vechelp::isLeft(glm::vec2(p_camera->viewPlanePos.x, -p_camera->viewPlanePos.y),
 			postA, postB);
 		updateBoundingBox();
 	}
@@ -82,7 +82,7 @@ public:
 		float maxVecSize = (float)sqrt(2);
 		glm::vec2 camPos(p_camera->lastFrameViewPlanePos.x, -p_camera->lastFrameViewPlanePos.y);
 		glm::vec2 portalPostVecA = glm::normalize(camPos - post);
-		portalPostVecA = rotate(portalPostVecA, float(-p_camera->yaw));
+		portalPostVecA = vechelp::rotate(portalPostVecA, float(-p_camera->yaw));
 		portalPostVecA *= maxVecSize;
 		return portalPostVecA;
 	}
@@ -161,7 +161,7 @@ public:
 		for (glm::vec2& v : cropToWindow) {
 			v *= 0.9f;
 		}
-		sutherlandHodgemanPolyCrop(currentFrustum, cropToWindow, false);
+		vechelp::sutherlandHodgemanPolyCrop(currentFrustum, cropToWindow, false);
 		if (currentFrustum.size() == 0) {
 			return;
 		}
@@ -251,14 +251,14 @@ struct PortalPair {
 	void angleBetweenPortals() {
 		glm::vec2 Anorm = glm::normalize(A.postA - A.postB);
 		glm::vec2 Bnorm = glm::normalize(B.postA - B.postB);
-		float aTobAngle = getVecAngle(Anorm) - getVecAngle(Bnorm);
+		float aTobAngle = vechelp::getVecAngle(Anorm) - vechelp::getVecAngle(Bnorm);
 		A.angleToConnectedPortal = aTobAngle;
 		B.angleToConnectedPortal = -aTobAngle;
 	}
 
 	void rotatePair(glm::vec2 center, float angle) {
 		A.postA -= center;
-		A.postA = rotate(A.postA, angle);
+		A.postA = vechelp::rotate(A.postA, angle);
 	}
 };
 
@@ -357,7 +357,9 @@ struct PortalManager {
 	}
 
 	void updatePosIfPassThroughSpecificPortal(float angle, glm::vec3 postAtoOrigin, glm::vec3 postBtoOrigin,
-		Portal& A, Portal& B) {
+		Portal& A, Portal& B) 
+	{
+		using namespace vechelp;
 
 		bool currentOnSideA = isLeft(glm::vec2(p_camera->viewPlanePos.x, -p_camera->viewPlanePos.y),
 			A.postA, A.postB);

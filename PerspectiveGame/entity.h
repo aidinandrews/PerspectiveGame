@@ -90,6 +90,8 @@ public:
 	bool isInTileCenter() { return positions[0] == LOCAL_POSITION_CENTER; }
 	bool isInTileCorner() { return 3 < positions[0] && positions[0] < 8; }
 
+	bool isStatic() { return directions[0] == LOCAL_DIRECTION_STATIC; }
+
 	void setTileInfo(int infoIndex, int tileIndex, LocalPosition position, LocalDirection direction, LocalOrientation orientation)
 	{
 		tileIndices[infoIndex] = tileIndex;

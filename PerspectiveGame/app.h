@@ -143,7 +143,7 @@ struct App {
 
 	void setupWorld()
 	{
-		setupCollisionScenario4(p_tileManager, p_entityManager, p_currentSelection);
+		setupCollisionScenario6(p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()

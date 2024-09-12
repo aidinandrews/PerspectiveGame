@@ -1,7 +1,7 @@
 #include "tile.h"
 #include "building.h"
 
-Tile::Tile(TileType getTileType, glm::ivec3 position) : type(getTileType), position(position)
+Tile::Tile(TileType type, glm::ivec3 position) : type(type), position(position)
 {
 	texCoords[0] = glm::vec2(1, 1);
 	texCoords[1] = glm::vec2(1, 0);
@@ -10,44 +10,12 @@ Tile::Tile(TileType getTileType, glm::ivec3 position) : type(getTileType), posit
 
 	for (int i = 0; i < 4; i++) {
 		cornerSafety[i] = true;
-		neighborTilePtrs[i] = nullptr;
-		neighborAlignmentMapIndex[i] = -1;
-		//neighborConnectedSideIndices[i] = -1;
-		//isNeighborConnectionsMirrored[i] = false;
 	}
 
 	for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
 		entityInfoIndices[i] = -1;
 	}
-
-	/*for (int i = 0; i < 4; i++) {
-		nextEntityInfoFromCenter[i].direct;
-		nextEntityInfoFromCenter[i].offset1;
-		nextEntityInfoFromCenter[i].offset2;
-		nextEntityInfoFromCenter[i].corner1;
-		nextEntityInfoFromCenter[i].corner2;
-
-		nextEntityInfoFromEdge[i].direct;
-		nextEntityInfoFromEdge[i].offset1;
-		nextEntityInfoFromEdge[i].offset2;
-		nextEntityInfoFromEdge[i].corner1;
-		nextEntityInfoFromEdge[i].corner2;
-
-		nextEntityInfoFromCorner[i].directB;
-		nextEntityInfoFromCorner[i].offsetA1;
-		nextEntityInfoFromCorner[i].offsetA2;
-		nextEntityInfoFromCorner[i].cornerA;
-		nextEntityInfoFromCorner[i].directA;
-		nextEntityInfoFromCorner[i].offsetB1;
-		nextEntityInfoFromCorner[i].offsetB2;
-		nextEntityInfoFromCorner[i].cornerB;
-		nextEntityInfoFromCorner[i].cornerC;
-
-		cornerEquivelentInfoMap[i].tileIndex;
-		cornerEquivelentInfoMap[i].position;
-		cornerEquivelentInfoMap[i].direction;
-	}*/
 
 }
 
@@ -66,9 +34,11 @@ glm::ivec3 Tile::getNormal()
 
 glm::ivec3 Tile::getVertPos(int index)
 {
+	using namespace tnav;
+
 	if (index == 0) { return position; }
 
-	switch (superTileType(type)) {
+	switch (getSuperTileType(type)) {
 	case TILE_TYPE_XY:
 		switch (index) {
 		case 1: return position - glm::ivec3(0, 1, 0);
@@ -94,42 +64,6 @@ glm::ivec3 Tile::getVertPos(int index)
 	}
 }
 
-const SuperTileType Tile::getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3)
-{
-	if      (tileVert1.z == tileVert2.z && tileVert1.z == tileVert3.z) { return TILE_TYPE_XY; }
-	else if (tileVert1.y == tileVert2.y && tileVert1.y == tileVert3.y) { return TILE_TYPE_XZ; }
-	else /* tileVert1.x == tileVert2.x == tileVert3.x*/ { return TILE_TYPE_YZ; }
-}
-
-glm::ivec3 Tile::getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D)
-{
-	return glm::ivec3(std::max(std::max(std::max(A.x, B.x), C.x), D.x),
-					  std::max(std::max(std::max(A.y, B.y), C.y), D.y),
-					  std::max(std::max(std::max(A.z, B.z), C.z), D.z));
-}
-
-SuperTileType Tile::superTileType(TileType subType)
-{
-	return SuperTileType(int(subType) / 2);
-}
-
-TileType Tile::getTileType(SuperTileType tileType, bool isFront)
-{
-	return TileType(int(tileType)*2 + int(!isFront));
-}
-
-TileType Tile::inverseTileType(TileType type)
-{
-	switch (type) {
-	case TILE_TYPE_XYF: return TILE_TYPE_XYB;
-	case TILE_TYPE_XYB: return TILE_TYPE_XYF;
-	case TILE_TYPE_XZF: return TILE_TYPE_XZB;
-	case TILE_TYPE_XZB: return TILE_TYPE_XZF;
-	case TILE_TYPE_YZF: return TILE_TYPE_YZB;
-	default: return TILE_TYPE_YZF; // This is either TILE_TYPE_YZ_BACK or you and/or I fucked up.	
-	}
-}
-
 GPU_TileInfo::GPU_TileInfo(Tile* tile)
 {
 	color = glm::vec4(tile->color, 1);
@@ -140,12 +74,12 @@ GPU_TileInfo::GPU_TileInfo(Tile* tile)
 	getTileType = (int)tile->type;
 
 	for (int i = 0; i < 4; i++) {
-		neighborIndices[i] = tile->neighborTilePtrs[i]->index;
+		neighborIndices[i] = tile->getNeighbor(LocalDirection(i))->index;
 		//neighborMirrored[i] = (int)tile->isNeighborConnectionsMirrored[i];
 		//neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
 // TODO: fix gpu-info/shaders to use the new alignment mappings
-		neighborMirrored[i] = int(tile->neighborAlignmentMapIndex[i] > 3);
-		neighborSideIndex[i] = tnav::getMappedAlignment(tile->neighborAlignmentMapIndex[i], tnav::oppositeAlignment(LocalAlignment(i)));
+		neighborMirrored[i] = (int)tile->is1stDegreeNeighborMirrored(i);
+		neighborSideIndex[i] = tnav::getMappedAlignment(tile->getNeighborAlignmentMap(LocalDirection(i)), tnav::oppositeAlignment(LocalAlignment(i)));
 		texCoords[i] = tile->texCoords[i];
 		cornerSafety[i] = tile->cornerSafety[i];
 	}

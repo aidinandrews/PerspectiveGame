@@ -6,7 +6,8 @@
 
 #include "vectorHelperFunctions.h"
 
-inline glm::vec2 imageSpace(float r, float g, float b, int cubeWidth) {
+inline glm::vec2 imageSpace(float r, float g, float b, int cubeWidth)
+{
 	float cubeStep = 1.0f / float(cubeWidth);
 	r /= float(cubeWidth);
 	g /= float(cubeWidth);
@@ -27,17 +28,20 @@ namespace absc {
 		std::vector<glm::vec3>normals;
 		std::vector<GLuint>indices;
 
-		void addTriIndices(int a, int b, int c) {
+		void addTriIndices(int a, int b, int c)
+		{
 			indices.push_back(a);
 			indices.push_back(b);
 			indices.push_back(c);
 		}
-		void addTriVerts(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
+		void addTriVerts(glm::vec3 a, glm::vec3 b, glm::vec3 c)
+		{
 			verts.push_back(a);
 			verts.push_back(b);
 			verts.push_back(c);
 		}
-		void addQuad(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d, glm::vec3 norm) {
+		void addQuad(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d, glm::vec3 norm)
+		{
 			int offset = (int)verts.size();
 			indices.push_back(offset + 0);
 			indices.push_back(offset + 1);
@@ -55,8 +59,9 @@ namespace absc {
 			normals.push_back(norm);
 		}
 
-		void addselfTo(std::vector<GLfloat>* glVerts, std::vector<GLuint>* glIndices, 
-			glm::vec3 color, glm::vec2 texCoord) {
+		void addselfTo(std::vector<GLfloat>* glVerts, std::vector<GLuint>* glIndices,
+					   glm::vec3 color, glm::vec2 texCoord)
+		{
 
 			GLuint indexOffset = (GLuint)glVerts->size() / 11;
 			for (int i = 0; i < verts.size(); i++) {
@@ -77,9 +82,10 @@ namespace absc {
 			}
 		}
 
-		void addSelfTo(std::vector<glm::vec3> inVerts, std::vector<glm::vec3> inNormals, 
-			std::vector<GLuint> inIndices, glm::vec3 color, 
-			std::vector<GLfloat>* glVerts, std::vector<GLuint>* glIndices) {
+		void addSelfTo(std::vector<glm::vec3> inVerts, std::vector<glm::vec3> inNormals,
+					   std::vector<GLuint> inIndices, glm::vec3 color,
+					   std::vector<GLfloat>* glVerts, std::vector<GLuint>* glIndices)
+		{
 
 			clear();
 			for (int i = 0; i < inVerts.size(); i++) {
@@ -100,14 +106,16 @@ namespace absc {
 			}
 		}
 
-		void clear() {
+		void clear()
+		{
 			verts.clear();
 			indices.clear();
 			normals.clear();
 		}
 	};
 
-	inline void pointCloud(std::vector<glm::vec3> verts, ShapeInfo& si) {
+	inline void pointCloud(std::vector<glm::vec3> verts, ShapeInfo& si)
+	{
 		int offset = (int)si.verts.size();
 		for (glm::vec3 v : verts) {
 			si.verts.push_back(v);
@@ -118,7 +126,8 @@ namespace absc {
 		}
 	}
 
-	inline void floor(float width, float length, int density, ShapeInfo& si) {
+	inline void floor(float width, float length, int density, ShapeInfo& si)
+	{
 		int offset = (int)si.verts.size();
 		float widthStep = width / density;
 		float lengthStep = length / density;
@@ -143,7 +152,8 @@ namespace absc {
 
 	}
 
-	inline void guiButton(float width, float height, glm::vec2 pos, ShapeInfo& si) {
+	inline void guiButton(float width, float height, glm::vec2 pos, ShapeInfo& si)
+	{
 		int offset = (int)si.verts.size();
 		si.addQuad(
 			glm::vec3(pos, 0),
@@ -162,7 +172,8 @@ namespace absc {
 			offset + 1);
 	}
 
-	inline void poly2D(float width, float height, float zOffset, int sideCount, ShapeInfo& si) {
+	inline void poly2D(float width, float height, float zOffset, int sideCount, ShapeInfo& si)
+	{
 		float radians = float(M_PI * 2.0f) / float(sideCount);
 		int offset = (int)si.verts.size();
 		for (int i = 0; i < sideCount; i++) {
@@ -181,7 +192,8 @@ namespace absc {
 		}
 	}
 
-	inline void inversePoly2D(float width, float height, float zOffset, int sideCount, ShapeInfo& si) {
+	inline void inversePoly2D(float width, float height, float zOffset, int sideCount, ShapeInfo& si)
+	{
 		float radians = float(M_PI * 2.0f) / float(sideCount);
 		int offset = (int)si.verts.size();
 		for (int i = 0; i < sideCount; i++) {
@@ -200,7 +212,8 @@ namespace absc {
 		}
 	}
 
-	inline void prism(glm::vec3 boundingBox, int sideCount, bool smoothShading, ShapeInfo& si) {
+	inline void prism(glm::vec3 boundingBox, int sideCount, bool smoothShading, ShapeInfo& si)
+	{
 		int vertOffset = (int)si.verts.size();
 		// Make the faces of the prism:
 		poly2D(boundingBox.x, boundingBox.y, boundingBox.z / 2, sideCount, si);
@@ -220,7 +233,7 @@ namespace absc {
 
 				glm::vec3 norm(1, 0, 0);
 				float angle = (float(M_PI * 2) / float(sideCount)) * float(i);
-				norm = rotate(norm, angle);
+				norm = vechelp::rotate(norm, angle);
 				si.normals.push_back(norm);
 			}
 			for (int i = 0; i < sideCount; i++) {
@@ -253,8 +266,10 @@ namespace absc {
 	}
 
 	inline void torus(float ringWidth, float ringHeight, float torusWidth,
-		float torusHeight, int ringCount, int ringSideCount, float percentOfTorus,
-		float noiseAmount, ShapeInfo& si) {
+					  float torusHeight, int ringCount, int ringSideCount, float percentOfTorus,
+					  float noiseAmount, ShapeInfo& si)
+	{
+		using namespace vechelp;
 
 		int offset = (int)si.verts.size();
 		clip(percentOfTorus, 0.0f, 1.0f);
@@ -324,7 +339,8 @@ namespace absc {
 		}
 	}
 
-	inline void sphere(glm::vec3 boundingBox, int numRings, int numBands, ShapeInfo& si) {
+	inline void sphere(glm::vec3 boundingBox, int numRings, int numBands, ShapeInfo& si)
+	{
 		int offset = (int)si.verts.size();
 		// top and bottom verts:
 		si.verts.push_back(glm::vec3(0, boundingBox.y / 2, 0));
@@ -376,7 +392,8 @@ namespace absc {
 		}
 	}
 
-	inline void arrow(glm::vec3 boundingBox, float percentArrow, float arrowBodyWidthPercent, ShapeInfo& si) {
+	inline void arrow(glm::vec3 boundingBox, float percentArrow, float arrowBodyWidthPercent, ShapeInfo& si)
+	{
 		glm::vec3 bb = boundingBox;
 		glm::vec2 points[7];
 		points[0] = glm::vec2(bb.x / 2, bb.y);
@@ -417,7 +434,7 @@ namespace absc {
 		offset -= 7;
 		// more verts/normals/indices for side triangles:
 		glm::vec3 arrowNormAngle = glm::vec3(points[1] - points[0], 0);
-		rotate(arrowNormAngle, float(M_PI / 2));
+		vechelp::rotate(arrowNormAngle, float(M_PI / 2));
 		arrowNormAngle = glm::normalize(arrowNormAngle);
 		si.addQuad(si.verts[offset], si.verts[offset + 1], si.verts[offset + 7], si.verts[offset + 8], arrowNormAngle);
 		si.addQuad(si.verts[offset + 1], si.verts[offset + 2], si.verts[offset + 8], si.verts[offset + 9], glm::vec3(0, -1, 0));

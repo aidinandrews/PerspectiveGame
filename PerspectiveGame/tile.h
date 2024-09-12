@@ -22,6 +22,7 @@
 #include <stb_image.h>
 #endif
 
+#include "vectorHelperFunctions.h"
 #include "globalVariables.h"
 #include "cameraManager.h"
 #include "shaderManager.h"
@@ -30,12 +31,16 @@
 #include "tileNavigation.h"
 #include "tileInternals.h"
 
+struct TileManager;
+
 // Represents a square tile in 3D space.  Can be oriented such that it is parallel with one of the x, y, or z axes.  Tiles can connect to each other and shuffle items between them.
 struct Tile {
 	const static bool CORNER_UNSAFE = false;
 	const static bool CORNER_SAFE = true;
 
 public: // STRUCTS
+
+	friend struct TileManager;
 
 	// A basis is an immoveable building-like object that can effect entities 'on top' of it and other bases.
 	struct Basis {
@@ -47,6 +52,27 @@ public: // STRUCTS
 	public: // MEMBER FUNCTIONS:
 		Basis() : type(BASIS_TYPE_NONE), localOrientation(LOCAL_DIRECTION_0) {}
 	} basis;
+
+private:
+	// The 'neighborhood' is the set of neighbors orthogonally and diagonally connected to this tile.
+	// Index scheme:
+	//    [n][0] == 1st degree neighbor in direction of n.
+	//    [n][1] == 2nd degree neighbor clockwise from [n][0].
+	//    [n][2] == 2nd degree neighbor counterclockwise from [n][0].
+	struct Neighborhood {
+		Tile* tiles[4][3];
+		int maps[4][3];
+
+		Neighborhood()
+		{
+			for (int i = 0; i < 4; i++) {
+				for (int j = 0; j < 3; j++) {
+					tiles[i][j] = nullptr;
+					maps[i][j] = -1;
+				}
+			}
+		}
+	} neighborhood;
 
 public:
 	int index;
@@ -61,10 +87,8 @@ public:
 	glm::vec2 texCoords[4];
 	bool cornerSafety[4];
 
-	Tile* neighborTilePtrs[4];
-	int neighborAlignmentMapIndex[4];
-	//int neighborConnectedSideIndices[4];
-	//bool isNeighborConnectionsMirrored[4];
+	//Tile* neighborTilePtrs[4];
+	//int neighborAlignmentMapIndex[4];
 
 public: // MEMBER FUNCTIONS:
 
@@ -83,56 +107,47 @@ public: // MEMBER FUNCTIONS:
 
 	glm::ivec3 getVertPos(int index);
 
-	static LocalDirection oppositeDirection(LocalDirection currentDirection) { return LocalDirection((int)currentDirection + 2 % 4); }
-
 	bool getEntityIndex(LocalPosition position) { return entityIndices[position]; }
 
-	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
+	Tile* getNeighbor(LocalDirection side) { return neighborhood.tiles[side][0]; }
+	Tile* getNeighborNeighbor(LocalDirection side, bool clockwise) { return neighborhood.tiles[side][1 + (!clockwise)]; }
 
-	bool hasBasis() { return basis.type != BASIS_TYPE_NONE; }
+	int getNeighborAlignmentMap(LocalDirection side) { return neighborhood.maps[side][0]; }
+	int getNeighborNeighborAlignmentMap(LocalDirection side, bool clockwise) { 
+		return neighborhood.maps[side][1 + (!clockwise)];
+	}
 
-	Tile* getNeighbor(LocalDirection side) { return neighborTilePtrs[side]; }
-
-	// Given four vertices that will make up a tile, returns that potential tile's type.
-	const static SuperTileType getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
-
-	// Returns the maximum of all four vertex's coordinates.  
-	// Meant for use finding the maxVert of four vertices that will make up a tile.
-	static glm::ivec3 getMaxVert(glm::ivec3 A, glm::ivec3 B, glm::ivec3 C, glm::ivec3 D);
 	
-	// Converts a TileSubType to a Tile::Type.
-	static SuperTileType superTileType(TileType subType);
-
-	// Converts a Tile::Type to a TileSubType.
-	static TileType getTileType(SuperTileType tileType, bool isFront);
-
-	// Returns the 'opposite' TileSubType.  Front gets changed to back.
-	// Ex: TILE_SUB_TYPE_XY_FRONT -> TILE_SUB_TYPE_XY_BACK
-	static TileType inverseTileType(TileType type);
+	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
+	bool hasBasis() { return basis.type != BASIS_TYPE_NONE; }
 
 	// True if tile faces 'frontwards,' false if tile faces 'backwards.'
 	bool isFrontFacing() { return type % 2 == 0; }
 
-	static const int oppositeLocalDirection(int direction) { return (direction + 2) % 4; }
-
-	LocalAlignment getMappedNeighborAlignment(LocalDirection leavingDirection, LocalAlignment currentAlignment)
+	LocalAlignment mapAlignmentTo1stDegreeNeighbor(LocalDirection leavingDirection, LocalAlignment currentAlignment)
 	{
 #ifdef RUNNING_DEBUG
 		tnav::checkOrthogonal(leavingDirection);
 #endif
-		return tnav::getMappedAlignment(neighborAlignmentMapIndex[leavingDirection], currentAlignment);
+		return tnav::getMappedAlignment(neighborhood.maps[leavingDirection][0], currentAlignment);
 	}
 
 	// TODO: Try to remove this function:
-	bool isNeighborConnectionsMirrored(int dir)
+	bool is1stDegreeNeighborMirrored(int leavingDirection)
 	{
-		return (neighborAlignmentMapIndex[dir] > 3);
+#ifdef RUNNING_DEBUG
+		tnav::checkOrthogonal((LocalDirection)leavingDirection);
+#endif
+		return (neighborhood.maps[leavingDirection][0] > 3);
 	}
 
 	// TODO: Try to remove this function:
-	int getNeighborConnectedSideIndex(LocalDirection dir)
+	int get1stDegreeNeighborConnectedSideIndex(LocalDirection leavingDirection)
 	{
-		return getMappedNeighborAlignment(dir, tnav::oppositeAlignment(dir));
+#ifdef RUNNING_DEBUG
+		tnav::checkOrthogonal(leavingDirection);
+#endif
+		return mapAlignmentTo1stDegreeNeighbor(leavingDirection, tnav::oppositeAlignment(leavingDirection));
 	}
 };
 

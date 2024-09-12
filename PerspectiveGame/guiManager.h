@@ -121,6 +121,8 @@ public:
 
 	bool tileOnScreen(std::vector<glm::vec2>& tileVerts)
 	{
+		using namespace vechelp;
+
 		for (glm::vec2 v : tileVerts) {
 			if (point_in_polygon(v, p_tileManager->windowFrustum)) {
 				return true;
@@ -196,13 +198,13 @@ public:
 			// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
 			// tiles have the same winding, so no adjustment is necessary.  As the side index 
 			// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
-			if (p_tileManager->povTile.tile->isNeighborConnectionsMirrored(sideIndex)) {
+			if (p_tileManager->povTile.tile->is1stDegreeNeighborMirrored(sideIndex)) {
 				newSideOffset = (p_tileManager->povTile.sideInfosOffset + 2) % 4;
 			}
 			else { // Current connection is unmirrored:
 				newSideOffset = p_tileManager->povTile.sideInfosOffset;
 			}
-			newInitialSideIndex = (p_tileManager->povTile.tile->getNeighborConnectedSideIndex(LocalDirection(sideIndex))
+			newInitialSideIndex = (p_tileManager->povTile.tile->get1stDegreeNeighborConnectedSideIndex(LocalDirection(sideIndex))
 								   + TileManager::VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 			newInitialTexIndex = newInitialSideIndex;
 			if (newSideOffset == 3) {
@@ -220,20 +222,20 @@ public:
 			float newTileOpacity;
 			// We want a smooth transition from one tile opacity to another, so
 			// it should fade as you get closer to the next draw tile's edge:
-			float edgeDist = distToLineSeg((glm::vec2)p_camera->viewPlanePos,
+			float edgeDist = vechelp::distToLineSeg((glm::vec2)p_camera->viewPlanePos,
 										   TileManager::INITIAL_DRAW_TILE_VERTS[drawTileSideIndex],
 										   TileManager::INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
 										   nullptr);
 			newTileOpacity = INITIAL_OPACITY;
-			if (p_tileManager->povTile.tile->neighborTilePtrs[sideIndex]->type != p_tileManager->povTile.tile->type) {
+			if (p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex)->type != p_tileManager->povTile.tile->type) {
 				newTileOpacity -= TileManager::DRAW_TILE_OPACITY_DECRIMENT_STEP;
 			}
-			if (edgeDist < 0.5f && p_tileManager->povTile.tile->neighborTilePtrs[sideIndex]->type != p_tileManager->povTile.tile->type) {
+			if (edgeDist < 0.5f && p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex)->type != p_tileManager->povTile.tile->type) {
 				newTileOpacity += (-((edgeDist * 2) - 1)) * 0.1f;
 			}
 
 			// Finally!  We can actually go onto drawing the next tile:
-			drawTiles(p_tileManager->povTile.tile->neighborTilePtrs[sideIndex], newTileVerts,
+			drawTiles(p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex), newTileVerts,
 					  newInitialSideIndex, newInitialTexIndex, newSideOffset,
 					  newFrustum, newPreviousSides, newTileOpacity);
 			//break;
@@ -391,7 +393,7 @@ public:
 		frustum[0] += (glm::vec2)p_camera->viewPlanePos;
 		frustum[1] += (glm::vec2)p_camera->viewPlanePos;
 		frustum[2] += (glm::vec2)p_camera->viewPlanePos;
-		cropTileToFrustum(croppedDrawTileVerts, croppedDrawTileTexCoords, frustum);
+		vechelp::cropTileToFrustum(croppedDrawTileVerts, croppedDrawTileTexCoords, frustum);
 		frustum[0] -= (glm::vec2)p_camera->viewPlanePos;
 		frustum[1] -= (glm::vec2)p_camera->viewPlanePos;
 		frustum[2] -= (glm::vec2)p_camera->viewPlanePos;
@@ -433,13 +435,13 @@ public:
 			// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
 			// tiles have the same winding, so no adjustment is necessary.  As the side index 
 			// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
-			if (tile->isNeighborConnectionsMirrored(sideIndex)) {
+			if (tile->is1stDegreeNeighborMirrored(sideIndex)) {
 				newSideOffset = (tileVertInfoOffset + 2) % 4;
 			}
 			else { // Current connection is unmirrored:
 				newSideOffset = tileVertInfoOffset;
 			}
-			newInitialSideIndex = (tile->getNeighborConnectedSideIndex(LocalDirection(sideIndex))
+			newInitialSideIndex = (tile->get1stDegreeNeighborConnectedSideIndex(LocalDirection(sideIndex))
 								   + TileManager::VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
 			newInitialTexIndex = newInitialSideIndex;
 			if (newSideOffset == 3) {
@@ -456,8 +458,8 @@ public:
 			float newTileOpacity = tileOpacity;
 			// We want a smooth transition from one tile opacity to another, so
 			// it should fade as you get closer to the next draw tile's edge:
-			if (tile->neighborTilePtrs[sideIndex]->type != tile->type) {
-				float edgeDist = distToLineSeg((glm::vec2)p_camera->viewPlanePos,
+			if (tile->getNeighbor(LocalDirection(sideIndex))->type != tile->type) {
+				float edgeDist = vechelp::distToLineSeg((glm::vec2)p_camera->viewPlanePos,
 											   drawTileVerts[drawTileSideIndex],
 											   drawTileVerts[(drawTileSideIndex + 1) % 4], nullptr);
 				if (edgeDist > 0.5) {
@@ -469,7 +471,7 @@ public:
 			}
 
 			// Finally!  We can actually go onto drawing the next tile:
-			drawTiles(tile->neighborTilePtrs[sideIndex], newTileVerts,
+			drawTiles(tile->getNeighbor(LocalDirection(sideIndex)), newTileVerts,
 					  newInitialSideIndex, newInitialTexIndex, newSideOffset,
 					  newFrustum, newPreviousSides, newTileOpacity);
 		}

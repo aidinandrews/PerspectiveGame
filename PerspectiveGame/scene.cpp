@@ -9,10 +9,10 @@ int pointIsSuperInsidePoly(glm::vec2 p, std::vector<glm::vec2>poly) {
 		glm::vec2 a = poly[i];
 		glm::vec2 b = poly[(i + 1) % poly.size()];
 
-		if (isLeftSpecific(p, a, b) == 0) {
+		if (vechelp::isLeftSpecific(p, a, b) == 0) {
 			return 0;
 		}
-		else if (isLeftSpecific(p, a, b) == -1) {
+		else if (vechelp::isLeftSpecific(p, a, b) == -1) {
 			return -1;
 		}
 	}
@@ -100,8 +100,8 @@ Scene::Scene(Camera* c, PortalManager* pm, ShaderManager* sm) {
 std::vector<glm::vec2> createStencil(glm::vec2 p1, glm::vec2 p2, Camera* camera, bool onLeft) {
 	glm::vec2 camPos = glm::vec2(camera->viewPlanePos);
 	camPos.y *= -1;
-	glm::vec2 p1Vec = rotate(2.0f * glm::normalize(p1 - camPos), -camera->yaw - (float)M_PI);
-	glm::vec2 p2Vec = rotate(2.0f * glm::normalize(p2 - camPos), -camera->yaw - (float)M_PI);
+	glm::vec2 p1Vec = vechelp::rotate(2.0f * glm::normalize(p1 - camPos), -camera->yaw - (float)M_PI);
+	glm::vec2 p2Vec = vechelp::rotate(2.0f * glm::normalize(p2 - camPos), -camera->yaw - (float)M_PI);
 	// Make sure that these vectors (in screen space) are proportional to the current window ratio:
 	float windowAdj = float(WindowSize.x) / float(WindowSize.y);
 	p1Vec.x /= windowAdj;
@@ -136,7 +136,10 @@ std::vector<glm::vec2> createStencil(glm::vec2 p1, glm::vec2 p2, Camera* camera,
 	return currentFrustum;
 }
 
-bool Scene::createPortalReference(PortalReference* pr, PortalReference parentPr) {
+bool Scene::createPortalReference(PortalReference* pr, PortalReference parentPr) 
+{
+	using namespace vechelp;
+
 	// Quick/visually necessary cull to see if the portal even needs to be drawn.  If neither posts 
 	// are inside the parent stencil, then there is not need to do any more work as it cannot be seen.
 	glm::vec2 postAScreenSpace = glm::vec2(p_camera->transfMatrix * parentPr.transf * glm::vec4(pr->portal->postA, 0, 1));
@@ -220,7 +223,7 @@ void Scene::fillPortalViewDrawInfos(Portal* unclePortal, PortalReference parentP
 		// Now that we are inside the parent, we dont want to try and draw it's sibling, or "Uncle," as
 		// it would lie on top of the parent portal, screwing up the visuals.
 		if (pr.portal != unclePortal) {
-			stencilDrawInfos.push_back(StencilDrawInfo(pr.stencil, frameStencilVal, randColor()));
+			stencilDrawInfos.push_back(StencilDrawInfo(pr.stencil, frameStencilVal, vechelp::randColor()));
 
 			portalViewDrawInfos.push_back(PortalViewDrawInfo(pr.transf, frameStencilVal,
 				totalZoom * pr.portal->siblingScaleDif, std::min(pr.tintAmount, 1.0f)));

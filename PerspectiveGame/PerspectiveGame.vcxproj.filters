@@ -168,7 +168,7 @@
     <ClInclude Include="scenarioSetup.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
-    <ClInclude Include="nextEntityInfo1.h">
+    <ClInclude Include="entityNavigation.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
   </ItemGroup>
@@ -260,7 +260,7 @@
     <ClCompile Include="tileInternals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nextEntityInfo1.cpp">
+    <ClCompile Include="entityNavigation.cpp">
       <Filter>Source Files\World</Filter>
     </ClCompile>
   </ItemGroup>

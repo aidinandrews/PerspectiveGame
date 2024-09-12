@@ -151,7 +151,11 @@ public: // MEMBER FUNCTIONS:
 	
 	// In the creation of a tile, it needs to be connected to it's neighbors so that things can move from
 	// one tile to another.
-	void connectUpNewTile(Tile *newTile);
+	void updateAdjacentNeighborConnections(Tile *tile);
+
+	// Assumes that adjacent neighbors are correct, finds and connects the 8 possible diagonal neighbors.
+	void updateDiagonalNeighborConnections(Tile* tile, std::vector<Tile*>& affectedTiles);
+	void updateDiagonalNeighborConnections(Tile* tile);
 	
 	// Tries to connect the subject tile to the other tile.
 	// Returns false if the tiles cannot connect.

@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <glm/glm.hpp>
 
 #define NO_ENTITY_INDEX -1
 #define NO_TILE_INDEX -1
@@ -155,9 +156,7 @@ enum GlobalAlignment {
 
 namespace tnav { // tnav is short for 'tile navigation'
 
-#ifdef RUNNING_DEBUG
 	void checkOrthogonal(LocalAlignment alignment);
-#endif
 	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
 	GlobalAlignment localToGlobalDir(TileType type, LocalDirection direction);
@@ -175,11 +174,16 @@ namespace tnav { // tnav is short for 'tile navigation'
 	
 	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
 	
+#define ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY 0
 	const LocalAlignment getMappedAlignment(int mapIndex, LocalAlignment currentAlignment);
 
-	int getNeighborAlignmentMapIndex(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
+	int getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
 	LocalAlignment alignmentToNeighborAlignmentMap(LocalDirection leavingDirection, LocalAlignment currentAlignment);
+
+	const int combineAlignmentMappings(int alignmentMapIndex0, int alignmentMapIndex1);
+
+	const int inverseAlignmentMapIndex(int alignmentMapIndex);
 
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 
@@ -206,5 +210,27 @@ namespace tnav { // tnav is short for 'tile navigation'
 	const uint8_t getDirectionFlag(LocalDirection direction);
 	const LocalDirection getDirection(uint8_t directionFlag);
 
+	// Converts a Tile::Type to a TileSubType.
+	const TileType getTileType(SuperTileType tileType, bool isFront);
 
+	// Given four vertices that will make up a tile, returns that potential tile's type.
+	const SuperTileType getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
+
+	const SuperTileType getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
+	
+	const SuperTileType getSuperTileType(TileType type);
+
+	// Returns the 'opposite' TileSubType.  Front gets changed to back.
+	// Ex: TILE_SUB_TYPE_XY_FRONT -> TILE_SUB_TYPE_XY_BACK
+	const TileType inverseTileType(TileType type);
+
+	// Given a tile type and a direciton, will return a pointer to a list of 4 tile types that
+	// describe the possible connectable tile types of any connected tile.
+	const TileType getConnectableTileType(TileType type, int orthogonalSide, int i);
+
+	// Given a tile type and a direciton, will return a pointer to a list of 4 vec3 offsets that
+	// describe the possible max points of any connected tile.
+	const glm::ivec3 getConnectableTileOffset(TileType type, int orthogonalSide, int i);
+
+	const int getTileVisibility(TileType subjetTileType, LocalDirection orthoSide, TileType otherTileType);
 }

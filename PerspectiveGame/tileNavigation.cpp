@@ -1,11 +1,9 @@
 #include "tileNavigation.h"
 
-#ifdef RUNNING_DEBUG
 void tnav::checkOrthogonal(LocalAlignment alignment)
 {
 	if (alignment > 3) std::cout << "ORTHOGONAL ALIGNMENT EXPECTED BUT NOT RESPECTED!" << std::endl;
 }
-#endif
 
 // Given a [tile type] and a [meta alignment], will return the matching local alignment:
 const LocalAlignment META_TO_LOCAL_ALIGNMENT[6][19] = {
@@ -89,7 +87,7 @@ const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
 #define CEN LOCAL_POSITION_CENTER
 #define XXX LOCAL_DIRECTION_ERROR
 	{ XXX, _01, CEN, _30, XXX, _1_, _3_, XXX },
-	{ _01, XXX, _2_, _3_, XXX, XXX, _2_, _0_ },
+	{ _01, XXX, _12, _3_, XXX, XXX, _2_, _0_ },
 	{ CEN, _12, XXX, _23, _1_, XXX, XXX, _3_ },
 	{ _30, CEN, _23, XXX, _0_, _2_, XXX, XXX },
 	{ XXX, XXX, _1_, _0_, XXX, XXX, CEN, XXX },
@@ -414,11 +412,156 @@ const int NEIGHBOR_ALIGNMENT_MAP_INDICES[4][4] = {
 // I have no idea why you dont have to account for the different starting tile types.  
 // They all come out to the same map indices somehow!  
 // 6x size decreas maybe due to the layout of edge indices on different tile types being a nice pattern?
-int tnav::getNeighborAlignmentMapIndex(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
+int tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
 {
 #ifdef RUNNING_DEBUG
 	checkOrthogonal(connectedCurrentTileEdgeIndex);
 	checkOrthogonal(connectedNeighborEdgeIndex);
 #endif
 	return NEIGHBOR_ALIGNMENT_MAP_INDICES[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
+}
+
+// ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
+const int ALIGNMENT_MAP_COMBINATIONS[8][8] = {
+	{ 0, 1, 2, 3, 7, 4, 5, 6 },
+	{ 1, 2, 3, 0, 6, 7, 4, 5 },
+	{ 2, 3, 0, 1, 5, 6, 7, 4 },
+	{ 3, 0, 1, 2, 4, 5, 6, 7 },
+	{ 4, 5, 6, 7, 0, 1, 2, 3 },
+	{ 5, 6, 7, 4, 3, 0, 1, 2 },
+	{ 6, 7, 4, 5, 2, 3, 0, 1 },
+	{ 7, 4, 5, 6, 1, 2, 3, 0 }
+};
+
+const int tnav:: combineAlignmentMappings(int alignmentMapIndex0, int alignmentMapIndex1)
+{
+	return ALIGNMENT_MAP_COMBINATIONS[alignmentMapIndex0][alignmentMapIndex1];
+}
+
+const int tnav::inverseAlignmentMapIndex(int alignmentMapIndex)
+{
+	switch (alignmentMapIndex) {
+	case 0: return 0;
+	case 1: return 3;
+	case 2: return 2;
+	case 3: return 1;
+	case 4: return 4;
+	case 5: return 5;
+	case 6: return 6;
+	case 7: return 7;
+	default: std::runtime_error("INVALID ALIGNMENT MAP INDEX IN GIVEN TO inverseAlignmentMapIndex()");
+	}
+}
+
+const SuperTileType tnav::getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3)
+{
+	if (tileVert1.z == tileVert2.z && tileVert1.z == tileVert3.z) { return TILE_TYPE_XY; }
+	else if (tileVert1.y == tileVert2.y && tileVert1.y == tileVert3.y) { return TILE_TYPE_XZ; }
+	else /* tileVert1.x == tileVert2.x == tileVert3.x*/ { return TILE_TYPE_YZ; }
+}
+
+const SuperTileType tnav::getSuperTileType(TileType type)
+{
+	return SuperTileType(type / 2);
+}
+
+const TileType tnav::getTileType(SuperTileType tileType, bool isFront)
+{
+	return TileType(int(tileType) * 2 + int(!isFront));
+}
+
+const TileType tnav::inverseTileType(TileType type)
+{
+	switch (type) {
+	case TILE_TYPE_XYF: return TILE_TYPE_XYB;
+	case TILE_TYPE_XYB: return TILE_TYPE_XYF;
+	case TILE_TYPE_XZF: return TILE_TYPE_XZB;
+	case TILE_TYPE_XZB: return TILE_TYPE_XZF;
+	case TILE_TYPE_YZF: return TILE_TYPE_YZB;
+	default: return TILE_TYPE_YZF; // This is either TILE_TYPE_YZ_BACK or you and/or I fucked up.	
+	}
+}
+
+// [tile type][side index][connectable tile type (result)]
+// Follows same type, N type, M type, inverse type for the last dimension!
+const TileType CONNECTABLE_TILE_TYPES[6][4][4] = {
+#define XYF TILE_TYPE_XYF
+#define XYB TILE_TYPE_XYB
+#define XZF TILE_TYPE_XZF
+#define XZB TILE_TYPE_XZB
+#define YZF TILE_TYPE_YZF
+#define YZB TILE_TYPE_YZB
+	{ { XYF, YZF, YZB, XYB }, { XYF, XZF, XZB, XYB }, { XYF, YZF, YZB, XYB }, { XYF, XZF, XZB, XYB } },
+	{ { XYB, YZF, YZB, XYF }, { XYB, XZF, XZB, XYF }, { XYB, YZF, YZB, XYF }, { XYB, XZF, XZB, XYF } },
+	{ { XZF, XYF, XYB, XZB }, { XZF, YZF, YZB, XZB }, { XZF, XYF, XYB, XZB }, { XZF, YZF, YZB, XZB } },
+	{ { XZB, XYF, XYB, XZF }, { XZB, YZF, YZB, XZF }, { XZB, XYF, XYB, XZF }, { XZB, YZF, YZB, XZF } },
+	{ { YZF, XZF, XZB, YZB }, { YZF, XYF, XYB, YZB }, { YZF, XZF, XZB, YZB }, { YZF, XYF, XYB, YZB } },
+	{ { YZB, XZF, XZB, YZF }, { YZB, XYF, XYB, YZF }, { YZB, XZF, XZB, YZF }, { YZB, XYF, XYB, YZF } }
+#undef XYF
+#undef XYB
+#undef XZF
+#undef XZB
+#undef YZF
+#undef YZB
+};
+
+const TileType tnav::getConnectableTileType(TileType type, int orthogonalSide, int i)
+{
+	return CONNECTABLE_TILE_TYPES[type][orthogonalSide][i];
+}
+
+
+
+// [tile type][side index][offset to connectable tile type (result)]
+// Follows { same type, N type, M type, inverse type } for the last dimension!
+const glm::ivec3 CONNECTABLE_TILE_OFFSET[6][4][4] = {
+#define v glm::ivec3
+{	{ v(+1, +0, +0), v(+0, +0, +0), v(+0, +0, +1), v(0) }, // XYF
+	{ v(+0, -1, +0), v(+0, -1, +1), v(+0, -1, +0), v(0) },
+	{ v(-1, +0, +0), v(-1, +0, +1), v(-1, +0, +0), v(0) },
+	{ v(+0, +1, +0), v(+0, +0, +0), v(+0, +0, +1), v(0) },
+},{ { v(+1, +0, +0), v(+0, +0, +1), v(+0, +0, +0), v(0) }, // XYB
+	{ v(+0, -1, +0), v(+0, -1, +0), v(+0, -1, +1), v(0) },
+	{ v(-1, +0, +0), v(-1, +0, +0), v(-1, +0, +1), v(0) },
+	{ v(+0, +1, +0), v(+0, +0, +1), v(+0, +0, +0), v(0) },
+},{ { v(+0, +0, +1), v(+0, +0, +0), v(+0, +1, +0), v(0) }, // XZF
+	{ v(-1, +0, +0), v(-1, +1, +0), v(-1, +0, +0), v(0) },
+	{ v(+0, +0, -1), v(+0, +1, -1), v(+0, +0, -1), v(0) },
+	{ v(+1, +0, +0), v(+0, +0, +0), v(+0, +1, +0), v(0) },
+},{ { v(+0, +0, +1), v(-1, +0, +0), v(-1, +0, +0), v(0) }, // XZB
+	{ v(-1, +1, +0), v(+0, +0, -1), v(+0, +0, -1), v(0) },
+	{ v(+0, +1, -1), v(+1, +0, +0), v(+0, +1, +0), v(0) },
+	{ v(+0, +0, +0), v(+0, +1, +0), v(+0, +0, +0), v(0) },
+},{ { v(+1, +0, +0), v(+0, +0, -1), v(+1, +0, -1), v(0) }, // YZF
+	{ v(+0, +0, -1), v(+0, +1, +0), v(+0, +0, +0), v(0) },
+	{ v(+0, -1, +0), v(+1, -1, +0), v(+0, -1, +0), v(0) },
+	{ v(+0, +0, +1), v(+0, +0, +0), v(+1, +0, +0), v(0) },
+},{ { v(+0, +1, +0), v(+1, +0, +0), v(+0, +0, +0), v(0) }, // YZB
+	{ v(+0, +0, -1), v(+0, +0, -1), v(+1, +0, -1), v(0) },
+	{ v(+0, -1, +0), v(+0, -1, +0), v(+1, -1, +0), v(0) },
+	{ v(+0, +0, +1), v(+1, +0, +0), v(+0, +0, +0), v(0) }, 
+}
+#undef v
+};
+
+const glm::ivec3 tnav::getConnectableTileOffset(TileType type, int orthogonalSide, int i)
+{
+	return CONNECTABLE_TILE_OFFSET[type][orthogonalSide][i];
+}
+
+// Returns an integer from 0 (never visible) to 4 (most visible) when comparing two tile subtypes 
+// from the perspective of a certain side.  Make sure to input into the array as follows:
+// TILE_VISIBILITY[SUBJECT TILE SUB TYPE][SUBJECT TILE SIDE INDEX][COMPARE TILE SUB TYPE]
+const int TILE_VISIBILITY[6][4][6] = {
+	{ { 3, 1, 0, 0, 2, 4 }, { 3, 1, 4, 2, 0, 0 }, { 3, 1, 0, 0, 4, 2 }, { 3, 1, 2, 4, 0, 0 } }, // XYF
+	{ { 1, 3, 0, 0, 2, 4 }, { 1, 3, 4, 2, 0, 0 }, { 1, 3, 0, 0, 4, 2 }, { 1, 3, 2, 4, 0, 0 } }, // XYB
+	{ { 2, 4, 3, 1, 0, 0 }, { 0, 0, 3, 1, 4, 2 }, { 4, 2, 3, 1, 0, 0 }, { 0, 0, 3, 1, 2, 4 } }, // XZF
+	{ { 2, 4, 1, 3, 0, 0 }, { 0, 0, 1, 3, 4, 2 }, { 4, 2, 1, 3, 0, 0 }, { 0, 0, 1, 3, 2, 4 } }, // XZB
+	{ { 0, 0, 2, 4, 3, 1 }, { 4, 2, 0, 0, 3, 1 }, { 0, 0, 4, 2, 3, 1 }, { 2, 4, 0, 0, 3, 1 } }, // YZF
+	{ { 0, 0, 2, 4, 1, 3 }, { 4, 2, 0, 0, 1, 3 }, { 0, 0, 4, 2, 1, 3 }, { 2, 4, 0, 0, 1, 3 } }  // YZB
+};
+
+const int tnav::getTileVisibility(TileType subjetTileType, LocalDirection orthoSide, TileType otherTileType)
+{
+	return TILE_VISIBILITY[subjetTileType][orthoSide][otherTileType];
 }

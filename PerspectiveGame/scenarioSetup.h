@@ -83,6 +83,28 @@ void setupCollisionScenario4(TileManager* tm, EntityManager* em, CurrentSelectio
 	std::cout << "Scenario setup: Direct orthogonal collision from edge positions." << std::endl;
 }
 
+void setupCollisionScenario5(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+{
+	clearWorld(tm, em);
+	create4x4TileGrid(tm);
+	em->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3_0, LOCAL_ORIENTATION_0);
+	em->createEntity(16, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_2, LOCAL_ORIENTATION_0);
+	std::cout << "Scenario setup: Direct orthogonal collision from edge positions." << std::endl;
+}
+
+void setupCollisionScenario6(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+{
+	clearWorld(tm, em);
+	create4x4TileGrid(tm);
+	//em->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_3_0, LOCAL_ORIENTATION_0);
+	em->createEntity(6, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0_1, LOCAL_ORIENTATION_0);
+	em->createEntity(24, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_2_3, LOCAL_ORIENTATION_0);
+	em->createEntity(30, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_1_2, LOCAL_ORIENTATION_0);
+	//em->createEntity(0, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, LOCAL_ORIENTATION_0);
+	//em->createEntity(8, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0_1, LOCAL_ORIENTATION_0);
+	std::cout << "Scenario setup: Direct orthogonal collision from edge positions." << std::endl;
+}
+
 void setupTestScenario(int scenarioID, TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	switch (scenarioID) {
