@@ -30,6 +30,7 @@
 #include "frameBuffer.h"
 #include "tileNavigation.h"
 #include "tileInternals.h"
+#include "metaPositionNodeManager.h"
 
 struct TileManager;
 

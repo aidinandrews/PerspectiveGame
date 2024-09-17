@@ -29,7 +29,7 @@ void clearWorld(TileManager* tm, EntityManager* em)
 	std::cout <<"num tiles after delete: " << tm->tiles.size() << std::endl;
 }
 
-void setupCollisionScenario0(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+void fullContactDirectCollision(TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	clearWorld(tm, em);
 	create4x4TileGrid(tm);
@@ -38,7 +38,7 @@ void setupCollisionScenario0(TileManager* tm, EntityManager* em, CurrentSelectio
 	std::cout << "Scenario setup: Direct orthogonal collision from center positions." << std::endl;
 }
 
-void setupScenarioDirectStaticOrthogonalCollisionFromCenter(TileManager* tm,EntityManager* em, CurrentSelection* cs)
+void fullContactDirectCollisionOnStatic(TileManager* tm,EntityManager* em, CurrentSelection* cs)
 {
 	clearWorld(tm, em);
 	create4x4TileGrid(tm);
@@ -47,7 +47,7 @@ void setupScenarioDirectStaticOrthogonalCollisionFromCenter(TileManager* tm,Enti
 	std::cout << "Scenario setup: Direct orthogonal collision with static entity from center positions." << std::endl;
 }
 
-void setupScenarioSideOrthogonalCollisionFromCenter(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+void fullContactTCollision(TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	clearWorld(tm, em);
 	create4x4TileGrid(tm);
@@ -112,16 +112,16 @@ void setupTestScenario(int scenarioID, TileManager* tm, EntityManager* em, Curre
 		setupCollisionScenario4(tm, em, cs);
 		break;
 	case 1: 
-		setupScenarioDirectStaticOrthogonalCollisionFromCenter(tm, em, cs); 
+		fullContactDirectCollisionOnStatic(tm, em, cs); 
 		break;
 	case 2: 
-		setupScenarioSideOrthogonalCollisionFromCenter(tm, em, cs); 
+		fullContactTCollision(tm, em, cs); 
 		break;
 	case 3: 
 		setupScenarioCornerCollisionFromCenter(tm, em, cs); 
 		break;
 	case 4: 
-		setupCollisionScenario0(tm, em, cs);
+		fullContactDirectCollision(tm, em, cs);
 		break;
 	default: 
 		clearWorld(tm, em); create4x4TileGrid(tm); 

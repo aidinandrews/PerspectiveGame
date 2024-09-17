@@ -60,6 +60,7 @@ struct App {
 	EntityManager* p_entityManager;
 	CurrentSelection* p_currentSelection;
 	BasisManager* p_basisManager;
+	MetaPositionNodeManager metaNodeManager;
 
 	App() {}
 
@@ -109,7 +110,7 @@ struct App {
 
 		p_buttonManager = new ButtonManager(&framebuffer, &shaderManager, window.window, &inputManager);
 
-		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager);
+		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, &metaNodeManager);
 		p_tileManager->texID = p_wave->ID;
 
 		p_forceManager = new ForceManager(p_tileManager);
@@ -143,7 +144,7 @@ struct App {
 
 	void setupWorld()
 	{
-		setupScenarioCornerCollisionFromCenter(p_tileManager, p_entityManager, p_currentSelection);
+		setupScenarioDirectCollisionFromEdge(p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()

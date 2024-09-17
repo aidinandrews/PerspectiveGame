@@ -263,6 +263,9 @@
     <ClCompile Include="entityNavigation.cpp">
       <Filter>Source Files\World</Filter>
     </ClCompile>
+    <ClCompile Include="metaPositionNodeManager.h">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\3D3rdPersonPOV.frag">

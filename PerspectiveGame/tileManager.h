@@ -24,6 +24,7 @@
 #include"vertexManager.h"
 #include"frameBuffer.h"
 #include"tile.h"
+#include "metaPositionNodeManager.h"
 
 struct TileManager {
 
@@ -48,6 +49,7 @@ public:
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
+	MetaPositionNodeManager* p_metaNodeManager;
 
 	std::vector<Tile*> tiles;
 	std::vector<GPU_TileInfo> tileGpuInfos;
@@ -75,12 +77,12 @@ public:
 
 public: // INITIALIZERS:
 
-	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window, Framebuffer* framebuffer, ButtonManager* bm, InputManager* im) {
+	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window, Framebuffer* framebuffer, 
+				ButtonManager* bm, InputManager* im, MetaPositionNodeManager* nm) {
 
 		currentpovTileTransf = glm::mat4(1);
 		lastpovTileTransf = glm::mat4(1);
 		lerpCamPosOffset = glm::vec3(0);
-
 
 		p_camera = camera;
 		p_shaderManager = shaderManager;
@@ -88,6 +90,7 @@ public: // INITIALIZERS:
 		p_framebuffer = framebuffer;
 		p_buttonManager = bm;
 		p_inputManager = im;
+		p_metaNodeManager = nm;
 
 		// make sure the camera is in the middle of the starting draw tile:
 		p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);

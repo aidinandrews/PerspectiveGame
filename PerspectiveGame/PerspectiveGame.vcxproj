@@ -232,6 +232,7 @@
     <ClCompile Include="inputManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="entityNavigation.cpp" />
+    <ClCompile Include="metaPositionNodeManager.h" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="textureManager.cpp" />

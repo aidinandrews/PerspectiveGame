@@ -65,6 +65,7 @@ public:
 
 	std::vector<enav::EntityEditDirectionInfo> componentsToAdd;
 	std::vector<enav::EntityEditDirectionInfo> componentsToRemove;
+	std::vector<EntityAndTileInfoSwap> entityAndTileInfosToSwap;
 
 	// This vector eeps track of the number of entities in each tile (Max 9).
 	// It is used when updating the tile GPU info structs.
@@ -97,6 +98,31 @@ public:
 	// collision detection steps!
 	void removeTileInfoLeavings();
 
+	void getSideOtherInfo(enav::EntityEditDirectionInfo editInfo, Tile* tile, int& neighborInfoIndex, LocalDirection& neighborComponent)
+	{
+		LocalDirection toNeighbor = editInfo.position;
+		Tile* neighbor = tile->getNeighbor(toNeighbor);
+		LocalPosition neighborPosition = tile->mapAlignmentTo1stDegreeNeighbor(toNeighbor, tnav::oppositeAlignment(toNeighbor));
+		neighborInfoIndex = neighbor->entityInfoIndices[neighborPosition];
+		neighborComponent = tile->mapAlignmentTo1stDegreeNeighbor(toNeighbor, editInfo.componentToEdit);
+	}
+
+	void removeOtherDirComponentSide(enav::EntityEditDirectionInfo removeInfo, Tile* tile, Entity* entity)
+	{
+		int neighborInfoIndex; LocalDirection neighborComponent;
+		getSideOtherInfo(removeInfo, tile, neighborInfoIndex, neighborComponent);
+		entity->removeDirectionFlag(neighborInfoIndex, tnav::getDirectionFlag(neighborComponent));
+		entity->setDirection(neighborInfoIndex, tnav::getDirection(entity->getDirectionFlag(neighborInfoIndex)));
+	}
+
+	void addOtherDirComponentSide(enav::EntityEditDirectionInfo addInfo, Tile* tile, Entity* entity)
+	{
+		int neighborInfoIndex; LocalDirection neighborComponent;
+		getSideOtherInfo(addInfo, tile, neighborInfoIndex, neighborComponent);
+		entity->addDirectionFlag(neighborInfoIndex, tnav::getDirectionFlag(neighborComponent));
+		entity->setDirection(neighborInfoIndex, tnav::getDirection(entity->getDirectionFlag(neighborInfoIndex)));
+	}
+
 	// At the end of each collision solving step, all the adjustments to the entity directions have to be
 	// finalized.  They are not immediately finalized on discovery of a collision in case there is more than
 	// one collision associated with an entity, and changing its direction would cause the other collision to
@@ -109,18 +135,18 @@ public:
 			Entity* entity = &entities[tile->entityIndices[removeInfo.position]];
 			int infoIndex = tile->entityInfoIndices[removeInfo.position];
 
+			entity->removeDirectionFlag(infoIndex, tnav::getDirectionFlag(removeInfo.componentToEdit));
+			entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
+
 			switch (removeInfo.position) {
-			case LOCAL_POSITION_0:
-			case LOCAL_POSITION_1:
-			case LOCAL_POSITION_2:
-			case LOCAL_POSITION_3:
+			case LOCAL_POSITION_0: removeOtherDirComponentSide(removeInfo, tile, entity); continue;
+			case LOCAL_POSITION_1: removeOtherDirComponentSide(removeInfo, tile, entity); continue;
+			case LOCAL_POSITION_2: removeOtherDirComponentSide(removeInfo, tile, entity); continue;
+			case LOCAL_POSITION_3: removeOtherDirComponentSide(removeInfo, tile, entity); continue;
 			case LOCAL_POSITION_0_1:
 			case LOCAL_POSITION_1_2:
 			case LOCAL_POSITION_2_3:
 			case LOCAL_POSITION_3_0:
-			case LOCAL_POSITION_CENTER:
-				entity->removeDirectionFlag(infoIndex, tnav::getDirectionFlag(removeInfo.componentToEdit));
-				entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
 				continue;
 			}
 		}
@@ -129,23 +155,37 @@ public:
 			Entity* entity = &entities[tile->entityIndices[addInfo.position]];
 			int infoIndex = tile->entityInfoIndices[addInfo.position];
 
+			entity->addDirectionFlag(infoIndex, tnav::getDirectionFlag(addInfo.componentToEdit));
+			entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
+			
 			switch (addInfo.position) {
-			case LOCAL_POSITION_0:
-			case LOCAL_POSITION_1:
-			case LOCAL_POSITION_2:
-			case LOCAL_POSITION_3:
+			case LOCAL_POSITION_0: addOtherDirComponentSide(addInfo, tile, entity); continue;
+			case LOCAL_POSITION_1: addOtherDirComponentSide(addInfo, tile, entity); continue;
+			case LOCAL_POSITION_2: addOtherDirComponentSide(addInfo, tile, entity); continue;
+			case LOCAL_POSITION_3: addOtherDirComponentSide(addInfo, tile, entity); continue;
 			case LOCAL_POSITION_0_1:
 			case LOCAL_POSITION_1_2:
 			case LOCAL_POSITION_2_3:
-			case LOCAL_POSITION_3_0:
-			case LOCAL_POSITION_CENTER:
-				entity->addDirectionFlag(infoIndex, tnav::getDirectionFlag(addInfo.componentToEdit));
-				entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
-				continue;
+			case LOCAL_POSITION_3_0: continue;
 			}
+		}
+		for (EntityAndTileInfoSwap s : entityAndTileInfosToSwap) {
+			Entity* e = &entities[s.entityIndex];
+
+			Tile* tile0 = p_tileManager->tiles[e->getTileIndex(s.entityInfoIndex0)];
+			int pos0 = e->getPosition(s.entityInfoIndex0);
+			tile0->entityInfoIndices[pos0] = s.entityInfoIndex1;
+
+			Tile* tile1 = p_tileManager->tiles[e->getTileIndex(s.entityInfoIndex1)];
+			int pos1 = e->getPosition(s.entityInfoIndex1);
+			tile1->entityInfoIndices[pos1] = s.entityInfoIndex0;
+
+			e->swapTileInfos(s.entityInfoIndex0, s.entityInfoIndex1);
 		}
 		componentsToRemove.clear();
 		componentsToAdd.clear();
+		entityAndTileInfosToSwap.clear();
+
 		/*for (EntityDirectionComponentRemoval sub : entityDirComponentsToRemove) {
 			Entity* e = &entities[sub.entityIndex];
 			e->removeDirectionFlag(sub.entityInfoIndex, sub.componentToRemove);
@@ -350,6 +390,7 @@ public:
 				// There is a collision!
 				componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, colliderPosition, heading));
 				componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, position, heading));
+				entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(collider->index, 0, 1));
 				return;
 			}
 		}
