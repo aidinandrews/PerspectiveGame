@@ -4,60 +4,50 @@
 
 #include "tileNavigation.h"
 #include "tile.h"
+#include "entity.h"
 
 namespace enav {
 
 	struct EntityEditDirectionInfo {
-		struct Center {
-			int tileIndex;
-			LocalPosition position;
-			LocalDirection componentToEdit;
-		};
-		struct Side {
-			int tileIndices[2];
-			LocalPosition positions[2];
-			int alignmentMapIndex;
-			LocalDirection componentToEdit;
-		};
-		struct Corner {
-			int tileIndices[4];
-			LocalPosition positions[4];
-			int alignmentMapIndices[3];
-			LocalDirection componentToEdit;
-		};
+		int tileIndex;
+		LocalPosition position;
+		LocalDirection componentToEdit;
+
+		EntityEditDirectionInfo(int tileIndex, LocalPosition position, LocalDirection componentToEdit) :
+			tileIndex(tileIndex), position(position), componentToEdit(componentToEdit)
+		{}
 	};
 
 	struct OrthogonalEntityCollisionInfo {
 		int entityIndex;
 		int entityInfoIndex;
-		LocalDirection equivelantDirection;
-		LocalDirection cornerDirectionOfCollision;
+		LocalDirection componentToEdit;
 
 		OrthogonalEntityCollisionInfo()
 		{
 			entityIndex = -1;
 			entityInfoIndex = -1;
-			equivelantDirection = LOCAL_DIRECTION_ERROR;
+			componentToEdit = LOCAL_DIRECTION_ERROR;
 		}
-		OrthogonalEntityCollisionInfo(int entityIndex, int entityInfoIndex, LocalDirection equivelantDirection) :
-			entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), equivelantDirection(equivelantDirection)
+		OrthogonalEntityCollisionInfo(int entityIndex, int entityInfoIndex, LocalDirection componentToEdit) :
+			entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), componentToEdit(componentToEdit)
 		{}
 	};
 	struct DiagonalEntityCollisionInfo {
 		int entityIndex;
 		int entityInfoIndex;
-		LocalDirection equivelantDirection;
+		LocalDirection componentToEdit;
 		LocalDirection cornerDirectionOfCollision;
 
 		DiagonalEntityCollisionInfo()
 		{
 			entityIndex = -1;
 			entityInfoIndex = -1;
-			equivelantDirection = LOCAL_DIRECTION_ERROR;
+			componentToEdit = LOCAL_DIRECTION_ERROR;
 			cornerDirectionOfCollision = LOCAL_DIRECTION_ERROR;
 		}
-		DiagonalEntityCollisionInfo(int entityIndex, int entityInfoIndex, LocalDirection equivelantDirection, LocalDirection cornerDirectionOfCollision) :
-			entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), equivelantDirection(equivelantDirection), cornerDirectionOfCollision(cornerDirectionOfCollision)
+		DiagonalEntityCollisionInfo(int entityIndex, int entityInfoIndex, LocalDirection componentToEdit, LocalDirection cornerDirectionOfCollision) :
+			entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), componentToEdit(componentToEdit), cornerDirectionOfCollision(cornerDirectionOfCollision)
 		{}
 	};
 
@@ -67,8 +57,8 @@ namespace enav {
 	//     NOTE: Smaller n is easier to calculate.
 
 	OrthogonalEntityCollisionInfo getEntityInfoCenterToDirect(Tile* tile, LocalDirection direction);
-	/* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetA1(Tile* tile, LocalDirection direction);
-	/* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetB1(Tile* tile, LocalDirection direction);
+	///* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetA1(Tile* tile, LocalDirection direction);
+	///* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetB1(Tile* tile, LocalDirection direction);
 	/* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetA2(Tile* tile, LocalDirection direction);
 	/* USELESS FOR COLLISIONS! */ OrthogonalEntityCollisionInfo getEntityInfoCenterToOffsetB2(Tile* tile, LocalDirection direction);
 	DiagonalEntityCollisionInfo getEntityInfoCenterToCornerA(Tile* tile, LocalDirection direction);

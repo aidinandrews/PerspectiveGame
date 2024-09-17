@@ -31,8 +31,8 @@ struct EntityDirectionComponentAddition {
 	int entityIndex;
 	int entityInfoIndex;
 	uint8_t componentToAdd;
-	EntityDirectionComponentAddition(int index, int infoIndex, uint8_t component) :
-		entityIndex(index), entityInfoIndex(infoIndex), componentToAdd(component)
+	EntityDirectionComponentAddition(int entityIndex, int entityInfoIndex, uint8_t component) :
+		entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), componentToAdd(component)
 	{}
 };
 
@@ -62,10 +62,9 @@ public:
 	TileManager* p_tileManager;
 
 	std::vector<Entity> entities;
-	std::vector<EntityCollisionInfo> entityCollisionInfos;
-	std::vector<EntityDirectionComponentRemoval> entityDirComponentsToRemove;
-	std::vector<EntityDirectionComponentAddition> entityDirComponentsToAdd;
-	std::vector<EntityAndTileInfoSwap> entityAndTileInfosToSwap;
+
+	std::vector<enav::EntityEditDirectionInfo> componentsToAdd;
+	std::vector<enav::EntityEditDirectionInfo> componentsToRemove;
 
 	// This vector eeps track of the number of entities in each tile (Max 9).
 	// It is used when updating the tile GPU info structs.
@@ -105,7 +104,49 @@ public:
 	// is no good!
 	void updateEntityLocalDirectionComponents()
 	{
-		for (EntityDirectionComponentRemoval sub : entityDirComponentsToRemove) {
+		for (enav::EntityEditDirectionInfo removeInfo : componentsToRemove) {
+			Tile* tile = p_tileManager->tiles[removeInfo.tileIndex];
+			Entity* entity = &entities[tile->entityIndices[removeInfo.position]];
+			int infoIndex = tile->entityInfoIndices[removeInfo.position];
+
+			switch (removeInfo.position) {
+			case LOCAL_POSITION_0:
+			case LOCAL_POSITION_1:
+			case LOCAL_POSITION_2:
+			case LOCAL_POSITION_3:
+			case LOCAL_POSITION_0_1:
+			case LOCAL_POSITION_1_2:
+			case LOCAL_POSITION_2_3:
+			case LOCAL_POSITION_3_0:
+			case LOCAL_POSITION_CENTER:
+				entity->removeDirectionFlag(infoIndex, tnav::getDirectionFlag(removeInfo.componentToEdit));
+				entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
+				continue;
+			}
+		}
+		for (enav::EntityEditDirectionInfo addInfo : componentsToAdd) {
+			Tile* tile = p_tileManager->tiles[addInfo.tileIndex];
+			Entity* entity = &entities[tile->entityIndices[addInfo.position]];
+			int infoIndex = tile->entityInfoIndices[addInfo.position];
+
+			switch (addInfo.position) {
+			case LOCAL_POSITION_0:
+			case LOCAL_POSITION_1:
+			case LOCAL_POSITION_2:
+			case LOCAL_POSITION_3:
+			case LOCAL_POSITION_0_1:
+			case LOCAL_POSITION_1_2:
+			case LOCAL_POSITION_2_3:
+			case LOCAL_POSITION_3_0:
+			case LOCAL_POSITION_CENTER:
+				entity->addDirectionFlag(infoIndex, tnav::getDirectionFlag(addInfo.componentToEdit));
+				entity->setDirection(infoIndex, tnav::getDirection(entity->getDirectionFlag(infoIndex)));
+				continue;
+			}
+		}
+		componentsToRemove.clear();
+		componentsToAdd.clear();
+		/*for (EntityDirectionComponentRemoval sub : entityDirComponentsToRemove) {
 			Entity* e = &entities[sub.entityIndex];
 			e->removeDirectionFlag(sub.entityInfoIndex, sub.componentToRemove);
 			e->setDirection(sub.entityInfoIndex, tnav::getDirection(e->getDirectionFlag(sub.entityInfoIndex)));
@@ -130,10 +171,10 @@ public:
 		}
 		entityDirComponentsToRemove.clear();
 		entityDirComponentsToAdd.clear();
-		entityAndTileInfosToSwap.clear();
+		entityAndTileInfosToSwap.clear();*/
 	}
 
-	bool tryAddDirectionComponent(Entity* entity, enav::OrthogonalEntityCollisionInfo* info)
+	/*bool tryAddDirectionComponent(Entity* entity, enav::OrthogonalEntityCollisionInfo* info)
 	{
 		if (info->entityIndex == -1) {
 			return false;
@@ -141,14 +182,14 @@ public:
 
 		Entity* collidingEntity = &entities[info->entityIndex];
 		LocalDirection collidingEntityDir = collidingEntity->getDirection(info->entityInfoIndex);
-		bool noCollision = tnav::alignmentHasComponent(collidingEntityDir, info->equivelantDirection);
+		bool noCollision = tnav::alignmentHasComponent(collidingEntityDir, info->componentToEdit);
 
 		if (noCollision) {
 			return false;
 		}
 		else {
 			entityDirComponentsToAdd.push_back(EntityDirectionComponentAddition(
-				collidingEntity->index, info->entityInfoIndex, tnav::getDirectionFlag(info->equivelantDirection)));
+				collidingEntity->index, info->entityInfoIndex, tnav::getDirectionFlag(info->componentToEdit)));
 			return true;
 		}
 	}
@@ -170,233 +211,286 @@ public:
 
 		if (collision) {
 			entityDirComponentsToAdd.push_back(EntityDirectionComponentAddition(
-				collidingEntity->index, info->entityInfoIndex, tnav::getDirectionFlag(info->equivelantDirection)));
+				collidingEntity->index, info->entityInfoIndex, tnav::getDirectionFlag(info->componentToEdit)));
 			return true;
 		}
 		else {
 			return false;
 		}
-	}
+	}*/
 
 	Entity* getEntityIndex(enav::OrthogonalEntityCollisionInfo oInfo)
 	{
 		return &entities[oInfo.entityIndex];
 	}
 
+	
+	
+	
+	bool getCollidingInfoFromCenterToOffsetAndCorner(
+		Entity* entity, Tile* neighbor, int offset, LocalDirection heading, LocalDirection neighborHeading)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+
+		LocalPosition neighborPosition = LocalPosition((heading + offset) % 4);
+		neighborPosition = tile->mapAlignmentTo1stDegreeNeighbor(heading, neighborPosition);
+		
+		// Offset collision:
+		if (neighbor->hasEntity(neighborPosition)) {
+			Entity* collider = &entities[neighbor->entityIndices[neighborPosition]];
+			if (collider->getDirection(0) == neighborHeading) {
+				// There is a collision!
+				componentsToAdd.push_back(EntityEditDirectionInfo(neighbor->index, neighborPosition, neighborHeading));
+				return true;
+			}
+		}
+		// Corner collision:
+		Tile* neighborNeighbor = neighbor->getNeighbor(LocalDirection(neighborPosition));
+		if (neighborNeighbor->hasEntity(LOCAL_POSITION_CENTER)) {
+			Entity* collider = &entities[neighborNeighbor->entityIndices[LOCAL_POSITION_CENTER]];
+			LocalDirection dirOfCollision = oppositeAlignment(neighbor->mapAlignmentTo1stDegreeNeighbor(LocalDirection(neighborPosition), LocalDirection(neighborPosition)));
+
+			if (alignmentHasComponent(collider->getDirection(0), dirOfCollision)) {
+				// There is a collision!
+				LocalDirection neighborNeighborDirection = neighbor->mapAlignmentTo1stDegreeNeighbor(LocalDirection(neighborPosition), neighborHeading);
+				componentsToAdd.push_back(EntityEditDirectionInfo(neighborNeighbor->index, LOCAL_POSITION_CENTER, neighborNeighborDirection));
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 'infos' == pointer to array of size 2 and represents the component to remove.
+	// returns the number of entities collided with, either 0, 1, or 2.
+	void solveCollidingInfoFromCenterOrtho(Entity* entity, LocalDirection heading)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		
+		Tile* neighbor = tile->getNeighbor(heading);
+		LocalDirection neighborHeading = tile->mapAlignmentTo1stDegreeNeighbor(heading, heading);
+
+		// Direct collision:
+		if (neighbor->hasEntity(LOCAL_POSITION_CENTER)) {
+			Entity* collider = &entities[neighbor->entityIndices[LOCAL_POSITION_CENTER]];
+			if (alignmentHasComponent(collider->getDirection(0), neighborHeading) == false) {
+				// There is a collision!
+				componentsToAdd.push_back(EntityEditDirectionInfo(neighbor->index, LOCAL_POSITION_CENTER, neighborHeading));
+				componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, LOCAL_POSITION_CENTER, heading));
+				return;
+			}
+		}
+
+		bool collision = false;
+		collision |= getCollidingInfoFromCenterToOffsetAndCorner(entity, neighbor, 3, heading, neighborHeading);
+		collision |= getCollidingInfoFromCenterToOffsetAndCorner(entity, neighbor, 1, heading, neighborHeading);
+		if (collision) {
+			componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, LOCAL_POSITION_CENTER, heading));
+		}
+	}
+
+	void findCollisionFromCenter(Entity* entity)
+	{
+		using namespace tnav;
+
+		Tile* currentTile = getTile(entity, 0);
+		if (isDiagonal(entity->getDirection(0))) {
+			const LocalDirection* components = getAlignmentComponents(entity->getDirection(0));
+			solveCollidingInfoFromCenterOrtho(entity, components[0]);
+			solveCollidingInfoFromCenterOrtho(entity, components[1]);
+		}
+		else {
+			solveCollidingInfoFromCenterOrtho(entity, entity->getDirection(0));
+		}
+	}
+
+	bool getCollidingInfoFromSideToOffsetAndCorner(Entity* entity, int offset)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		LocalDirection heading = entity->getDirection(0);
+
+		LocalPosition collidingPosition = combineAlignments(heading, LocalPosition((heading + offset) % 4));
+		if (tile->hasEntity(collidingPosition) == false) {
+			return false;
+		}
+		Entity* collider = &entities[tile->entityIndices[collidingPosition]];
+		int colliderInfoIndex = tile->entityInfoIndices[collidingPosition];
+		if (alignmentHasComponent(collider->getDirection(colliderInfoIndex), heading)) {
+			return false;
+		}
+		// there is a collision!
+		componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, collidingPosition, heading));
+		return true;
+		// corner collisions from this position are impossible so the check is skipped.
+	}
+
+	// only orthogonal directions are valid from a side position.
+	void findCollisionFromSide(Entity* entity)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		LocalDirection heading = entity->getDirection(0);
+		LocalPosition position = entity->getPosition(0);
+
+		// Direct collision:
+		LocalPosition colliderPosition = getNextNextPosition(position, heading);
+		if (tile->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[tile->entityIndices[colliderPosition]];
+			if (alignmentHasComponent(collider->getDirection(0), heading) == false) {
+				// There is a collision!
+				componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, colliderPosition, heading));
+				componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, position, heading));
+				return;
+			}
+		}
+
+		bool collision = false;
+		collision |= getCollidingInfoFromSideToOffsetAndCorner(entity, 1);
+		collision |= getCollidingInfoFromSideToOffsetAndCorner(entity, 3);
+		if (collision) {
+			componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, position, heading));
+		}
+	}
+
+	bool findCollisionComponentFromCornerToOffsetAndCornerInternal(Entity* entity, LocalDirection heading)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		LocalPosition position = entity->getPosition(0);
+		LocalPosition colliderPosition = heading;
+		
+		if (tile->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[tile->entityIndices[colliderPosition]];
+			int colliderInfoIndex = tile->entityInfoIndices[colliderPosition];
+			// side-positioned entities must have an orthogonal direction:
+			if (collider->getDirection(colliderInfoIndex) != heading) {
+				// collision spotted!
+				componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, colliderPosition, heading));
+				return true;
+			}
+		}
+
+		colliderPosition = oppositeAlignment(position);
+		if (tile->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[tile->entityIndices[colliderPosition]];
+			int colliderInfoIndex = tile->entityInfoIndices[colliderPosition];
+			LocalDirection directionOfCollision = oppositeAlignment(getOtherComponent(colliderPosition, heading));
+			// corner-positioned entities must have a diagonal direction:
+			if (alignmentHasComponent(collider->getDirection(colliderInfoIndex), directionOfCollision)) {
+				// collision spotted!
+				componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, colliderPosition, heading));
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool findCollisionComponentFromCornerToOffsetAndCornerExternal(Entity* entity, LocalDirection heading)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		LocalPosition position = entity->getPosition(0);
+
+		LocalDirection toNeighborDirection = getOtherComponent(position, oppositeAlignment(heading));
+		Tile* neighbor = tile->getNeighbor(toNeighborDirection);
+		LocalDirection neighborHeading = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, heading);
+		LocalPosition colliderPosition = neighborHeading;
+
+		if (neighbor->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[neighbor->entityIndices[colliderPosition]];
+			int colliderInfoIndex = neighbor->entityInfoIndices[colliderPosition];
+			// side-positioned entities must have an orthogonal direction:
+			if (collider->getDirection(colliderInfoIndex) != neighborHeading) {
+				// collision spotted!
+				componentsToAdd.push_back(EntityEditDirectionInfo(neighbor->index, colliderPosition, neighborHeading));
+				return true;
+			}
+		}
+
+		colliderPosition = combineAlignments(heading, toNeighborDirection);
+		colliderPosition = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, colliderPosition);
+		if (neighbor->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[neighbor->entityIndices[colliderPosition]];
+			int colliderInfoIndex = neighbor->entityInfoIndices[colliderPosition];
+			LocalDirection directionOfCollision = oppositeAlignment(toNeighborDirection);
+			directionOfCollision = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, directionOfCollision);
+			// corner-positioned entities must have a diagonal direction:
+			if (alignmentHasComponent(collider->getDirection(colliderInfoIndex), directionOfCollision)) {
+				// collision spotted!
+				componentsToAdd.push_back(EntityEditDirectionInfo(neighbor->index, colliderPosition, neighborHeading));
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	void findCollisionComponentFromCorner(Entity* entity, LocalDirection heading)
+	{
+		using namespace tnav;
+		using namespace enav;
+
+		Tile* tile = getTile(entity, 0);
+		LocalPosition position = entity->getPosition(0);
+
+		// direct collision:
+		LocalPosition colliderPosition = getNextNextPosition(position, heading);
+		if (tile->hasEntity(colliderPosition)) {
+			Entity* collider = &entities[tile->entityIndices[colliderPosition]];
+			int colliderInfoIndex = tile->entityInfoIndices[colliderPosition];
+			if (alignmentHasComponent(collider->getDirection(colliderInfoIndex), heading) == false) {
+				// collision spotted!
+				componentsToAdd.push_back(EntityEditDirectionInfo(tile->index, colliderPosition, heading));
+				componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, position, heading));
+				return;
+			}
+		}
+
+		bool collision = findCollisionComponentFromCornerToOffsetAndCornerInternal(entity, heading);
+		collision |= findCollisionComponentFromCornerToOffsetAndCornerExternal(entity, heading);
+		if (collision) {
+			componentsToRemove.push_back(EntityEditDirectionInfo(tile->index, position, heading));
+		}
+	}
+
+	// Entity MUST have diagonal direction
+	void findCollisionFromCorner(Entity* entity)
+	{
+		const LocalDirection* components = tnav::getAlignmentComponents(entity->getDirection(0));
+		findCollisionComponentFromCorner(entity, components[0]);
+		findCollisionComponentFromCorner(entity, components[1]);
+	}
+
 	void findCollision(Entity* entity)
 	{
-		const LocalDirection* entityDirComponents = tnav::getAlignmentComponents(entity->getDirection(0));
-		LocalDirection direction = entityDirComponents[0];
-		LocalPosition position = entity->getPosition(0);
-		Tile* tile = getTile(entity, 0);
-		enav::OrthogonalEntityCollisionInfo oInfo0;
-		enav::OrthogonalEntityCollisionInfo oInfo1;
-		enav::DiagonalEntityCollisionInfo dInfo0;
-		enav::DiagonalEntityCollisionInfo dInfo1;
-		bool collision = false;
-
-		// NOTE: Shifted collisions from the center of a tile are impossible!
-		if (entity->getPosition(0) == LOCAL_POSITION_CENTER) {
-			// Direct collision:
-			oInfo0 = enav::getEntityInfoCenterToDirect(tile, direction);
-			collision |= tryAddDirectionComponent(entity, &oInfo0);
-			if (!collision) {
-				// Corner collisions:
-				dInfo0 = enav::getEntityInfoCenterToCornerA(tile, direction);
-				if (dInfo0.cornerDirectionOfCollision != entityDirComponents[1]) {
-					collision |= tryAddDirectionComponent(entity, &dInfo0);
-				}
-				dInfo0 = enav::getEntityInfoCenterToCornerB(tile, direction);
-				if (dInfo0.cornerDirectionOfCollision != entityDirComponents[1]) {
-					collision |= tryAddDirectionComponent(entity, &dInfo0);
-				}
-			}
-			if (collision) {
-				entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(
-					entity->index, 0, tnav::getDirectionFlag(direction)));
-			}
-		}
-		// NOTE: Corner collisions on orthogonal edge-occupying entities are impossible!
-		else if(entity->isInTileCorner() == false) { // Entity is positioned on an edge and moving orthogonally.
-			// Direct collision:
-			oInfo0 = enav::getEntityInfoEdgeToDirectA(tile, position);
-			if (tryAddDirectionComponent(entity, &oInfo0)) {
-				oInfo0 = enav::getEntityInfoEdgeToDirectB(tile, position);
-				tryAddDirectionComponent(entity, &oInfo0);
-
-				entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0.entityIndex, 0, 1));
-				collision = true;
-			}
-			else {
-				// Offset collisions:
-				oInfo0 = enav::getEntityInfoEdgeToOffsetA1(tile, position);
-				if (tryAddDirectionComponent(entity, &oInfo0)) {
-					oInfo1 = enav::getEntityInfoEdgeToOffsetA2(tile, position);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-
-					oInfo0 = enav::getEntityInfoEdgeToOffsetA3(tile, position);
-					tryAddDirectionComponent(entity, &oInfo0);
-					oInfo1 = enav::getEntityInfoEdgeToOffsetA4(tile, position);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-					collision = true;
-				}
-				oInfo0 = enav::getEntityInfoEdgeToOffsetB1(tile, position);
-				if (tryAddDirectionComponent(entity, &oInfo0)) {
-					oInfo1 = enav::getEntityInfoEdgeToOffsetB2(tile, position);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-
-					oInfo0 = enav::getEntityInfoEdgeToOffsetB3(tile, position);
-					tryAddDirectionComponent(entity, &oInfo0);
-					oInfo1 = enav::getEntityInfoEdgeToOffsetB4(tile, position);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-					collision = true;
-				}
-			}
-
-			if (collision) {
-				entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(
-					entity->index, 0, tnav::getDirectionFlag(entity->getDirection(0))));
-				entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(
-					entity->index, 1, tnav::getDirectionFlag(entity->getDirection(1))));
-			}
+		if (entity->getDirection(0) == LOCAL_DIRECTION_STATIC) {
+			return;
 		}
 
-		if (entityDirComponents[0] == entityDirComponents[1]) {
-			// Entity direction is orthogonal and we do not need to check the second direction component!
-			return; 
-		}
-
-		collision = false;
-
-		// Direction is diagonal:
-		// Entities with a diagonal direction can only be in the center or on the corner of a tile.
-		// Half of this collision chack has already happend via the orthogonal direct collision check above.
-		// This check only needs to take the second direction component into account.
-		if (entity->getPosition(0) == LOCAL_POSITION_CENTER) {
-			// Unsafe corner will reverse entity direction:
-			if (tile->cornerSafety[(entity->getDirection(0) + 1) % 4] == Tile::CORNER_UNSAFE) {
-				// reverse dir and get outta there:
-				entity->setDirection(0, tnav::oppositeAlignment(entity->getDirection(0)));
-			}
-
-			oInfo0 = enav::getEntityInfoCenterToDirect(tile, entityDirComponents[1]);
-			collision |= tryAddDirectionComponent(entity, &oInfo0);
-			// Corner collisions:
-			dInfo0 = enav::getEntityInfoCenterToCornerA(tile, entityDirComponents[1]);
-			if (dInfo0.cornerDirectionOfCollision != entityDirComponents[0]) {
-				collision |= tryAddDirectionComponent(entity, &dInfo0);
-			}
-			dInfo0 = enav::getEntityInfoCenterToCornerB(tile, entityDirComponents[1]);
-			if (dInfo0.cornerDirectionOfCollision != entityDirComponents[0]) {
-				collision |= tryAddDirectionComponent(entity, &dInfo0);
-			}
-
-			if (collision) {
-				entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(
-					entity->index, 0, tnav::getDirectionFlag(entityDirComponents[1])));
-			}
-		}
-		else { // entity is positioned in a corner:
-			// We have to check both components here as the other checks assume things that make checking before uneccessary.
-			for (int i = 0; i < 2; i++) {
-				collision = false;
-				direction = entityDirComponents[i];
-
-				// direct collisions:
-				oInfo0 = enav::getEntityInfoCornerToDirectA(tile, position, direction);
-				if (tryAddDirectionComponent(entity, &oInfo0)) {
-					oInfo1 = enav::getEntityInfoCornerToDirectB(tile, position, direction);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-
-					oInfo0 = enav::getEntityInfoCornerToDirectC(tile, position, direction);
-					tryAddDirectionComponent(entity, &oInfo0);
-					oInfo1 = enav::getEntityInfoCornerToDirectD(tile, position, direction);
-					tryAddDirectionComponent(entity, &oInfo1);
-					entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0, oInfo1));
-					
-					collision = true;
-				}
-				else {
-					// offset collisions:
-					oInfo0 = enav::getEntityInfoCornerToOffsetA1(tile, position, direction);
-					if (tryAddDirectionComponent(entity, &oInfo0)) {
-						oInfo0 = enav::getEntityInfoCornerToOffsetA2(tile, position, direction);
-						tryAddDirectionComponent(entity, &oInfo0);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0.entityIndex, 0, 1));
-						collision = true;
-					}
-					oInfo0 = enav::getEntityInfoCornerToOffsetB1(tile, position, direction);
-					if (tryAddDirectionComponent(entity, &oInfo0)) {
-						oInfo0 = enav::getEntityInfoCornerToOffsetB2(tile, position, direction);
-						tryAddDirectionComponent(entity, &oInfo0);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(oInfo0.entityIndex, 0, 1));
-						collision = true;
-					}
-
-					// corner collisions:
-					dInfo0 = enav::getEntityInfoCornerToCornerA1(tile, position, direction);
-					if (tryAddDirectionComponent(entity, &dInfo0)) {
-						dInfo1 = enav::getEntityInfoCornerToCornerA2(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo1);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(dInfo0, dInfo1));
-
-						dInfo0 = enav::getEntityInfoCornerToCornerA3(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo0);
-						dInfo1 = enav::getEntityInfoCornerToCornerA4(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo1);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(dInfo0, dInfo1));
-
-						collision = true;
-					}
-					dInfo0 = enav::getEntityInfoCornerToCornerB1(tile, position, direction);
-					if (tryAddDirectionComponent(entity, &dInfo0)) {
-						dInfo1 = enav::getEntityInfoCornerToCornerB2(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo1);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(dInfo0, dInfo1));
-
-						dInfo0 = enav::getEntityInfoCornerToCornerB3(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo0);
-						dInfo1 = enav::getEntityInfoCornerToCornerB4(tile, position, direction);
-						tryAddDirectionComponent(entity, &dInfo1);
-						entityAndTileInfosToSwap.push_back(EntityAndTileInfoSwap(dInfo0, dInfo1));
-
-						collision = true;
-					}
-				}
-
-				if (collision) {
-					LocalDirection equivDirs[3];
-					equivDirs[0] = tile->mapAlignmentTo1stDegreeNeighbor(tnav::oppositeAlignment(entityDirComponents[0]), entityDirComponents[i]);
-					equivDirs[1] = tile->mapAlignmentTo1stDegreeNeighbor(tnav::oppositeAlignment(entityDirComponents[1]), entityDirComponents[i]);
-					Tile* neighbor;
-					if (i == 0) {
-						neighbor = tile->getNeighbor(tnav::oppositeAlignment(entityDirComponents[1]));
-						equivDirs[2] = neighbor->mapAlignmentTo1stDegreeNeighbor(tnav::oppositeAlignment(equivDirs[1]), equivDirs[1]);
-					}
-					else {
-						neighbor = tile->getNeighbor(tnav::oppositeAlignment(entityDirComponents[0]));
-						equivDirs[2] = neighbor->mapAlignmentTo1stDegreeNeighbor(tnav::oppositeAlignment(equivDirs[0]), equivDirs[0]);
-					}
-					
-					// Because the entity is in a corner, we need to remove direction information from 4 places, 1 for each inhabited tile.
-					entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 0, tnav::getDirectionFlag(entityDirComponents[i])));
-					entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 1, tnav::getDirectionFlag(equivDirs[2])));
-					
-					if (neighbor->index == entity->getTileIndex(2)) {
-						entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 2, tnav::getDirectionFlag(equivDirs[1])));
-						entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 3, tnav::getDirectionFlag(equivDirs[0])));
-					}
-					else {
-						entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 2, tnav::getDirectionFlag(equivDirs[0])));
-						entityDirComponentsToRemove.push_back(EntityDirectionComponentRemoval(entity->index, 3, tnav::getDirectionFlag(equivDirs[1])));
-					}
-				}
-			}
+		switch (entity->getPosition(0)) {
+		case LOCAL_POSITION_CENTER: findCollisionFromCenter(entity); break;
+		case LOCAL_POSITION_0: findCollisionFromSide(entity); break;
+		case LOCAL_POSITION_1: findCollisionFromSide(entity); break;
+		case LOCAL_POSITION_2: findCollisionFromSide(entity); break;
+		case LOCAL_POSITION_3: findCollisionFromSide(entity); break;
+		case LOCAL_POSITION_0_1: findCollisionFromCorner(entity); break;
+		case LOCAL_POSITION_1_2: findCollisionFromCorner(entity); break;
+		case LOCAL_POSITION_2_3: findCollisionFromCorner(entity); break;
+		case LOCAL_POSITION_3_0: findCollisionFromCorner(entity); break;
 		}
 	}
 

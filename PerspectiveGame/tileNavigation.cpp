@@ -87,7 +87,7 @@ const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
 #define CEN LOCAL_POSITION_CENTER
 #define XXX LOCAL_DIRECTION_ERROR
 	{ XXX, _01, CEN, _30, XXX, _1_, _3_, XXX },
-	{ _01, XXX, _12, _3_, XXX, XXX, _2_, _0_ },
+	{ _01, XXX, _12, CEN, XXX, XXX, _2_, _0_ },
 	{ CEN, _12, XXX, _23, _1_, XXX, XXX, _3_ },
 	{ _30, CEN, _23, XXX, _0_, _2_, XXX, XXX },
 	{ XXX, XXX, _1_, _0_, XXX, XXX, CEN, XXX },
@@ -110,6 +110,44 @@ const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
 LocalPosition tnav::nextPosition(LocalPosition position, LocalDirection direction)
 {
 	return NEXT_LOCAL_POSITIONS[position][direction];
+}
+
+// [local Position][local direction]
+const LocalPosition NEXT_NOEX_LOCAL_POSITIONS[9][8] = {
+#define _0_ LOCAL_POSITION_0
+#define _1_ LOCAL_POSITION_1
+#define _2_ LOCAL_POSITION_2
+#define _3_ LOCAL_POSITION_3
+#define _01 LOCAL_POSITION_0_1
+#define _12 LOCAL_POSITION_1_2
+#define _23 LOCAL_POSITION_2_3
+#define _30 LOCAL_POSITION_3_0
+#define CEN LOCAL_POSITION_CENTER
+#define XXX LOCAL_DIRECTION_ERROR
+	{ XXX, XXX, _2_, XXX, XXX, XXX, XXX, XXX },
+	{ XXX, XXX, XXX, _3_, XXX, XXX, XXX, XXX },
+	{ _0_, XXX, XXX, XXX, XXX, XXX, XXX, XXX },
+	{ XXX, _1_, XXX, XXX, XXX, XXX, XXX, XXX },
+	{ XXX, XXX, _12, _30, XXX, XXX, _23, XXX },
+	{ _01, XXX, XXX, _23, XXX, XXX, XXX, _30 },
+	{ _30, _12, XXX, XXX, _01, XXX, XXX, XXX },
+	{ XXX, _01, _23, XXX, XXX, _12, XXX, XXX },
+	{ XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX }
+#undef _0_
+#undef _1_
+#undef _2_
+#undef _3_
+#undef _01
+#undef _12
+#undef _23
+#undef _30
+#undef CEN
+#undef XXX
+};
+
+const LocalPosition tnav::getNextNextPosition(LocalPosition position, LocalDirection direction)
+{
+	return NEXT_NOEX_LOCAL_POSITIONS[position][direction];
 }
 
 /*
@@ -427,6 +465,7 @@ const int ALIGNMENT_MAP_COMBINATIONS[8][8] = {
 	{ 1, 2, 3, 0, 6, 7, 4, 5 },
 	{ 2, 3, 0, 1, 5, 6, 7, 4 },
 	{ 3, 0, 1, 2, 4, 5, 6, 7 },
+
 	{ 4, 5, 6, 7, 0, 1, 2, 3 },
 	{ 5, 6, 7, 4, 3, 0, 1, 2 },
 	{ 6, 7, 4, 5, 2, 3, 0, 1 },
@@ -449,7 +488,7 @@ const int tnav::inverseAlignmentMapIndex(int alignmentMapIndex)
 	case 5: return 5;
 	case 6: return 6;
 	case 7: return 7;
-	default: std::runtime_error("INVALID ALIGNMENT MAP INDEX IN GIVEN TO inverseAlignmentMapIndex()");
+	default: throw std::runtime_error("INVALID ALIGNMENT MAP INDEX IN GIVEN TO inverseAlignmentMapIndex()");
 	}
 }
 
@@ -553,15 +592,48 @@ const glm::ivec3 tnav::getConnectableTileOffset(TileType type, int orthogonalSid
 // from the perspective of a certain side.  Make sure to input into the array as follows:
 // TILE_VISIBILITY[SUBJECT TILE SUB TYPE][SUBJECT TILE SIDE INDEX][COMPARE TILE SUB TYPE]
 const int TILE_VISIBILITY[6][4][6] = {
-	{ { 3, 1, 0, 0, 2, 4 }, { 3, 1, 4, 2, 0, 0 }, { 3, 1, 0, 0, 4, 2 }, { 3, 1, 2, 4, 0, 0 } }, // XYF
-	{ { 1, 3, 0, 0, 2, 4 }, { 1, 3, 4, 2, 0, 0 }, { 1, 3, 0, 0, 4, 2 }, { 1, 3, 2, 4, 0, 0 } }, // XYB
-	{ { 2, 4, 3, 1, 0, 0 }, { 0, 0, 3, 1, 4, 2 }, { 4, 2, 3, 1, 0, 0 }, { 0, 0, 3, 1, 2, 4 } }, // XZF
-	{ { 2, 4, 1, 3, 0, 0 }, { 0, 0, 1, 3, 4, 2 }, { 4, 2, 1, 3, 0, 0 }, { 0, 0, 1, 3, 2, 4 } }, // XZB
-	{ { 0, 0, 2, 4, 3, 1 }, { 4, 2, 0, 0, 3, 1 }, { 0, 0, 4, 2, 3, 1 }, { 2, 4, 0, 0, 3, 1 } }, // YZF
-	{ { 0, 0, 2, 4, 1, 3 }, { 4, 2, 0, 0, 1, 3 }, { 0, 0, 4, 2, 1, 3 }, { 2, 4, 0, 0, 1, 3 } }  // YZB
+#define X 0
+	{ { 3, 1, X, X, 2, 4 }, { 3, 1, 4, 2, X, X }, { 3, 1, X, X, 4, 2 }, { 3, 1, 2, 4, X, X } }, // XYF
+	{ { 1, 3, X, X, 2, 4 }, { 1, 3, 4, 2, X, X }, { 1, 3, X, X, 4, 2 }, { 1, 3, 2, 4, X, X } }, // XYB
+	{ { 2, 4, 3, 1, X, X }, { X, X, 3, 1, 4, 2 }, { 4, 2, 3, 1, X, X }, { X, X, 3, 1, 2, 4 } }, // XZF
+	{ { 2, 4, 1, 3, X, X }, { X, X, 1, 3, 4, 2 }, { 4, 2, 1, 3, X, X }, { X, X, 1, 3, 2, 4 } }, // XZB
+	{ { X, X, 2, 4, 3, 1 }, { 4, 2, X, X, 3, 1 }, { X, X, 4, 2, 3, 1 }, { 2, 4, X, X, 3, 1 } }, // YZF
+	{ { X, X, 2, 4, 1, 3 }, { 4, 2, X, X, 1, 3 }, { X, X, 4, 2, 1, 3 }, { 2, 4, X, X, 1, 3 } }  // YZB
+#undef X
 };
 
 const int tnav::getTileVisibility(TileType subjetTileType, LocalDirection orthoSide, TileType otherTileType)
 {
 	return TILE_VISIBILITY[subjetTileType][orthoSide][otherTileType];
+}
+
+const LocalAlignment tnav::getOtherComponent(LocalAlignment diagonal, LocalAlignment component)
+{
+	switch (diagonal) {
+	case LOCAL_ALIGNMENT_0_1:
+		switch (component) {
+		case LOCAL_ALIGNMENT_0: return LOCAL_ALIGNMENT_1;
+		case LOCAL_ALIGNMENT_1: return LOCAL_ALIGNMENT_0;
+		default: return LOCAL_ALIGNMENT_ERROR;
+		}
+	case LOCAL_ALIGNMENT_1_2:
+		switch (component) {
+		case LOCAL_ALIGNMENT_1: return LOCAL_ALIGNMENT_2;
+		case LOCAL_ALIGNMENT_2: return LOCAL_ALIGNMENT_1;
+		default: return LOCAL_ALIGNMENT_ERROR;
+		}
+	case LOCAL_ALIGNMENT_2_3:
+		switch (component) {
+		case LOCAL_ALIGNMENT_2: return LOCAL_ALIGNMENT_3;
+		case LOCAL_ALIGNMENT_3: return LOCAL_ALIGNMENT_2;
+		default: return LOCAL_ALIGNMENT_ERROR;
+		}
+	case LOCAL_ALIGNMENT_3_0:
+		switch (component) {
+		case LOCAL_ALIGNMENT_3: return LOCAL_ALIGNMENT_0;
+		case LOCAL_ALIGNMENT_0: return LOCAL_ALIGNMENT_3;
+		default: return LOCAL_ALIGNMENT_ERROR;
+		}
+	default: return LOCAL_ALIGNMENT_ERROR;
+	}
 }

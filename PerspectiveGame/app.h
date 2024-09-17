@@ -143,7 +143,7 @@ struct App {
 
 	void setupWorld()
 	{
-		setupCollisionScenario6(p_tileManager, p_entityManager, p_currentSelection);
+		setupScenarioCornerCollisionFromCenter(p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()

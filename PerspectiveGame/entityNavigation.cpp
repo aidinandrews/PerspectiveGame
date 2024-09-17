@@ -8,17 +8,7 @@ LocalDirection cornerOutDirection(LocalPosition position, LocalDirection directi
 	return components[i];
 }
 
-enav::OrthogonalEntityCollisionInfo getEntityInfoCenterOffset1(Tile* tile, LocalDirection direction, int offset)
-{
-	Tile* neighbor = tile->getNeighbor(direction);
-	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
-	LocalDirection neighborDirection = tile->mapAlignmentTo1stDegreeNeighbor(direction, direction);
-	LocalPosition nextEntityPos = tile->mapAlignmentTo1stDegreeNeighbor(direction, outDirection);
 
-	return enav::OrthogonalEntityCollisionInfo(neighbor->entityIndices[nextEntityPos],
-								neighbor->entityInfoIndices[nextEntityPos],
-								neighborDirection);
-}
 enav::OrthogonalEntityCollisionInfo getEntityInfoCenterOffset2(Tile* tile, LocalDirection direction, int offset)
 {
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
@@ -37,7 +27,7 @@ enav::OrthogonalEntityCollisionInfo getEntityInfoCenterOffset2(Tile* tile, Local
 								neighborNeighbor->entityInfoIndices[nextEntityPos],
 								neighborNeighborDirection);
 }
-enav::DiagonalEntityCollisionInfo getEntityInfoCenterCorner(Tile* tile, LocalDirection direction, int offset)
+enav::DiagonalEntityCollisionInfo getCollidingInfoCenterToCorner(Tile* tile, LocalDirection direction, int offset)
 {
 	LocalDirection outDirection = LocalDirection((direction + offset) % 4);
 
@@ -160,14 +150,14 @@ enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToDirect(Tile* tile
 								neighbor->entityInfoIndices[LOCAL_POSITION_CENTER],
 								tile->mapAlignmentTo1stDegreeNeighbor(direction, direction));
 }
-enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetA1(Tile* tile, LocalDirection direction)
-{
-	return getEntityInfoCenterOffset1(tile, direction, 1);
-}
-enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetB1(Tile* tile, LocalDirection direction)
-{
-	return getEntityInfoCenterOffset1(tile, direction, 3);
-}
+//enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetA1(Tile* tile, LocalDirection direction)
+//{
+//	return getCollidingInfoCenterToOffset(tile, direction, 1);
+//}
+//enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetB1(Tile* tile, LocalDirection direction)
+//{
+//	return getCollidingInfoCenterToOffset(tile, direction, 3);
+//}
 enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetA2(Tile* tile, LocalDirection direction)
 {
 	return getEntityInfoCenterOffset2(tile, direction, 1);
@@ -178,11 +168,11 @@ enav::OrthogonalEntityCollisionInfo enav::getEntityInfoCenterToOffsetB2(Tile* ti
 }
 enav::DiagonalEntityCollisionInfo enav::getEntityInfoCenterToCornerA(Tile* tile, LocalDirection direction)
 {
-	return getEntityInfoCenterCorner(tile, direction, 1);
+	return getCollidingInfoCenterToCorner(tile, direction, 1);
 }
 enav::DiagonalEntityCollisionInfo enav::getEntityInfoCenterToCornerB(Tile* tile, LocalDirection direction)
 {
-	return getEntityInfoCenterCorner(tile, direction, 3);
+	return getCollidingInfoCenterToCorner(tile, direction, 3);
 }
 
 enav::OrthogonalEntityCollisionInfo enav::getEntityInfoEdgeToDirectA(Tile* tile, LocalPosition position)

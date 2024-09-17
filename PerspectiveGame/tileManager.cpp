@@ -80,11 +80,11 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	std::vector<Tile*> affectedTiles;
 	updateAdjacentNeighborConnections(foreTile);
 	updateAdjacentNeighborConnections(backTile);
-	updateDiagonalNeighborConnections(foreTile, affectedTiles);
-	updateDiagonalNeighborConnections(backTile, affectedTiles);
-	for (Tile* t : affectedTiles) {
+	//updateDiagonalNeighborConnections(foreTile, affectedTiles);
+	//updateDiagonalNeighborConnections(backTile, affectedTiles);
+	/*for (Tile* t : affectedTiles) {
 		updateDiagonalNeighborConnections(t);
-	}
+	}*/
 
 	updateCornerSafety(foreTile);
 	updateCornerSafety(backTile);
@@ -119,46 +119,6 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	updateTileGpuInfos();
 
 	return true;
-}
-
-void TileManager::updateAdjacentNeighborConnections(Tile* tile) 
-{
-	// These act as initializer values, as if the tile is not connected to anything else, it must be connected to its sibling:
-	for (int i = 0; i < 4; i++) {
-		tile->neighborhood.tiles[i][0] = tile->sibling;
-		tile->neighborhood.tiles[i][1] = tile;
-		tile->neighborhood.tiles[i][2] = tile;
-		tile->neighborhood.maps[i][0] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
-		tile->neighborhood.maps[i][1] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
-		tile->neighborhood.maps[i][2] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
-	}
-
-
-	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
-	// so each edge (connectableTiles[X][]) gets a list of the types of tiles it can connect to 
-	// (connectableTiles[][X]).
-
-	TileType possibleTileType;
-	glm::ivec3 subjectTileMaxPoint = tile->position,
-		otherTileMaxPoint,
-		possibleMaxPoint;
-
-	for (Tile* otherTile : tiles) {
-		otherTileMaxPoint = otherTile->position;
-
-		for (int sideIndex = 0; sideIndex < 4; sideIndex++) {
-
-			for (int connectionType = 0; connectionType < 3; connectionType++) {
-
-				possibleMaxPoint = subjectTileMaxPoint 
-					+ tnav::getConnectableTileOffset(tile->type, sideIndex, connectionType);
-				possibleTileType = tnav::getConnectableTileType(tile->type, sideIndex, connectionType);
-				if ((otherTileMaxPoint == possibleMaxPoint) && (otherTile->type == possibleTileType)) {
-					tryConnect(tile, otherTile);
-				}
-			}
-		}
-	}
 }
 
 void TileManager::updateDiagonalNeighborConnections(Tile* tile, std::vector<Tile*>& affectedTiles)
@@ -257,16 +217,55 @@ const int tileVisibility(TileType subjectType, int subjectSideIndex, TileType ot
 bool tileIsMoreVisible(Tile* subject, int subjectSideIndex,
 	Tile* other, int otherSideIndex) {
 
-	const int currentConnectionVisibility
-		= tileVisibility(other, otherSideIndex);
-	const int subjectConnectionVisibility
-		= tileVisibility(subject, subjectSideIndex);
-	const int newConnectionVisibility
-		= tileVisibility(subject->type, subjectSideIndex, other->type);
+	const int currentConnectionVisibility = tileVisibility(other, otherSideIndex);
+	const int subjectConnectionVisibility = tileVisibility(subject, subjectSideIndex);
+	const int newConnectionVisibility = tileVisibility(subject->type, subjectSideIndex, other->type);
 
-	return newConnectionVisibility > currentConnectionVisibility &&
+	return newConnectionVisibility >= currentConnectionVisibility &&
 		newConnectionVisibility > subjectConnectionVisibility;
 }
+
+void TileManager::updateAdjacentNeighborConnections(Tile* tile)
+{
+	// These act as initializer values, as if the tile is not connected to anything else, it must be connected to its sibling:
+	for (int i = 0; i < 4; i++) {
+		tile->neighborhood.tiles[i][0] = tile->sibling;
+		tile->neighborhood.tiles[i][1] = tile;
+		tile->neighborhood.tiles[i][2] = tile;
+		tile->neighborhood.maps[i][0] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
+		tile->neighborhood.maps[i][1] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
+		tile->neighborhood.maps[i][2] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
+	}
+
+	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
+	// so each edge (connectableTiles[X][]) gets a list of the types of tiles it can connect to 
+	// (connectableTiles[][X]).
+
+	TileType possibleTileType;
+	glm::ivec3 subjectTileMaxPoint = tile->position;
+	glm::ivec3 otherTileMaxPoint;
+	glm::ivec3 possibleMaxPoint;
+
+	for (Tile* otherTile : tiles) {
+		otherTileMaxPoint = otherTile->position;
+
+		for (int sideIndex = 0; sideIndex < 4; sideIndex++) {
+
+			for (int connectionType = 0; connectionType < 3; connectionType++) {
+
+				possibleTileType = tnav::getConnectableTileType(tile->type, sideIndex, connectionType);
+				if (otherTile->type != possibleTileType) {
+					continue;
+				}
+				possibleMaxPoint = subjectTileMaxPoint + tnav::getConnectableTileOffset(tile->type, sideIndex, connectionType);
+				if (otherTileMaxPoint == possibleMaxPoint) {
+					tryConnect(tile, otherTile);
+				}
+			}
+		}
+	}
+}
+
 
 bool TileManager::tryConnect(Tile* subject, Tile* other) 
 {
@@ -327,6 +326,73 @@ bool TileManager::tryConnect(Tile* subject, Tile* other)
 		true;
 	}
 	return false;
+}
+
+void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
+{
+	// Stuff will break if you delete the tile you are on.  Don't do that:
+	if (!allowDeletePovTile && (tile == povTile.tile || tile->sibling == povTile.tile)) {
+		return;
+	}
+
+	Tile* sibling = tile->sibling;
+#ifdef RUNNING_DEBUG
+	if (sibling == nullptr) {
+		throw std::runtime_error("NO SIBLING FOUND TO DELETE!");
+	}
+#endif
+
+	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
+	std::vector<Tile*> neighbors;
+	for (int i = 0; i < 4; i++) {
+		if (tile->neighborhood.tiles[i][0] != sibling) {
+			neighbors.push_back(tile->neighborhood.tiles[i][0]);
+		}
+		if (sibling->neighborhood.tiles[i][0] != tile) {
+			neighbors.push_back(sibling->neighborhood.tiles[i][0]);
+		}
+	}
+
+	/*Tile* diagonalNeighbors[16];
+	for (int i = 0; i < 4; i++) {
+		diagonalNeighbors[4*i + 0]= tile->neighborhood.tiles[i][1];
+		diagonalNeighbors[4*i + 1]= tile->neighborhood.tiles[i][2];
+		diagonalNeighbors[4*i + 2]= sibling->neighborhood.tiles[i][1];
+		diagonalNeighbors[4*i + 3]= sibling->neighborhood.tiles[i][2];
+	}*/
+
+	int firstIndex = std::min(tile->index, sibling->index);
+	tiles.erase(tiles.begin() + firstIndex);
+	tiles.erase(tiles.begin() + firstIndex);
+	for (int i = firstIndex; i < tiles.size(); i++) {
+		tiles[i]->index -= 2; // <- Because we are deleting two tiles, the indices need to be offset by 2.
+	}
+
+	for (Tile* t : neighbors) {
+		updateAdjacentNeighborConnections(t);
+	}
+	//for (int i = 0; i < 8; i++) {
+	//	updateDiagonalNeighborConnections(neighborTilePtrs[i]);
+	//}
+	//for (int i = 0; i < 16; i++) {
+	//	updateDiagonalNeighborConnections(diagonalNeighbors[i]);
+	//}
+
+	// Now that the tiles are all connected, we need to make sure that they have up to date info reguarding the
+	// corner safety for player and entity movement updating:
+	for (Tile* t : neighbors) {
+		updateCornerSafety(t);
+		// TODO: clean this up a little.  No need to update all these tiles
+		for (int j = 0; j < 4; j++) {
+			updateCornerSafety(t->getNeighbor(LocalDirection(j)));
+		}
+	}
+
+	// The index values stored in the tiles are messed up, so we need to update the gpu info as well:
+	updateTileGpuInfos();
+
+	delete tile;
+	delete sibling;
 }
 
 void TileManager::updateWindowFrustum() {
@@ -574,74 +640,6 @@ void TileManager::update3dRotationAdj()
 		= originToCamPos
 		* currentpovTileTransf
 		* tilePosToOrigin;
-}
-
-void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile) {
-	// Stuff will break if you delete the tile you are on.  Don't do that:
-	if (!allowDeletePovTile && (tile == povTile.tile || tile->sibling == povTile.tile)) {
-		return;
-	}
-
-	Tile* sibling = tile->sibling;
-	if (sibling == nullptr) {
-		throw std::runtime_error("NO SIBLING FOUND TO DELETE!");
-	}
-
-	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
-	Tile* neighborTilePtrs[8];
-	int connectedTileIndices[8];
-	for (int i = 0; i < 4; i++) {
-		neighborTilePtrs[i] = tile->neighborhood.tiles[i][0];
-		neighborTilePtrs[i + 4] = sibling->neighborhood.tiles[i][0];
-		connectedTileIndices[i] = tile->get1stDegreeNeighborConnectedSideIndex(LocalDirection(i));
-		connectedTileIndices[i + 4] = sibling->get1stDegreeNeighborConnectedSideIndex(LocalDirection(i));
-	}
-
-	Tile* diagonalNeighbors[16];
-	for (int i = 0; i < 4; i++) {
-		diagonalNeighbors[4*i + 0]= tile->neighborhood.tiles[i][1];
-		diagonalNeighbors[4*i + 1]= tile->neighborhood.tiles[i][2];
-		diagonalNeighbors[4*i + 2]= sibling->neighborhood.tiles[i][1];
-		diagonalNeighbors[4*i + 3]= sibling->neighborhood.tiles[i][2];
-	}
-
-	int firstIndex = std::min(tile->index, sibling->index);
-	tiles.erase(tiles.begin() + firstIndex);
-	tiles.erase(tiles.begin() + firstIndex);
-
-	for (int i = firstIndex; i < tiles.size(); i++) {
-		tiles[i]->index -= 2; // <- Because we are deleting two tiles, the indices need to be offset by 2.
-	}
-
-	for (int i = 0; i < 8; i++) {
-		updateAdjacentNeighborConnections(neighborTilePtrs[i]);
-	}
-	for (int i = 0; i < 8; i++) {
-		updateDiagonalNeighborConnections(neighborTilePtrs[i]);
-	}
-	for (int i = 0; i < 16; i++) {
-		updateDiagonalNeighborConnections(diagonalNeighbors[i]);
-	}
-
-	// Now that the tiles are all connected, we need to make sure that they have up to date info reguarding the
-	// corner safety for player and entity movement updating:
-	for (int i = 0; i < 8; i++) {
-		updateCornerSafety(neighborTilePtrs[i]);
-		// TODO: clean this up a little.  No need to update all these tiles
-		for (int j = 0; j < 4; j++) {
-			updateCornerSafety(neighborTilePtrs[i]->getNeighbor(LocalDirection(j)));
-		}
-	}
-
-	// The index values stored in the tiles are messed up, so we need to update the gpu info as well:
-	updateTileGpuInfos();
-
-	delete tile;
-	delete sibling;
-}
-
-int inverseDirection(int dir) {
-	return (dir + 2) % 4;
 }
 
 void TileManager::update() {

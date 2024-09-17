@@ -29,7 +29,7 @@ void clearWorld(TileManager* tm, EntityManager* em)
 	std::cout <<"num tiles after delete: " << tm->tiles.size() << std::endl;
 }
 
-void setupScenarioDirectOrthogonalCollisionFromCenter(TileManager* tm, EntityManager* em, CurrentSelection* cs)
+void setupCollisionScenario0(TileManager* tm, EntityManager* em, CurrentSelection* cs)
 {
 	clearWorld(tm, em);
 	create4x4TileGrid(tm);
@@ -121,7 +121,7 @@ void setupTestScenario(int scenarioID, TileManager* tm, EntityManager* em, Curre
 		setupScenarioCornerCollisionFromCenter(tm, em, cs); 
 		break;
 	case 4: 
-		setupScenarioDirectOrthogonalCollisionFromCenter(tm, em, cs);
+		setupCollisionScenario0(tm, em, cs);
 		break;
 	default: 
 		clearWorld(tm, em); create4x4TileGrid(tm); 

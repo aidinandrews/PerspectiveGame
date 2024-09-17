@@ -187,6 +187,9 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 
+	// Returns the position after the next position in the given direction.
+	const LocalPosition getNextNextPosition(LocalPosition position, LocalDirection direction);
+
 	inline void println(LocalDirection d)
 	{
 		switch (d) {
@@ -233,4 +236,8 @@ namespace tnav { // tnav is short for 'tile navigation'
 	const glm::ivec3 getConnectableTileOffset(TileType type, int orthogonalSide, int i);
 
 	const int getTileVisibility(TileType subjetTileType, LocalDirection orthoSide, TileType otherTileType);
+
+	// Given a diagonal alignment and one of its components, will return the other component.
+	// LOCAL_ALIGNMENT_ERROR is returned if 'component' is not a component of diagonal or 'diagonal' is not a diagonal alignment.
+	const LocalAlignment getOtherComponent(LocalAlignment diagonal, LocalAlignment component);
 }
