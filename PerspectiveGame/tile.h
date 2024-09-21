@@ -70,9 +70,7 @@ public:
 	bool cornerIsSafe[4];
 
 	// Used for sorting out collisions:
-	MetaCenterNode* centerMetaNode;
-	MetaSideNode* sideMetaNodes[4];
-	MetaCornerNode* cornerMetaNodes[4];
+	SuperPosition* metaNodes[9];
 	int metaNodeAlignmentMaps[8]; // Center is always of the same basis, so it needs no map.
 
 public: // MEMBER FUNCTIONS:

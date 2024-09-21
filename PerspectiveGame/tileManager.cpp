@@ -103,44 +103,43 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	return true;
 }
 
-void TileManager::removeConnectedMetaNodes(Tile* tile, Tile* sibling, 
-										   std::vector<MetaCenterNode*>& affectedCenterNodes,
-										   std::vector<MetaSideNode*>& affectedSideNodes, 
-										   std::vector<MetaCornerNode*>& affectedCornerNodes)
+void TileManager::removeConnectedMetaNodes(Tile* tile, Tile* sibling, std::vector<SuperPosition*>& affectedNodes)
 {
-	for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos=LocalPosition(pos+1)) {
-		Tile* neighbor = tile->neighbors[pos];
+	bool lastDirCornersChecked = false;
+	for (LocalDirection dir = LOCAL_DIRECTION_0; dir < 4; dir = LocalDirection(dir + 1)) {
+		Tile* neighbor = tile->neighbors[dir];
 		if (neighbor == sibling) {
 			continue; // There was no node there yet anyway.
 		}
-		LocalPosition neighborPosition = tile->mapAlignmentToNeighbor(pos, tnav::oppositeAlignment(pos));
-		MetaSideNode* sideNode = neighbor->sideMetaNodes[neighborPosition];
-		
-		affectedSideNodes.push_back(sideNode->sideNodeNeighbors[0]);
-		affectedSideNodes.push_back(sideNode->sideNodeNeighbors[1]);
-		// Note: it is possible for the conrer node pointers to be null!
-		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[0]);
-		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[1]);
-		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[2]);
-		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[3]);
+		LocalDirection neighborDirection = tile->mapAlignmentToNeighbor(dir, tnav::oppositeAlignment(dir));
+		SideSuperPosition* sideNode = (SideSuperPosition*)neighbor->metaNodes[neighborDirection];
 
-		p_metaNodeNetwork->removeNode(neighbor->sideMetaNodes[pos]);
+		for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
+			if (sideNode->getNeighbor(d) == nullptr) { continue; }
+			affectedNodes.push_back(sideNode->getNeighbor(d));
+		}
 
-		neighborPosition = LocalPosition(neighborPosition + 4);
-		const LocalDirection* components = tnav::getAlignmentComponents(neighborPosition);
-		neighbor = tile->neighbors[components[1]];
-		neighborPosition = tnav::combineAlignments(components[0], tnav::oppositeAlignment(components[1]));
-		neighborPosition = tile->mapAlignmentToNeighbor(components[1], neighborPosition);
-		MetaCornerNode* cornerNode = neighbor->cornerMetaNodes[neighborPosition];
-		if (cornerNode == nullptr) {
-			continue; // corner node is unsafe!
+		// We also need to get the connected corner nodes:
+		// We only need to check 2 of the neighbors as it is impossible 
+		// for an overlapping meta node to exist in the corners here:
+		if (lastDirCornersChecked == false) {
+			CornerSuperPosition* cornerNode = (CornerSuperPosition*)neighbor->metaNodes[neighborDirection + 4];
+			for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
+				if (cornerNode->getNeighbor(d) == nullptr) { continue; }
+				affectedNodes.push_back(cornerNode->getNeighbor(d));
+			}
+			cornerNode = (CornerSuperPosition*)neighbor->metaNodes[((neighborDirection + 3) % 4) + 4];
+			for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
+				if (cornerNode->getNeighbor(d) == nullptr) { continue; }
+				affectedNodes.push_back(cornerNode->getNeighbor(d));
+			}
+			lastDirCornersChecked = true;
 		}
-		for (int i = 0; i < 8; i++) {
-			affectedSideNodes.push_back(cornerNode->sideNodeNeighbors[i]);
-			// Again, it is possible for these to be null so be careful:
-			affectedCornerNodes.push_back(cornerNode->cornerNodeNeighbors[i]);
+		else {
+			lastDirCornersChecked = false;
 		}
-		p_metaNodeNetwork->removeNode(neighbor->sideMetaNodes[pos]);
+
+		p_metaNodeNetwork->removeNode(neighbor->metaNodes[dir]);
 	}
 }
 
@@ -150,16 +149,16 @@ void TileManager::createMetaNodeConnections(Tile* tile, Tile* sibling)
 	std::vector<LocalDirection> affectedPositions;
 	removeConnectedMetaNodes(tile, sibling, affectedTiles, affectedPositions);
 
-	tile->centerMetaNode = p_metaNodeNetwork->addNode(MetaCenterNode(tile->index));
-	sibling->centerMetaNode = p_metaNodeNetwork->addNode(MetaCenterNode(sibling->index));
+	tile->centerMetaNode = p_metaNodeNetwork->add(CenterSuperPosition(tile->index));
+	sibling->centerMetaNode = p_metaNodeNetwork->add(CenterSuperPosition(sibling->index));
 	
 	for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos = LocalPosition(pos + 1)) {
 		if (tile->neighbors[pos] == sibling) {
 			int siblingToNodeMap = sibling->neighborAlignmentMaps[pos];
-			MetaSideNode sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
+			SideSuperPosition sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
 									  sibling->index, pos, siblingToNodeMap);
 			
-			tile->sideMetaNodes[pos] = p_metaNodeNetwork->addNode(sideNode);
+			tile->sideMetaNodes[pos] = p_metaNodeNetwork->add(sideNode);
 			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
 			
 			sibling->sideMetaNodes[pos] = tile->sideMetaNodes[pos];
@@ -194,11 +193,11 @@ void TileManager::createMetaNodeConnections(Tile* tile, Tile* sibling)
 			int neighbor2ToTileMap = tnav::inverseAlignmentMapIndex(neighbor1->neighborAlignmentMaps[toNeighbor2]);
 			neighbor2ToTileMap = tnav::combineAlignmentMappings(neighbor2ToTileMap, neighbor1ToTileMap);
 
-			MetaCornerNode sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
+			CornerSuperPosition sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
 										neighbor0->index, neighbor0Pos, neighbor0ToTileMap,
 										neighbor1->index, neighbor1Pos, neighbor1ToTileMap,
 										neighbor2->index, neighbor2Pos, neighbor2ToTileMap);
-			tile->cornerMetaNodes[pos] = p_metaNodeNetwork->addNode(sideNode);
+			tile->cornerMetaNodes[pos] = p_metaNodeNetwork->add(sideNode);
 			
 			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
 			neighbor0->metaNodeAlignmentMaps[neighbor0Pos] = tile->neighborAlignmentMaps[toNeighbor0];

@@ -8,14 +8,9 @@ Tile::Tile(TileType type, glm::ivec3 position) : type(type), position(position)
 	texCoords[2] = glm::vec2(0, 0);
 	texCoords[3] = glm::vec2(0, 1);
 
-	for (int i = 0; i < 4; i++) {
-		cornerIsSafe[i] = true;
-	}
-
-	/*for (int i = 0; i < 9; i++) {
-		entityIndices[i] = -1;
-		entityInfoIndices[i] = -1;
-	}*/
+	for (int i = 0; i < 4; i++) { cornerIsSafe[i] = true; }
+	for (int i = 0; i < 9; i++) { metaNodes[i] = nullptr; }
+	for (int i = 0; i < 8; i++) { metaNodeAlignmentMaps[i] = -1; }
 
 }
 

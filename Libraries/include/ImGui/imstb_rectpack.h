@@ -131,7 +131,7 @@ struct stbrp_rect
 }; // 16 bytes, nominally
 
 
-STBRP_DEF void stbrp_init_target (stbrp_context *context, int width, int height, stbrp_node *nodes, int num_nodes);
+STBRP_DEF void stbrp_init_target (stbrp_context *context, int width, int height, stbrp_node *superPositions, int num_nodes);
 // Initialize a rectangle packer to:
 //    pack a rectangle that is 'width' by 'height' in dimensions
 //    using temporary storage provided by the array 'nodes', which is 'num_nodes' long
@@ -262,16 +262,16 @@ STBRP_DEF void stbrp_setup_allow_out_of_mem(stbrp_context *context, int allow_ou
    }
 }
 
-STBRP_DEF void stbrp_init_target(stbrp_context *context, int width, int height, stbrp_node *nodes, int num_nodes)
+STBRP_DEF void stbrp_init_target(stbrp_context *context, int width, int height, stbrp_node *superPositions, int num_nodes)
 {
    int i;
 
    for (i=0; i < num_nodes-1; ++i)
-      nodes[i].next = &nodes[i+1];
-   nodes[i].next = NULL;
+      superPositions[i].next = &superPositions[i+1];
+   superPositions[i].next = NULL;
    context->init_mode = STBRP__INIT_skyline;
    context->heuristic = STBRP_HEURISTIC_Skyline_default;
-   context->free_head = &nodes[0];
+   context->free_head = &superPositions[0];
    context->active_head = &context->extra[0];
    context->width = width;
    context->height = height;

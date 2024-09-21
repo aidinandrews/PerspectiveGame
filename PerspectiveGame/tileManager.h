@@ -156,10 +156,7 @@ public: // MEMBER FUNCTIONS:
 	// one tile to another.
 	void updateNeighborConnections(Tile *tile);
 
-	void removeConnectedMetaNodes(Tile* tile, Tile* sibling,
-								  std::vector<MetaPositionCenterNode*>& affectedCenterNodes,
-								  std::vector<MetaPositionSideNode*>& affectedSideNodes,
-								  std::vector<MetaPositionCornerNode*>& affectedCornerNodes);
+	void removeConnectedMetaNodes(Tile* tile, Tile* sibling, std::vector<MetaNode*>& affectedNodes);
 	void createMetaNodeConnections(Tile* tile, Tile* sibling);
 	void updateMetaNodeConnections(Tile* tile);
 	

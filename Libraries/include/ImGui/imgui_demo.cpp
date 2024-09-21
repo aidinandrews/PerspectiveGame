@@ -5188,7 +5188,7 @@ static void ShowDemoWindowTables()
                     }
                 }
             };
-            static const MyTreeNode nodes[] =
+            static const MyTreeNode superPositions[] =
             {
                 { "Root",                         "Folder",       -1,       1, 3    }, // 0
                 { "Music",                        "Folder",       -1,       4, 2    }, // 1
@@ -5201,7 +5201,7 @@ static void ShowDemoWindowTables()
                 { "Copy of Image001 (Final2).png","Image file",   203512,  -1,-1    }, // 8
             };
 
-            MyTreeNode::DisplayNode(&nodes[0], nodes);
+            MyTreeNode::DisplayNode(&superPositions[0], superPositions);
 
             ImGui::EndTable();
         }

@@ -5,32 +5,32 @@
 
 #include "tileNavigation.h"
 
-struct MetaNodeTileInfo {
+struct SuperPositionTileInfo {
 	int tileIndex;
 	LocalPosition position;
 	int alignmentMapIndex;
 };
 
-enum MetaNodeType {
-	META_NODE_TYPE_CENTER,
-	META_NODE_TYPE_SIDE,
-	META_NODE_TYPE_CORNER,
-	META_NODE_TYPE_ERROR,
+enum SuperPositionType {
+	SUPER_POSITION_TYPE_CENTER,
+	SUPER_POSITION_TYPE_SIDE,
+	SUPER_POSITION_TYPE_CORNER,
+	SUPER_POSITION_TYPE_ERROR,
 };
 
-struct MetaNode {
+struct SuperPosition {
 public:
-	MetaNodeType type;
+	SuperPositionType type;
 	int index;
 
 public:
-	MetaNode() : type(META_NODE_TYPE_ERROR), index(-1) {}
+	SuperPosition() : type(SUPER_POSITION_TYPE_ERROR), index(-1) {}
 
-	virtual MetaNode* getNodeNeighbor(LocalDirection dir) {}
-	virtual void setNodeNeighbor(LocalDirection dir, MetaCenterNode* node) {}
-	virtual void setNodeNeighbor(LocalDirection dir, MetaSideNode* node) {}
-	virtual void setNodeNeighbor(LocalDirection dir, MetaCornerNode* node) {}
-	virtual void setNodeNeighborToNull(LocalDirection dir) {}
+	virtual SuperPosition* getNeighbor(LocalDirection dir) {}
+	virtual void setNeighbor(LocalDirection dir, CenterSuperPosition* superPosition) {}
+	virtual void setNeighbor(LocalDirection dir, SideSuperPosition* superPosition) {}
+	virtual void setNeighbor(LocalDirection dir, CornerSuperPosition* superPosition) {}
+	virtual void setNeighborToNull(LocalDirection dir) {}
 
 	virtual int getNeighborAlignmentMapIndex(LocalDirection dir) {}
 	virtual void setNeighborAlignmentMapIndex(LocalDirection dir, int mapIndex) {}
@@ -49,100 +49,100 @@ public:
 
 };
 
-struct MetaSideNode;
-struct MetaCornerNode;
+struct SideSuperPosition;
+struct CornerSuperPosition;
 
 // ON CREATION OF A TILE PAIR:
-// make a list of all the meta nodes they touch (A),
-// make a list of all the meta node neighbors of A (B),
-// delete all nodes in A,
-// create a new set of nodes that touch the pair and add them to B.
-// * if a node would be unsafe, skip it's creation.
-// update/reconnect all nodes in B.
+// make a list of all the meta super positions they touch (A),
+// make a list of all the meta super position neighbors of A (B),
+// delete all super positions in A,
+// create a new set of super positions that touch the pair and add them to B.
+// * if a super position would be unsafe, skip it's creation.
+// update/reconnect all super positions in B.
 
 // ON DELETION OF A TILE PAIR:
-// make a list of all the meta nodes (A),
-// make a list of all the meta node neighbors of A (B),
+// make a list of all the meta super positions (A),
+// make a list of all the meta super position neighbors of A (B),
 // make a list of (tile index + local SIDE position) (C) that:
-//    point to nodes in the same 3D position 
+//    point to super positions in the same 3D position 
 //    connect to tiles other than the pair
-// delete all nodes of A,
-// for each pair of positions in C, create a new node and add it to B,
-// update/reconnect all nodes in B.
+// delete all super positions of A,
+// for each pair of positions in C, create a new super position and add it to B,
+// update/reconnect all super positions in B.
 //
 
 // Tiles point to 1 of these
-// Exactly 2 overlapping center nodes in the same 3D position due to sibling tiles.
-struct MetaCenterNode : public MetaNode {
+// Exactly 2 overlapping center super positions in the same 3D position due to sibling tiles.
+struct CenterSuperPosition : public SuperPosition {
 	int tileIndex;
 	// Position in tile is always LOCAL_POSITION_CENTER.
-	// node->tile map is always identity.
+	// super position->tile map is always identity.
 	
 private:
 	float directionMagnitudes[4];
-	MetaSideNode* sideNodeNeighbors[4];
-	MetaCornerNode* cornerNodeNeighbors[4];
+	SideSuperPosition* sideNeighbors[4];
+	CornerSuperPosition* cornerNeighbors[4];
 	int neighborAlignmentMaps[8];
 
 public:
-	MetaCenterNode(MetaNodeType type, int tileIndex)
+	CenterSuperPosition(SuperPositionType type, int tileIndex)
 	{
-		type = META_NODE_TYPE_CENTER;
+		type = SUPER_POSITION_TYPE_CENTER;
 
 		this->tileIndex = tileIndex;
 		for (int i = 0; i < 4; i++) { 
 			directionMagnitudes[i] = 0; 
-			sideNodeNeighbors[i] = nullptr;
-			cornerNodeNeighbors[i] = nullptr;
+			sideNeighbors[i] = nullptr;
+			cornerNeighbors[i] = nullptr;
 		}
 		for (int i = 0; i < 8; i++) {
 			neighborAlignmentMaps[i] = -1;
 		}
 	}
 
-	MetaNode* getNodeNeighbor(LocalDirection dir) override 
+	SuperPosition* getNeighbor(LocalDirection dir) override 
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_1: return sideNodeNeighbors[0];
-		case LOCAL_DIRECTION_2: return sideNodeNeighbors[1];
-		case LOCAL_DIRECTION_3: return sideNodeNeighbors[2];
-		case LOCAL_DIRECTION_0: return sideNodeNeighbors[3];
-		case LOCAL_DIRECTION_0_1: return cornerNodeNeighbors[0];
-		case LOCAL_DIRECTION_1_2: return cornerNodeNeighbors[1];
-		case LOCAL_DIRECTION_2_3: return cornerNodeNeighbors[2];
-		case LOCAL_DIRECTION_3_0: return cornerNodeNeighbors[3];
+		case LOCAL_DIRECTION_1: return sideNeighbors[0];
+		case LOCAL_DIRECTION_2: return sideNeighbors[1];
+		case LOCAL_DIRECTION_3: return sideNeighbors[2];
+		case LOCAL_DIRECTION_0: return sideNeighbors[3];
+		case LOCAL_DIRECTION_0_1: return cornerNeighbors[0];
+		case LOCAL_DIRECTION_1_2: return cornerNeighbors[1];
+		case LOCAL_DIRECTION_2_3: return cornerNeighbors[2];
+		case LOCAL_DIRECTION_3_0: return cornerNeighbors[3];
 		default: return nullptr;
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaSideNode* node) override 
+	void setNeighbor(LocalDirection dir, SideSuperPosition* superPosition) override 
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0: sideNodeNeighbors[0] = node; return;
-		case LOCAL_DIRECTION_1: sideNodeNeighbors[1] = node; return;
-		case LOCAL_DIRECTION_2: sideNodeNeighbors[2] = node; return;
-		case LOCAL_DIRECTION_3: sideNodeNeighbors[3] = node; return;
+		case LOCAL_DIRECTION_0: sideNeighbors[0] = superPosition; return;
+		case LOCAL_DIRECTION_1: sideNeighbors[1] = superPosition; return;
+		case LOCAL_DIRECTION_2: sideNeighbors[2] = superPosition; return;
+		case LOCAL_DIRECTION_3: sideNeighbors[3] = superPosition; return;
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaCornerNode* node) override 
+	void setNeighbor(LocalDirection dir, CornerSuperPosition* superPosition) override 
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0_1: cornerNodeNeighbors[0] = node; return;
-		case LOCAL_DIRECTION_1_2: cornerNodeNeighbors[1] = node; return;
-		case LOCAL_DIRECTION_2_3: cornerNodeNeighbors[2] = node; return;
-		case LOCAL_DIRECTION_3_0: cornerNodeNeighbors[3] = node; return;
+		case LOCAL_DIRECTION_0_1: cornerNeighbors[0] = superPosition; return;
+		case LOCAL_DIRECTION_1_2: cornerNeighbors[1] = superPosition; return;
+		case LOCAL_DIRECTION_2_3: cornerNeighbors[2] = superPosition; return;
+		case LOCAL_DIRECTION_3_0: cornerNeighbors[3] = superPosition; return;
 		}
 	}
-	void setNodeNeighborToNull(LocalDirection dir) override
+	void setNeighborToNull(LocalDirection dir) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0: sideNodeNeighbors[0] = nullptr; return;
-		case LOCAL_DIRECTION_1: sideNodeNeighbors[1] = nullptr; return;
-		case LOCAL_DIRECTION_2: sideNodeNeighbors[2] = nullptr; return;
-		case LOCAL_DIRECTION_3: sideNodeNeighbors[3] = nullptr; return;
-		case LOCAL_DIRECTION_0_1: cornerNodeNeighbors[0] = nullptr; return;
-		case LOCAL_DIRECTION_1_2: cornerNodeNeighbors[1] = nullptr; return;
-		case LOCAL_DIRECTION_2_3: cornerNodeNeighbors[2] = nullptr; return;
-		case LOCAL_DIRECTION_3_0: cornerNodeNeighbors[3] = nullptr; return;
+		case LOCAL_DIRECTION_0: sideNeighbors[0] = nullptr; return;
+		case LOCAL_DIRECTION_1: sideNeighbors[1] = nullptr; return;
+		case LOCAL_DIRECTION_2: sideNeighbors[2] = nullptr; return;
+		case LOCAL_DIRECTION_3: sideNeighbors[3] = nullptr; return;
+		case LOCAL_DIRECTION_0_1: cornerNeighbors[0] = nullptr; return;
+		case LOCAL_DIRECTION_1_2: cornerNeighbors[1] = nullptr; return;
+		case LOCAL_DIRECTION_2_3: cornerNeighbors[2] = nullptr; return;
+		case LOCAL_DIRECTION_3_0: cornerNeighbors[3] = nullptr; return;
 		}
 	}
 
@@ -196,22 +196,22 @@ public:
 
 };
 
-enum MetaSideNodeOrientation { 
-	META_SIDE_NODE_ORIENTATION_0_2, 
-	META_SIDE_NODE_ORIENTATION_1_3, 
-	META_SIDE_NODE_ORIENTATION_ERROR 
+enum MetaSideSuperPositionOrientation { 
+	SIDE_SUPER_POSITION_ORIENTATION_0_2, 
+	SIDE_SUPER_POSITION_ORIENTATION_1_3, 
+	SIDE_SUPER_POSITION_ORIENTATION_ERROR 
 };
 
 // Tiles point to 4 of these.
-// Min of 1, max of 4 overlapping side nodes the same 3D position.
-struct MetaSideNode : public MetaNode {
-	MetaSideNodeOrientation orientation;
+// Min of 1, max of 4 overlapping side super positions the same 3D position.
+struct SideSuperPosition : public SuperPosition {
+	MetaSideSuperPositionOrientation orientation;
 	
 private:
 	float directionMagnitudes[4];
-	MetaCenterNode* centerNodeNeighbors[2];
-	MetaSideNode* sideNodeNeighbors[4];
-	MetaCornerNode* cornerNodeNeighbors[2];
+	CenterSuperPosition* centerNeighbors[2];
+	SideSuperPosition* sideNeighbors[4];
+	CornerSuperPosition* cornerNeighbors[2];
 	int neighborAlignmentMaps[8];
 
 	int tileIndices[2];
@@ -219,16 +219,16 @@ private:
 	int tileAlignmentMaps[2];
 
 public:
-	MetaSideNode(MetaNodeTileInfo tileInfo0, MetaNodeTileInfo tileInfo1)
+	SideSuperPosition(SuperPositionTileInfo tileInfo0, SuperPositionTileInfo tileInfo1)
 	{
-		MetaNodeTileInfo* tileInfos[4] = { &tileInfo0, &tileInfo1 };
+		SuperPositionTileInfo* tileInfos[4] = { &tileInfo0, &tileInfo1 };
 
 		index = -1;
-		type = META_NODE_TYPE_SIDE;
-		orientation = META_SIDE_NODE_ORIENTATION_ERROR;
+		type = SUPER_POSITION_TYPE_SIDE;
+		orientation = SIDE_SUPER_POSITION_ORIENTATION_ERROR;
 		for (int i = 0; i < 4; i++) { directionMagnitudes[i] = 0; }
 		for (int i = 0; i < 2; i++) { 
-			centerNodeNeighbors[i] = nullptr;
+			centerNeighbors[i] = nullptr;
 			neighborAlignmentMaps[i] = -1; 
 
 			tileIndices[i] = tileInfos[i]->tileIndex;
@@ -237,98 +237,98 @@ public:
 		}
 	}
 
-	MetaNode* getNodeNeighbor(LocalDirection dir) override
+	SuperPosition* getNeighbor(LocalDirection dir) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: return centerNodeNeighbors[0];
-			case LOCAL_DIRECTION_1: return cornerNodeNeighbors[0];
-			case LOCAL_DIRECTION_2: return centerNodeNeighbors[1];
-			case LOCAL_DIRECTION_3: return cornerNodeNeighbors[1];
-			case LOCAL_DIRECTION_0_1: return sideNodeNeighbors[0];
-			case LOCAL_DIRECTION_1_2: return sideNodeNeighbors[1];
-			case LOCAL_DIRECTION_2_3: return sideNodeNeighbors[2];
-			case LOCAL_DIRECTION_3_0: return sideNodeNeighbors[3];
+			case LOCAL_DIRECTION_0: return centerNeighbors[0];
+			case LOCAL_DIRECTION_1: return cornerNeighbors[0];
+			case LOCAL_DIRECTION_2: return centerNeighbors[1];
+			case LOCAL_DIRECTION_3: return cornerNeighbors[1];
+			case LOCAL_DIRECTION_0_1: return sideNeighbors[0];
+			case LOCAL_DIRECTION_1_2: return sideNeighbors[1];
+			case LOCAL_DIRECTION_2_3: return sideNeighbors[2];
+			case LOCAL_DIRECTION_3_0: return sideNeighbors[3];
 			default: return nullptr;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: return cornerNodeNeighbors[0];
-			case LOCAL_DIRECTION_1: return centerNodeNeighbors[0];
-			case LOCAL_DIRECTION_2: return cornerNodeNeighbors[1];
-			case LOCAL_DIRECTION_3: return centerNodeNeighbors[1];
-			case LOCAL_DIRECTION_0_1: return sideNodeNeighbors[0];
-			case LOCAL_DIRECTION_1_2: return sideNodeNeighbors[1];
-			case LOCAL_DIRECTION_2_3: return sideNodeNeighbors[2];
-			case LOCAL_DIRECTION_3_0: return sideNodeNeighbors[3];
+			case LOCAL_DIRECTION_0: return cornerNeighbors[0];
+			case LOCAL_DIRECTION_1: return centerNeighbors[0];
+			case LOCAL_DIRECTION_2: return cornerNeighbors[1];
+			case LOCAL_DIRECTION_3: return centerNeighbors[1];
+			case LOCAL_DIRECTION_0_1: return sideNeighbors[0];
+			case LOCAL_DIRECTION_1_2: return sideNeighbors[1];
+			case LOCAL_DIRECTION_2_3: return sideNeighbors[2];
+			case LOCAL_DIRECTION_3_0: return sideNeighbors[3];
 			default: return nullptr;
 			}
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaCenterNode* node) override
+	void setNeighbor(LocalDirection dir, CenterSuperPosition* superPosition) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: centerNodeNeighbors[0] = node; return;
-			case LOCAL_DIRECTION_2: centerNodeNeighbors[1] = node; return;
+			case LOCAL_DIRECTION_0: centerNeighbors[0] = superPosition; return;
+			case LOCAL_DIRECTION_2: centerNeighbors[1] = superPosition; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
-			case LOCAL_DIRECTION_1: centerNodeNeighbors[0] = node; return;
-			case LOCAL_DIRECTION_3: centerNodeNeighbors[1] = node; return;
+			case LOCAL_DIRECTION_1: centerNeighbors[0] = superPosition; return;
+			case LOCAL_DIRECTION_3: centerNeighbors[1] = superPosition; return;
 			}
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaSideNode* node) override
+	void setNeighbor(LocalDirection dir, SideSuperPosition* superPosition) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0_1: sideNodeNeighbors[0] = node; return;
-		case LOCAL_DIRECTION_1_2: sideNodeNeighbors[1] = node; return;
-		case LOCAL_DIRECTION_2_3: sideNodeNeighbors[2] = node; return;
-		case LOCAL_DIRECTION_3_0: sideNodeNeighbors[3] = node; return;
+		case LOCAL_DIRECTION_0_1: sideNeighbors[0] = superPosition; return;
+		case LOCAL_DIRECTION_1_2: sideNeighbors[1] = superPosition; return;
+		case LOCAL_DIRECTION_2_3: sideNeighbors[2] = superPosition; return;
+		case LOCAL_DIRECTION_3_0: sideNeighbors[3] = superPosition; return;
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaCornerNode* node) override
+	void setNeighbor(LocalDirection dir, CornerSuperPosition* superPosition) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
-			case LOCAL_DIRECTION_1: cornerNodeNeighbors[0] = node; return;
-			case LOCAL_DIRECTION_3: cornerNodeNeighbors[1] = node; return;
+			case LOCAL_DIRECTION_1: cornerNeighbors[0] = superPosition; return;
+			case LOCAL_DIRECTION_3: cornerNeighbors[1] = superPosition; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: cornerNodeNeighbors[0] = node; return;
-			case LOCAL_DIRECTION_2: cornerNodeNeighbors[1] = node; return;
+			case LOCAL_DIRECTION_0: cornerNeighbors[0] = superPosition; return;
+			case LOCAL_DIRECTION_2: cornerNeighbors[1] = superPosition; return;
 			}
 		}
 	}
-	void setNodeNeighborToNull(LocalDirection dir) override
+	void setNeighborToNull(LocalDirection dir) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: centerNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_1: cornerNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_2: centerNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_3: cornerNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_0_1: sideNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_1_2: sideNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_2_3: sideNodeNeighbors[2] = nullptr; return;
-			case LOCAL_DIRECTION_3_0: sideNodeNeighbors[3] = nullptr; return;
+			case LOCAL_DIRECTION_0: centerNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_1: cornerNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_2: centerNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_3: cornerNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_0_1: sideNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_1_2: sideNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_2_3: sideNeighbors[2] = nullptr; return;
+			case LOCAL_DIRECTION_3_0: sideNeighbors[3] = nullptr; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
-			case LOCAL_DIRECTION_0: cornerNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_1: centerNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_2: cornerNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_3: centerNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_0_1: sideNodeNeighbors[0] = nullptr; return;
-			case LOCAL_DIRECTION_1_2: sideNodeNeighbors[1] = nullptr; return;
-			case LOCAL_DIRECTION_2_3: sideNodeNeighbors[2] = nullptr; return;
-			case LOCAL_DIRECTION_3_0: sideNodeNeighbors[3] = nullptr; return;
+			case LOCAL_DIRECTION_0: cornerNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_1: centerNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_2: cornerNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_3: centerNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_0_1: sideNeighbors[0] = nullptr; return;
+			case LOCAL_DIRECTION_1_2: sideNeighbors[1] = nullptr; return;
+			case LOCAL_DIRECTION_2_3: sideNeighbors[2] = nullptr; return;
+			case LOCAL_DIRECTION_3_0: sideNeighbors[3] = nullptr; return;
 			}
 		}
 	}
@@ -364,13 +364,13 @@ public:
 	int getTileIndex(LocalDirection dir) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: return tileIndices[0];
 			case LOCAL_DIRECTION_2: return tileIndices[1];
 			default: return -1;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: return tileIndices[0];
 			case LOCAL_DIRECTION_3: return tileIndices[1];
@@ -382,12 +382,12 @@ public:
 	void setTileIndex(LocalDirection dir, int tileIndex) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: tileIndices[0]=tileIndex; return;
 			case LOCAL_DIRECTION_2: tileIndices[1] = tileIndex; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: tileIndices[0]=tileIndex; return;
 			case LOCAL_DIRECTION_3: tileIndices[1] = tileIndex; return;
@@ -398,13 +398,13 @@ public:
 	LocalPosition getTilePosition(LocalDirection dir) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: return tilePositions[0];
 			case LOCAL_DIRECTION_2: return tilePositions[1];
 			default: return LOCAL_POSITION_ERROR;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: return tilePositions[0];
 			case LOCAL_DIRECTION_3: return tilePositions[1];
@@ -416,12 +416,12 @@ public:
 	void setTilePosition(LocalDirection dir, LocalPosition pos) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: tilePositions[0]=pos; return;
 			case LOCAL_DIRECTION_2: tilePositions[1]=pos; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: tilePositions[0]=pos; return;
 			case LOCAL_DIRECTION_3: tilePositions[1]=pos; return;
@@ -432,13 +432,13 @@ public:
 	int getTileAlignmentMap(LocalDirection dir) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: return tileAlignmentMaps[0];
 			case LOCAL_DIRECTION_2: return tileAlignmentMaps[1];
 			default: return -1;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: return tileAlignmentMaps[0];
 			case LOCAL_DIRECTION_3: return tileAlignmentMaps[1];
@@ -450,12 +450,12 @@ public:
 	void setTileAlignmentMap(LocalDirection dir, int mapIndex) override
 	{
 		switch (orientation) {
-		case META_SIDE_NODE_ORIENTATION_0_2:
+		case SIDE_SUPER_POSITION_ORIENTATION_0_2:
 			switch (dir) {
 			case LOCAL_DIRECTION_0: tileAlignmentMaps[0]=mapIndex; return;
 			case LOCAL_DIRECTION_2: tileAlignmentMaps[1]=mapIndex; return;
 			}
-		case META_SIDE_NODE_ORIENTATION_1_3:
+		case SIDE_SUPER_POSITION_ORIENTATION_1_3:
 			switch (dir) {
 			case LOCAL_DIRECTION_1: tileAlignmentMaps[0]=mapIndex; return;
 			case LOCAL_DIRECTION_3: tileAlignmentMaps[1]=mapIndex; return;
@@ -485,14 +485,14 @@ public:
 };
 
 // Tiles point to 4 of these.
-// Min of 1, max of 2 overlapping corner nodes in same 3D position.  
+// Min of 1, max of 2 overlapping corner super positions in same 3D position.  
 // More than 2 means unsafe corner and we dont worry about those.
-struct MetaCornerNode : public MetaNode {
+struct CornerSuperPosition : public SuperPosition {
 private:
 	float directionMagnitudes[4];
 
-	MetaCenterNode* centerNodeNeighbors[4];
-	MetaSideNode* sideNodeNeighbors[4];
+	CenterSuperPosition* centerNeighbors[4];
+	SideSuperPosition* sideNeighbors[4];
 	int neighborAlignmentMaps[8];
 
 	int tileIndices[4];
@@ -500,16 +500,16 @@ private:
 	int tileAlignmentMaps[4];
 
 public:
-	MetaCornerNode(MetaNodeTileInfo tileInfo0, MetaNodeTileInfo tileInfo1,
-				   MetaNodeTileInfo tileInfo2, MetaNodeTileInfo tileInfo3)
+	CornerSuperPosition(SuperPositionTileInfo tileInfo0, SuperPositionTileInfo tileInfo1,
+				   SuperPositionTileInfo tileInfo2, SuperPositionTileInfo tileInfo3)
 	{
-		MetaNodeTileInfo* tileInfos[4] = { &tileInfo0, &tileInfo1, &tileInfo2, &tileInfo3 };
+		SuperPositionTileInfo* tileInfos[4] = { &tileInfo0, &tileInfo1, &tileInfo2, &tileInfo3 };
 
-		type = META_NODE_TYPE_CORNER;
+		type = SUPER_POSITION_TYPE_CORNER;
 		for (int i = 0; i < 8; i++) { neighborAlignmentMaps[i] = -1; }
 		for (int i = 0; i < 4; i++) { 
 			directionMagnitudes[i] = 0; 
-			centerNodeNeighbors[i] = nullptr;
+			centerNeighbors[i] = nullptr;
 
 			tileIndices[i] = tileInfos[i]->tileIndex;
 			tilePositions[i] = tileInfos[i]->position;
@@ -517,49 +517,49 @@ public:
 		}
 	}
 
-	MetaNode* getNodeNeighbor(LocalDirection dir) override
+	SuperPosition* getNeighbor(LocalDirection dir) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0: return sideNodeNeighbors[0];
-		case LOCAL_DIRECTION_1: return sideNodeNeighbors[0];
-		case LOCAL_DIRECTION_2: return sideNodeNeighbors[1];
-		case LOCAL_DIRECTION_3: return sideNodeNeighbors[1];
-		case LOCAL_DIRECTION_0_1: return centerNodeNeighbors[0];
-		case LOCAL_DIRECTION_1_2: return centerNodeNeighbors[1];
-		case LOCAL_DIRECTION_2_3: return centerNodeNeighbors[2];
-		case LOCAL_DIRECTION_3_0: return centerNodeNeighbors[3];
+		case LOCAL_DIRECTION_0: return sideNeighbors[0];
+		case LOCAL_DIRECTION_1: return sideNeighbors[0];
+		case LOCAL_DIRECTION_2: return sideNeighbors[1];
+		case LOCAL_DIRECTION_3: return sideNeighbors[1];
+		case LOCAL_DIRECTION_0_1: return centerNeighbors[0];
+		case LOCAL_DIRECTION_1_2: return centerNeighbors[1];
+		case LOCAL_DIRECTION_2_3: return centerNeighbors[2];
+		case LOCAL_DIRECTION_3_0: return centerNeighbors[3];
 		default: return nullptr;
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaCenterNode* node) override
+	void setNeighbor(LocalDirection dir, CenterSuperPosition* superPosition) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0_1: centerNodeNeighbors[0] = node;
-		case LOCAL_DIRECTION_1_2: centerNodeNeighbors[1] = node;
-		case LOCAL_DIRECTION_2_3: centerNodeNeighbors[2] = node;
-		case LOCAL_DIRECTION_3_0: centerNodeNeighbors[3] = node;
+		case LOCAL_DIRECTION_0_1: centerNeighbors[0] = superPosition;
+		case LOCAL_DIRECTION_1_2: centerNeighbors[1] = superPosition;
+		case LOCAL_DIRECTION_2_3: centerNeighbors[2] = superPosition;
+		case LOCAL_DIRECTION_3_0: centerNeighbors[3] = superPosition;
 		}
 	}
-	void setNodeNeighbor(LocalDirection dir, MetaSideNode* node) override
+	void setNeighbor(LocalDirection dir, SideSuperPosition* superPosition) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0: sideNodeNeighbors[0] = node;
-		case LOCAL_DIRECTION_1: sideNodeNeighbors[0] = node;
-		case LOCAL_DIRECTION_2: sideNodeNeighbors[1] = node;
-		case LOCAL_DIRECTION_3: sideNodeNeighbors[1] = node;
+		case LOCAL_DIRECTION_0: sideNeighbors[0] = superPosition;
+		case LOCAL_DIRECTION_1: sideNeighbors[0] = superPosition;
+		case LOCAL_DIRECTION_2: sideNeighbors[1] = superPosition;
+		case LOCAL_DIRECTION_3: sideNeighbors[1] = superPosition;
 		}
 	}
-	void setNodeNeighborToNull(LocalDirection dir) override
+	void setNeighborToNull(LocalDirection dir) override
 	{
 		switch (dir) {
-		case LOCAL_DIRECTION_0: sideNodeNeighbors[0] = nullptr;
-		case LOCAL_DIRECTION_1: sideNodeNeighbors[0] = nullptr;
-		case LOCAL_DIRECTION_2: sideNodeNeighbors[1] = nullptr;
-		case LOCAL_DIRECTION_3: sideNodeNeighbors[1] = nullptr;
-		case LOCAL_DIRECTION_0_1: centerNodeNeighbors[0] = nullptr;
-		case LOCAL_DIRECTION_1_2: centerNodeNeighbors[1] = nullptr;
-		case LOCAL_DIRECTION_2_3: centerNodeNeighbors[2] = nullptr;
-		case LOCAL_DIRECTION_3_0: centerNodeNeighbors[3] = nullptr;
+		case LOCAL_DIRECTION_0: sideNeighbors[0] = nullptr;
+		case LOCAL_DIRECTION_1: sideNeighbors[0] = nullptr;
+		case LOCAL_DIRECTION_2: sideNeighbors[1] = nullptr;
+		case LOCAL_DIRECTION_3: sideNeighbors[1] = nullptr;
+		case LOCAL_DIRECTION_0_1: centerNeighbors[0] = nullptr;
+		case LOCAL_DIRECTION_1_2: centerNeighbors[1] = nullptr;
+		case LOCAL_DIRECTION_2_3: centerNeighbors[2] = nullptr;
+		case LOCAL_DIRECTION_3_0: centerNeighbors[3] = nullptr;
 		}
 	}
 
@@ -673,44 +673,44 @@ public:
 
 // This manager is responsible for collision solving.  
 // Once solved, it will be referenced to update the direciton values for each moving entity.
-struct MetaNodeNetwork 
+struct SuperPositionNetwork 
 {
-	std::vector<MetaNode> nodes;
-	// When a node is deleted, its index is added here so a new node can replace it in the array:
-	std::vector<int> freeNodeIndices;
-	// List of all the nodes that need to be checked for force distribution steps next simulation step:
-	std::vector<int> potentialNodeCollisionIndices;
+	std::vector<SuperPosition> superPositions;
+	// When a super position is deleted, its index is added here so a new super position can replace it in the array:
+	std::vector<int> freeSuperPositionIndices;
+	// List of all the super positions that need to be checked for force distribution steps next simulation step:
+	std::vector<int> potentialSuperPositionCollisionIndices;
 
-	MetaNode* addNode(MetaNode node)
+	SuperPosition* add(SuperPosition superPosition)
 	{
-		if (freeNodeIndices.size() == 0) {
-			nodes.push_back(node);
-			return &nodes.back();
+		if (freeSuperPositionIndices.size() == 0) {
+			superPositions.push_back(superPosition);
+			return &superPositions.back();
 		}
 		else {
-			nodes[freeNodeIndices.back()] = node;
-			MetaNode* p = &nodes[freeNodeIndices.back()];
-			freeNodeIndices.pop_back();
+			superPositions[freeSuperPositionIndices.back()] = superPosition;
+			SuperPosition* p = &superPositions[freeSuperPositionIndices.back()];
+			freeSuperPositionIndices.pop_back();
 			return p;
 		}
 	}
 
-	void deleteNode(MetaNode* node, std::vector<MetaNode*>&affectedNodes)
+	void remove(SuperPosition* pos, std::vector<SuperPosition*>&affectedSuperPositions)
 	{
-		freeNodeIndices.push_back(node->index);
+		freeSuperPositionIndices.push_back(pos->index);
 
 		for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
-			MetaNode* neighbor = node->getNodeNeighbor(d);
+			SuperPosition* neighbor = pos->getNeighbor(d);
 			if (neighbor == nullptr) {
 				continue;
 			}
 
-			affectedNodes.push_back(neighbor);
+			affectedSuperPositions.push_back(neighbor);
 
 			// Not strictly necessary but will catch errors if neighbors are not propoerly reconnected later:
-			LocalDirection neighborToNode = tnav::oppositeAlignment(d);
-			neighborToNode = tnav::getMappedAlignment(node->getNeighborAlignmentMapIndex(d), neighborToNode);
-			neighbor->setNodeNeighborToNull(neighborToNode);
+			LocalDirection returnDirection = tnav::oppositeAlignment(d);
+			returnDirection = tnav::getMappedAlignment(pos->getNeighborAlignmentMapIndex(d), returnDirection);
+			neighbor->setNeighborToNull(returnDirection);
 		}
 	}
 

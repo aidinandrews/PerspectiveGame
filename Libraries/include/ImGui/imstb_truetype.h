@@ -690,7 +690,7 @@ struct stbtt_pack_context {
    int   skip_missing;
    unsigned int   h_oversample, v_oversample;
    unsigned char *pixels;
-   void  *nodes;
+   void  *superPositions;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3966,11 +3966,11 @@ STBTT_DEF int stbtt_PackBegin(stbtt_pack_context *spc, unsigned char *pixels, in
 {
    stbrp_context *context = (stbrp_context *) STBTT_malloc(sizeof(*context)            ,alloc_context);
    int            num_nodes = pw - padding;
-   stbrp_node    *nodes   = (stbrp_node    *) STBTT_malloc(sizeof(*nodes  ) * num_nodes,alloc_context);
+   stbrp_node    *superPositions   = (stbrp_node    *) STBTT_malloc(sizeof(*superPositions  ) * num_nodes,alloc_context);
 
-   if (context == NULL || nodes == NULL) {
+   if (context == NULL || superPositions == NULL) {
       if (context != NULL) STBTT_free(context, alloc_context);
-      if (nodes   != NULL) STBTT_free(nodes  , alloc_context);
+      if (superPositions   != NULL) STBTT_free(superPositions  , alloc_context);
       return 0;
    }
 
@@ -3979,14 +3979,14 @@ STBTT_DEF int stbtt_PackBegin(stbtt_pack_context *spc, unsigned char *pixels, in
    spc->height = ph;
    spc->pixels = pixels;
    spc->pack_info = context;
-   spc->nodes = nodes;
+   spc->superPositions = superPositions;
    spc->padding = padding;
    spc->stride_in_bytes = stride_in_bytes != 0 ? stride_in_bytes : pw;
    spc->h_oversample = 1;
    spc->v_oversample = 1;
    spc->skip_missing = 0;
 
-   stbrp_init_target(context, pw-padding, ph-padding, nodes, num_nodes);
+   stbrp_init_target(context, pw-padding, ph-padding, superPositions, num_nodes);
 
    if (pixels)
       STBTT_memset(pixels, 0, pw*ph); // background of 0 around pixels
@@ -3996,7 +3996,7 @@ STBTT_DEF int stbtt_PackBegin(stbtt_pack_context *spc, unsigned char *pixels, in
 
 STBTT_DEF void stbtt_PackEnd  (stbtt_pack_context *spc)
 {
-   STBTT_free(spc->nodes    , spc->user_allocator_context);
+   STBTT_free(spc->superPositions    , spc->user_allocator_context);
    STBTT_free(spc->pack_info, spc->user_allocator_context);
 }
 
