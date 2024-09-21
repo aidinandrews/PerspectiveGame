@@ -24,7 +24,7 @@
 #include"vertexManager.h"
 #include"frameBuffer.h"
 #include"tile.h"
-#include "metaPositionNodeManager.h"
+#include "metaPositionNetwork.h"
 
 struct TileManager {
 
@@ -42,14 +42,14 @@ public: // CONST MEMBER VARIABLES:
 	static std::vector<glm::vec2> INITIAL_DRAW_TILE_VERTS;
 
 public:
-	// Other Managers:
+	// Connections:
 	Camera *p_camera;
 	ShaderManager *p_shaderManager;
 	GLFWwindow *p_window;
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
-	MetaPositionNodeManager* p_metaNodeManager;
+	MetaPositionNetwork* p_metaNodeNetwork;
 
 	std::vector<Tile*> tiles;
 	std::vector<GPU_TileInfo> tileGpuInfos;
@@ -71,14 +71,14 @@ public:
 	glm::mat4 tileRotationAdjFor3DView;
 	glm::mat4 lastpovTileTransf;
 	glm::mat4 currentpovTileTransf;
-	float lastpovTileTransfWeight = 0;
 	glm::vec3 lastCamPosOffset;
 	glm::vec3 lerpCamPosOffset;
+	float lastpovTileTransfWeight = 0;
 
 public: // INITIALIZERS:
 
 	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window, Framebuffer* framebuffer, 
-				ButtonManager* bm, InputManager* im, MetaPositionNodeManager* nm) {
+				ButtonManager* bm, InputManager* im, MetaPositionNetwork* nn) {
 
 		currentpovTileTransf = glm::mat4(1);
 		lastpovTileTransf = glm::mat4(1);
@@ -90,7 +90,7 @@ public: // INITIALIZERS:
 		p_framebuffer = framebuffer;
 		p_buttonManager = bm;
 		p_inputManager = im;
-		p_metaNodeManager = nm;
+		p_metaNodeNetwork = nn;
 
 		// make sure the camera is in the middle of the starting draw tile:
 		p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
@@ -154,11 +154,14 @@ public: // MEMBER FUNCTIONS:
 	
 	// In the creation of a tile, it needs to be connected to it's neighbors so that things can move from
 	// one tile to another.
-	void updateAdjacentNeighborConnections(Tile *tile);
+	void updateNeighborConnections(Tile *tile);
 
-	// Assumes that adjacent neighbors are correct, finds and connects the 8 possible diagonal neighbors.
-	void updateDiagonalNeighborConnections(Tile* tile, std::vector<Tile*>& affectedTiles);
-	void updateDiagonalNeighborConnections(Tile* tile);
+	void removeConnectedMetaNodes(Tile* tile, Tile* sibling,
+								  std::vector<MetaPositionCenterNode*>& affectedCenterNodes,
+								  std::vector<MetaPositionSideNode*>& affectedSideNodes,
+								  std::vector<MetaPositionCornerNode*>& affectedCornerNodes);
+	void createMetaNodeConnections(Tile* tile, Tile* sibling);
+	void updateMetaNodeConnections(Tile* tile);
 	
 	// Tries to connect the subject tile to the other tile.
 	// Returns false if the tiles cannot connect.

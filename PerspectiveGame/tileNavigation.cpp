@@ -1,5 +1,17 @@
 #include "tileNavigation.h"
 
+const LocalAlignment tnav::LOCAL_ALIGNMENT_LIST[] = {
+		LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
+		LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0,
+		LOCAL_ALIGNMENT_NONE,
+};
+
+const LocalDirection tnav::NON_STATIC_LOCAL_DIRECTION_LIST[8] = {
+	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
+	LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0
+};
+
+
 void tnav::checkOrthogonal(LocalAlignment alignment)
 {
 	if (alignment > 3) std::cout << "ORTHOGONAL ALIGNMENT EXPECTED BUT NOT RESPECTED!" << std::endl;
@@ -113,7 +125,7 @@ LocalPosition tnav::nextPosition(LocalPosition position, LocalDirection directio
 }
 
 // [local Position][local direction]
-const LocalPosition NEXT_NOEX_LOCAL_POSITIONS[9][8] = {
+const LocalPosition NEXT_NEXT_LOCAL_POSITIONS[9][8] = {
 #define _0_ LOCAL_POSITION_0
 #define _1_ LOCAL_POSITION_1
 #define _2_ LOCAL_POSITION_2
@@ -147,7 +159,7 @@ const LocalPosition NEXT_NOEX_LOCAL_POSITIONS[9][8] = {
 
 const LocalPosition tnav::getNextNextPosition(LocalPosition position, LocalDirection direction)
 {
-	return NEXT_NOEX_LOCAL_POSITIONS[position][direction];
+	return NEXT_NEXT_LOCAL_POSITIONS[position][direction];
 }
 
 /*

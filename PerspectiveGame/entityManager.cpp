@@ -77,9 +77,9 @@ void EntityManager::moveEntity(Entity* entity)
 			entity->setDirection(1, entity->getDirection(0));
 			entity->setOrientation(1, entity->getOrientation(0));
 
-			Tile* neighbor = currentTile->getNeighbor(entity->getDirection(0));
-			entity->setOrientation(0, currentTile->mapAlignmentTo1stDegreeNeighbor(entity->getDirection(0), entity->getOrientation(0)));
-			entity->setDirection(0, currentTile->mapAlignmentTo1stDegreeNeighbor(entity->getDirection(0), entity->getDirection(0)));
+			Tile* neighbor = currentTile->neighbors[entity->getDirection(0)];
+			entity->setOrientation(0, currentTile->mapAlignmentToNeighbor(entity->getDirection(0), entity->getOrientation(0)));
+			entity->setDirection(0, currentTile->mapAlignmentToNeighbor(entity->getDirection(0), entity->getDirection(0)));
 			entity->setPosition(0, (LocalPosition)currentTile->get1stDegreeNeighborConnectedSideIndex(entity->getDirection(0)));
 			entity->setTileIndex(0, neighbor->index);
 
@@ -103,24 +103,24 @@ void EntityManager::moveEntity(Entity* entity)
 	else { // Entity is moving diagonally.
 		if (entity->getPosition(0) == LOCAL_POSITION_CENTER) {
 			// entity is going to a corner!
-			Tile* adjacentTile0 = currentTile->getNeighbor(entityDirectionComponents[0]);
-			LocalDirection adjacentTile0Dir = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[0], entity->getDirection(0));
-			LocalOrientation adjacentTile0Ori = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[0], entity->getOrientation(0));
-			LocalPosition adjacentTile0Pos = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[0], tnav::combineAlignments(tnav::oppositeAlignment(entityDirectionComponents[0]), entityDirectionComponents[1]));
+			Tile* adjacentTile0 = currentTile->neighbors[entityDirectionComponents[0]];
+			LocalDirection adjacentTile0Dir = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[0], entity->getDirection(0));
+			LocalOrientation adjacentTile0Ori = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[0], entity->getOrientation(0));
+			LocalPosition adjacentTile0Pos = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[0], tnav::combineAlignments(tnav::oppositeAlignment(entityDirectionComponents[0]), entityDirectionComponents[1]));
 			
-			Tile* adjacentTile1 = currentTile->getNeighbor(entityDirectionComponents[1]);
-			LocalDirection adjacentTile1Dir = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[1], entity->getDirection(0));
-			LocalOrientation adjacentTile1Ori = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[1], entity->getOrientation(0));
-			LocalPosition adjacentTile1Pos = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[1], tnav::combineAlignments(tnav::oppositeAlignment(entityDirectionComponents[1]), entityDirectionComponents[0]));
+			Tile* adjacentTile1 = currentTile->neighbors[entityDirectionComponents[1]];
+			LocalDirection adjacentTile1Dir = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[1], entity->getDirection(0));
+			LocalOrientation adjacentTile1Ori = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[1], entity->getOrientation(0));
+			LocalPosition adjacentTile1Pos = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[1], tnav::combineAlignments(tnav::oppositeAlignment(entityDirectionComponents[1]), entityDirectionComponents[0]));
 			
 			// Wow this is not going to be understandabe next time I look at it...
-			LocalDirection toArrivingFromAdjacentDir = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[0], entityDirectionComponents[1]);
-			Tile* arrivingTile = adjacentTile0->getNeighbor(toArrivingFromAdjacentDir);
-			LocalDirection arrivingTileDir = adjacentTile0->mapAlignmentTo1stDegreeNeighbor(toArrivingFromAdjacentDir, adjacentTile0Dir);
-			LocalDirection arrivingTileOri = adjacentTile0->mapAlignmentTo1stDegreeNeighbor(toArrivingFromAdjacentDir, adjacentTile0Ori);
+			LocalDirection toArrivingFromAdjacentDir = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[0], entityDirectionComponents[1]);
+			Tile* arrivingTile = adjacentTile0->neighbors[toArrivingFromAdjacentDir];
+			LocalDirection arrivingTileDir = adjacentTile0->mapAlignmentToNeighbor(toArrivingFromAdjacentDir, adjacentTile0Dir);
+			LocalDirection arrivingTileOri = adjacentTile0->mapAlignmentToNeighbor(toArrivingFromAdjacentDir, adjacentTile0Ori);
 			LocalPosition arrivingTilePos = LocalPosition((((entity->getDirection(0) - 4) + 2) % 4) + 4);
-			arrivingTilePos = currentTile->mapAlignmentTo1stDegreeNeighbor(entityDirectionComponents[0], arrivingTilePos);
-			arrivingTilePos = adjacentTile0->mapAlignmentTo1stDegreeNeighbor(toArrivingFromAdjacentDir, arrivingTilePos);
+			arrivingTilePos = currentTile->mapAlignmentToNeighbor(entityDirectionComponents[0], arrivingTilePos);
+			arrivingTilePos = adjacentTile0->mapAlignmentToNeighbor(toArrivingFromAdjacentDir, arrivingTilePos);
 			
 			// delete entity data from current tile old position:
 			currentTile->entityIndices[entity->getPosition(0)] = -1;

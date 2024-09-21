@@ -194,7 +194,6 @@
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
-    <ClInclude Include="entityNavigation.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
@@ -231,8 +230,7 @@
     <ClCompile Include="guiManager.cpp" />
     <ClCompile Include="inputManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="entityNavigation.cpp" />
-    <ClCompile Include="metaPositionNodeManager.h" />
+    <ClCompile Include="metaPositionNetwork.h" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="textureManager.cpp" />

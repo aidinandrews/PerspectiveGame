@@ -9,13 +9,13 @@ Tile::Tile(TileType type, glm::ivec3 position) : type(type), position(position)
 	texCoords[3] = glm::vec2(0, 1);
 
 	for (int i = 0; i < 4; i++) {
-		cornerSafety[i] = true;
+		cornerIsSafe[i] = true;
 	}
 
-	for (int i = 0; i < 9; i++) {
+	/*for (int i = 0; i < 9; i++) {
 		entityIndices[i] = -1;
 		entityInfoIndices[i] = -1;
-	}
+	}*/
 
 }
 
@@ -74,14 +74,14 @@ GPU_TileInfo::GPU_TileInfo(Tile* tile)
 	getTileType = (int)tile->type;
 
 	for (int i = 0; i < 4; i++) {
-		neighborIndices[i] = tile->getNeighbor(LocalDirection(i))->index;
+		neighborIndices[i] = tile->neighbors[i]->index;
 		//neighborMirrored[i] = (int)tile->isNeighborConnectionsMirrored[i];
 		//neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
 // TODO: fix gpu-info/shaders to use the new alignment mappings
 		neighborMirrored[i] = (int)tile->is1stDegreeNeighborMirrored(i);
-		neighborSideIndex[i] = tnav::getMappedAlignment(tile->getNeighborAlignmentMap(LocalDirection(i)), tnav::oppositeAlignment(LocalAlignment(i)));
+		neighborSideIndex[i] = tnav::getMappedAlignment(tile->neighborAlignmentMaps[i], tnav::oppositeAlignment(LocalAlignment(i)));
 		texCoords[i] = tile->texCoords[i];
-		cornerSafety[i] = tile->cornerSafety[i];
+		cornerIsSafe[i] = tile->cornerIsSafe[i];
 	}
 
 	// Entity info is UNORDERED by position in the gpu info to save space.  There can only ever be 4

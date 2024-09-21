@@ -5,34 +5,14 @@
 #include "tileNavigation.h"
 #include "tileManager.h"
 #include "entity.h"
-#include "entityNavigation.h"
 
-struct EntityCollisionInfo {
+struct EntityEditDirectionInfo {
 	int tileIndex;
 	LocalPosition position;
-	LocalDirection direction;
+	LocalDirection componentToEdit;
 
-	int collidingTileIndex;
-	LocalPosition collidingPosition;
-	LocalDirection collidingDirection;
-
-	EntityCollisionInfo(int tileIndex, LocalPosition position) : tileIndex(tileIndex), position(position) {}
-};
-
-struct EntityDirectionComponentRemoval {
-	int entityIndex;
-	int entityInfoIndex;
-	uint8_t componentToRemove;
-	EntityDirectionComponentRemoval(int entityIndex, int entityInfoIndex, uint8_t component) :
-		entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), componentToRemove(component)
-	{}
-};
-struct EntityDirectionComponentAddition {
-	int entityIndex;
-	int entityInfoIndex;
-	uint8_t componentToAdd;
-	EntityDirectionComponentAddition(int entityIndex, int entityInfoIndex, uint8_t component) :
-		entityIndex(entityIndex), entityInfoIndex(entityInfoIndex), componentToAdd(component)
+	EntityEditDirectionInfo(int tileIndex, LocalPosition position, LocalDirection componentToEdit) :
+		tileIndex(tileIndex), position(position), componentToEdit(componentToEdit)
 	{}
 };
 
@@ -42,19 +22,7 @@ struct EntityAndTileInfoSwap {
 	int entityInfoIndex1;
 	EntityAndTileInfoSwap(int entityIndex, int infoIndex0, int infoIndex1) :
 		entityIndex(entityIndex), entityInfoIndex0(infoIndex0), entityInfoIndex1(infoIndex1)
-	{
-
-	}
-	EntityAndTileInfoSwap(enav::OrthogonalEntityCollisionInfo &oInfo1, enav::OrthogonalEntityCollisionInfo &oInfo2) :
-		entityIndex(oInfo1.entityIndex), entityInfoIndex0(oInfo1.entityInfoIndex), entityInfoIndex1(oInfo2.entityInfoIndex)
-	{
-	
-	}
-	EntityAndTileInfoSwap(enav::DiagonalEntityCollisionInfo& dInfo1, enav::DiagonalEntityCollisionInfo& dInfo2) :
-		entityIndex(dInfo1.entityIndex), entityInfoIndex0(dInfo1.entityInfoIndex), entityInfoIndex1(dInfo2.entityInfoIndex)
-	{
-	
-	}
+	{}
 };
 
 struct EntityManager {
@@ -63,8 +31,8 @@ public:
 
 	std::vector<Entity> entities;
 
-	std::vector<enav::EntityEditDirectionInfo> componentsToAdd;
-	std::vector<enav::EntityEditDirectionInfo> componentsToRemove;
+	std::vector<EntityEditDirectionInfo> componentsToAdd;
+	std::vector<EntityEditDirectionInfo> componentsToRemove;
 	std::vector<EntityAndTileInfoSwap> entityAndTileInfosToSwap;
 
 	// This vector eeps track of the number of entities in each tile (Max 9).
@@ -98,16 +66,16 @@ public:
 	// collision detection steps!
 	void removeTileInfoLeavings();
 
-	void getSideOtherInfo(enav::EntityEditDirectionInfo editInfo, Tile* tile, int& neighborInfoIndex, LocalDirection& neighborComponent)
+	void getSideOtherInfo(EntityEditDirectionInfo editInfo, Tile* tile, int& neighborInfoIndex, LocalDirection& neighborComponent)
 	{
 		LocalDirection toNeighbor = editInfo.position;
-		Tile* neighbor = tile->getNeighbor(toNeighbor);
-		LocalPosition neighborPosition = tile->mapAlignmentTo1stDegreeNeighbor(toNeighbor, tnav::oppositeAlignment(toNeighbor));
+		Tile* neighbor = tile->neighbors[toNeighbor];
+		LocalPosition neighborPosition = tile->mapAlignmentToNeighbor(toNeighbor, tnav::oppositeAlignment(toNeighbor));
 		neighborInfoIndex = neighbor->entityInfoIndices[neighborPosition];
-		neighborComponent = tile->mapAlignmentTo1stDegreeNeighbor(toNeighbor, editInfo.componentToEdit);
+		neighborComponent = tile->mapAlignmentToNeighbor(toNeighbor, editInfo.componentToEdit);
 	}
 
-	void removeOtherDirComponentSide(enav::EntityEditDirectionInfo removeInfo, Tile* tile, Entity* entity)
+	void removeOtherDirComponentSide(EntityEditDirectionInfo removeInfo, Tile* tile, Entity* entity)
 	{
 		int neighborInfoIndex; LocalDirection neighborComponent;
 		getSideOtherInfo(removeInfo, tile, neighborInfoIndex, neighborComponent);
@@ -115,7 +83,7 @@ public:
 		entity->setDirection(neighborInfoIndex, tnav::getDirection(entity->getDirectionFlag(neighborInfoIndex)));
 	}
 
-	void addOtherDirComponentSide(enav::EntityEditDirectionInfo addInfo, Tile* tile, Entity* entity)
+	void addOtherDirComponentSide(EntityEditDirectionInfo addInfo, Tile* tile, Entity* entity)
 	{
 		int neighborInfoIndex; LocalDirection neighborComponent;
 		getSideOtherInfo(addInfo, tile, neighborInfoIndex, neighborComponent);
@@ -130,7 +98,7 @@ public:
 	// is no good!
 	void updateEntityLocalDirectionComponents()
 	{
-		for (enav::EntityEditDirectionInfo removeInfo : componentsToRemove) {
+		for (EntityEditDirectionInfo removeInfo : componentsToRemove) {
 			Tile* tile = p_tileManager->tiles[removeInfo.tileIndex];
 			Entity* entity = &entities[tile->entityIndices[removeInfo.position]];
 			int infoIndex = tile->entityInfoIndices[removeInfo.position];
@@ -150,7 +118,7 @@ public:
 				continue;
 			}
 		}
-		for (enav::EntityEditDirectionInfo addInfo : componentsToAdd) {
+		for (EntityEditDirectionInfo addInfo : componentsToAdd) {
 			Tile* tile = p_tileManager->tiles[addInfo.tileIndex];
 			Entity* entity = &entities[tile->entityIndices[addInfo.position]];
 			int infoIndex = tile->entityInfoIndices[addInfo.position];
@@ -258,12 +226,6 @@ public:
 			return false;
 		}
 	}*/
-
-	Entity* getEntityIndex(enav::OrthogonalEntityCollisionInfo oInfo)
-	{
-		return &entities[oInfo.entityIndex];
-	}
-
 	
 	
 	
@@ -271,12 +233,11 @@ public:
 		Entity* entity, Tile* neighbor, int offset, LocalDirection heading, LocalDirection neighborHeading)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 
 		LocalPosition neighborPosition = LocalPosition((heading + offset) % 4);
-		neighborPosition = tile->mapAlignmentTo1stDegreeNeighbor(heading, neighborPosition);
+		neighborPosition = tile->mapAlignmentToNeighbor(heading, neighborPosition);
 		
 		// Offset collision:
 		if (neighbor->hasEntity(neighborPosition)) {
@@ -288,14 +249,14 @@ public:
 			}
 		}
 		// Corner collision:
-		Tile* neighborNeighbor = neighbor->getNeighbor(LocalDirection(neighborPosition));
+		Tile* neighborNeighbor = neighbor->neighbors[neighborPosition];
 		if (neighborNeighbor->hasEntity(LOCAL_POSITION_CENTER)) {
 			Entity* collider = &entities[neighborNeighbor->entityIndices[LOCAL_POSITION_CENTER]];
-			LocalDirection dirOfCollision = oppositeAlignment(neighbor->mapAlignmentTo1stDegreeNeighbor(LocalDirection(neighborPosition), LocalDirection(neighborPosition)));
+			LocalDirection dirOfCollision = oppositeAlignment(neighbor->mapAlignmentToNeighbor(LocalDirection(neighborPosition), LocalDirection(neighborPosition)));
 
 			if (alignmentHasComponent(collider->getDirection(0), dirOfCollision)) {
 				// There is a collision!
-				LocalDirection neighborNeighborDirection = neighbor->mapAlignmentTo1stDegreeNeighbor(LocalDirection(neighborPosition), neighborHeading);
+				LocalDirection neighborNeighborDirection = neighbor->mapAlignmentToNeighbor(LocalDirection(neighborPosition), neighborHeading);
 				componentsToAdd.push_back(EntityEditDirectionInfo(neighborNeighbor->index, LOCAL_POSITION_CENTER, neighborNeighborDirection));
 				return true;
 			}
@@ -308,12 +269,11 @@ public:
 	void solveCollidingInfoFromCenterOrtho(Entity* entity, LocalDirection heading)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		
-		Tile* neighbor = tile->getNeighbor(heading);
-		LocalDirection neighborHeading = tile->mapAlignmentTo1stDegreeNeighbor(heading, heading);
+		Tile* neighbor = tile->neighbors[heading];
+		LocalDirection neighborHeading = tile->mapAlignmentToNeighbor(heading, heading);
 
 		// Direct collision:
 		if (neighbor->hasEntity(LOCAL_POSITION_CENTER)) {
@@ -352,7 +312,6 @@ public:
 	bool getCollidingInfoFromSideToOffsetAndCorner(Entity* entity, int offset)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		LocalDirection heading = entity->getDirection(0);
@@ -376,7 +335,6 @@ public:
 	void findCollisionFromSide(Entity* entity)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		LocalDirection heading = entity->getDirection(0);
@@ -406,7 +364,6 @@ public:
 	bool findCollisionComponentFromCornerToOffsetAndCornerInternal(Entity* entity, LocalDirection heading)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		LocalPosition position = entity->getPosition(0);
@@ -441,14 +398,13 @@ public:
 	bool findCollisionComponentFromCornerToOffsetAndCornerExternal(Entity* entity, LocalDirection heading)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		LocalPosition position = entity->getPosition(0);
 
 		LocalDirection toNeighborDirection = getOtherComponent(position, oppositeAlignment(heading));
-		Tile* neighbor = tile->getNeighbor(toNeighborDirection);
-		LocalDirection neighborHeading = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, heading);
+		Tile* neighbor = tile->neighbors[toNeighborDirection];
+		LocalDirection neighborHeading = tile->mapAlignmentToNeighbor(toNeighborDirection, heading);
 		LocalPosition colliderPosition = neighborHeading;
 
 		if (neighbor->hasEntity(colliderPosition)) {
@@ -463,12 +419,12 @@ public:
 		}
 
 		colliderPosition = combineAlignments(heading, toNeighborDirection);
-		colliderPosition = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, colliderPosition);
+		colliderPosition = tile->mapAlignmentToNeighbor(toNeighborDirection, colliderPosition);
 		if (neighbor->hasEntity(colliderPosition)) {
 			Entity* collider = &entities[neighbor->entityIndices[colliderPosition]];
 			int colliderInfoIndex = neighbor->entityInfoIndices[colliderPosition];
 			LocalDirection directionOfCollision = oppositeAlignment(toNeighborDirection);
-			directionOfCollision = tile->mapAlignmentTo1stDegreeNeighbor(toNeighborDirection, directionOfCollision);
+			directionOfCollision = tile->mapAlignmentToNeighbor(toNeighborDirection, directionOfCollision);
 			// corner-positioned entities must have a diagonal direction:
 			if (alignmentHasComponent(collider->getDirection(colliderInfoIndex), directionOfCollision)) {
 				// collision spotted!
@@ -483,7 +439,6 @@ public:
 	void findCollisionComponentFromCorner(Entity* entity, LocalDirection heading)
 	{
 		using namespace tnav;
-		using namespace enav;
 
 		Tile* tile = getTile(entity, 0);
 		LocalPosition position = entity->getPosition(0);

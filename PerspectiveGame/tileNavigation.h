@@ -156,6 +156,9 @@ enum GlobalAlignment {
 
 namespace tnav { // tnav is short for 'tile navigation'
 
+	const extern LocalAlignment LOCAL_ALIGNMENT_LIST[9];
+	const extern LocalDirection NON_STATIC_LOCAL_DIRECTION_LIST[8];
+
 	void checkOrthogonal(LocalAlignment alignment);
 	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
@@ -174,7 +177,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 	
 	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
 	
-#define ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY 0
+#define ALIGNMENT_MAP_IDENTITY 0
 	const LocalAlignment getMappedAlignment(int mapIndex, LocalAlignment currentAlignment);
 
 	int getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);

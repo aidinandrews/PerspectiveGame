@@ -30,7 +30,7 @@
 #include "frameBuffer.h"
 #include "tileNavigation.h"
 #include "tileInternals.h"
-#include "metaPositionNodeManager.h"
+#include "metaPositionNetwork.h"
 
 struct TileManager;
 
@@ -54,27 +54,6 @@ public: // STRUCTS
 		Basis() : type(BASIS_TYPE_NONE), localOrientation(LOCAL_DIRECTION_0) {}
 	} basis;
 
-private:
-	// The 'neighborhood' is the set of neighbors orthogonally and diagonally connected to this tile.
-	// Index scheme:
-	//    [n][0] == 1st degree neighbor in direction of n.
-	//    [n][1] == 2nd degree neighbor clockwise from [n][0].
-	//    [n][2] == 2nd degree neighbor counterclockwise from [n][0].
-	struct Neighborhood {
-		Tile* tiles[4][3];
-		int maps[4][3];
-
-		Neighborhood()
-		{
-			for (int i = 0; i < 4; i++) {
-				for (int j = 0; j < 3; j++) {
-					tiles[i][j] = nullptr;
-					maps[i][j] = -1;
-				}
-			}
-		}
-	} neighborhood;
-
 public:
 	int index;
 	TileType type;
@@ -82,14 +61,19 @@ public:
 	Tile* sibling;
 	glm::fvec3 color;
 	
-	int entityIndices[9];
-	int entityInfoIndices[9];
+	//int entityIndices[9];
+	//int entityInfoIndices[9];
 
 	glm::vec2 texCoords[4];
-	bool cornerSafety[4];
+	Tile* neighbors[4];
+	int neighborAlignmentMaps[4];
+	bool cornerIsSafe[4];
 
-	//Tile* neighborTilePtrs[4];
-	//int neighborAlignmentMapIndex[4];
+	// Used for sorting out collisions:
+	MetaCenterNode* centerMetaNode;
+	MetaSideNode* sideMetaNodes[4];
+	MetaCornerNode* cornerMetaNodes[4];
+	int metaNodeAlignmentMaps[8]; // Center is always of the same basis, so it needs no map.
 
 public: // MEMBER FUNCTIONS:
 
@@ -108,29 +92,20 @@ public: // MEMBER FUNCTIONS:
 
 	glm::ivec3 getVertPos(int index);
 
-	bool getEntityIndex(LocalPosition position) { return entityIndices[position]; }
-
-	Tile* getNeighbor(LocalDirection side) { return neighborhood.tiles[side][0]; }
-	Tile* getNeighborNeighbor(LocalDirection side, bool clockwise) { return neighborhood.tiles[side][1 + (!clockwise)]; }
-
-	int getNeighborAlignmentMap(LocalDirection side) { return neighborhood.maps[side][0]; }
-	int getNeighborNeighborAlignmentMap(LocalDirection side, bool clockwise) { 
-		return neighborhood.maps[side][1 + (!clockwise)];
-	}
-
+	//bool getEntityIndex(LocalPosition position) { return entityIndices[position]; }
 	
-	bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
-	bool hasBasis() { return basis.type != BASIS_TYPE_NONE; }
+	//bool hasEntity(LocalPosition position) { return entityIndices[position] != -1; }
+	//bool hasBasis() { return basis.type != BASIS_TYPE_NONE; }
 
 	// True if tile faces 'frontwards,' false if tile faces 'backwards.'
 	bool isFrontFacing() { return type % 2 == 0; }
 
-	LocalAlignment mapAlignmentTo1stDegreeNeighbor(LocalDirection leavingDirection, LocalAlignment currentAlignment)
+	LocalAlignment mapAlignmentToNeighbor(LocalDirection leavingDirection, LocalAlignment currentAlignment)
 	{
 #ifdef RUNNING_DEBUG
 		tnav::checkOrthogonal(leavingDirection);
 #endif
-		return tnav::getMappedAlignment(neighborhood.maps[leavingDirection][0], currentAlignment);
+		return tnav::getMappedAlignment(neighborAlignmentMaps[leavingDirection], currentAlignment);
 	}
 
 	// TODO: Try to remove this function:
@@ -139,7 +114,7 @@ public: // MEMBER FUNCTIONS:
 #ifdef RUNNING_DEBUG
 		tnav::checkOrthogonal((LocalDirection)leavingDirection);
 #endif
-		return (neighborhood.maps[leavingDirection][0] > 3);
+		return (neighborAlignmentMaps[leavingDirection] > 3);
 	}
 
 	// TODO: Try to remove this function:
@@ -148,7 +123,7 @@ public: // MEMBER FUNCTIONS:
 #ifdef RUNNING_DEBUG
 		tnav::checkOrthogonal(leavingDirection);
 #endif
-		return mapAlignmentTo1stDegreeNeighbor(leavingDirection, tnav::oppositeAlignment(leavingDirection));
+		return mapAlignmentToNeighbor(leavingDirection, tnav::oppositeAlignment(leavingDirection));
 	}
 };
 
@@ -222,7 +197,7 @@ struct alignas(32) GPU_TileInfo {
 	alignas(16)  int entityIndices[4];
 	alignas(16)  int entityInfoIndices[4];
 
-	alignas(16) int cornerSafety[4];
+	alignas(16) int cornerIsSafe[4];
 	alignas(4)  int basisType;
 	alignas(4)  int basisOrientation;
 	alignas(4)  int getTileType;

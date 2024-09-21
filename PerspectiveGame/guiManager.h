@@ -227,15 +227,15 @@ public:
 										   TileManager::INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
 										   nullptr);
 			newTileOpacity = INITIAL_OPACITY;
-			if (p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex)->type != p_tileManager->povTile.tile->type) {
+			if (p_tileManager->povTile.tile->neighbors[sideIndex]->type != p_tileManager->povTile.tile->type) {
 				newTileOpacity -= TileManager::DRAW_TILE_OPACITY_DECRIMENT_STEP;
 			}
-			if (edgeDist < 0.5f && p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex)->type != p_tileManager->povTile.tile->type) {
+			if (edgeDist < 0.5f && p_tileManager->povTile.tile->neighbors[sideIndex]->type != p_tileManager->povTile.tile->type) {
 				newTileOpacity += (-((edgeDist * 2) - 1)) * 0.1f;
 			}
 
 			// Finally!  We can actually go onto drawing the next tile:
-			drawTiles(p_tileManager->povTile.tile->getNeighbor((LocalDirection)sideIndex), newTileVerts,
+			drawTiles(p_tileManager->povTile.tile->neighbors[sideIndex], newTileVerts,
 					  newInitialSideIndex, newInitialTexIndex, newSideOffset,
 					  newFrustum, newPreviousSides, newTileOpacity);
 			//break;
@@ -458,7 +458,7 @@ public:
 			float newTileOpacity = tileOpacity;
 			// We want a smooth transition from one tile opacity to another, so
 			// it should fade as you get closer to the next draw tile's edge:
-			if (tile->getNeighbor(LocalDirection(sideIndex))->type != tile->type) {
+			if (tile->neighbors[sideIndex]->type != tile->type) {
 				float edgeDist = vechelp::distToLineSeg((glm::vec2)p_camera->viewPlanePos,
 											   drawTileVerts[drawTileSideIndex],
 											   drawTileVerts[(drawTileSideIndex + 1) % 4], nullptr);
@@ -471,7 +471,7 @@ public:
 			}
 
 			// Finally!  We can actually go onto drawing the next tile:
-			drawTiles(tile->getNeighbor(LocalDirection(sideIndex)), newTileVerts,
+			drawTiles(tile->neighbors[sideIndex], newTileVerts,
 					  newInitialSideIndex, newInitialTexIndex, newSideOffset,
 					  newFrustum, newPreviousSides, newTileOpacity);
 		}

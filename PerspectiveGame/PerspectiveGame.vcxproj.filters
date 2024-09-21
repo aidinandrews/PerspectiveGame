@@ -168,9 +168,6 @@
     <ClInclude Include="scenarioSetup.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
-    <ClInclude Include="entityNavigation.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -260,10 +257,7 @@
     <ClCompile Include="tileInternals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="entityNavigation.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="metaPositionNodeManager.h">
+    <ClCompile Include="metaPositionNetwork.h">
       <Filter>Source Files\World</Filter>
     </ClCompile>
   </ItemGroup>

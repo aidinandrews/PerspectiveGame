@@ -56,55 +56,37 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	}
 
 	foreTile->sibling = backTile;
-	backTile->sibling = foreTile;
-
+	foreTile->type = TileType(tileType * 2);
 	foreTile->color = frontTileColor;
+
+	backTile->sibling = foreTile;
+	backTile->type = TileType(tileType * 2 + 1);
 	backTile->color = backTileColor;
 
-	switch (tileType) {
-	case TILE_TYPE_XY:
-		foreTile->type = TILE_TYPE_XYF;
-		backTile->type = TILE_TYPE_XYB;
-		break;
-	case TILE_TYPE_XZ:
-		foreTile->type = TILE_TYPE_XZF;
-		backTile->type = TILE_TYPE_XZB;
-		break;
-	case TILE_TYPE_YZ:
-		foreTile->type = TILE_TYPE_YZF;
-		backTile->type = TILE_TYPE_YZB;
-		break;
-	}
-
-	// Connect up the new tiles to the other ones in the scene:
-	std::vector<Tile*> affectedTiles;
-	updateAdjacentNeighborConnections(foreTile);
-	updateAdjacentNeighborConnections(backTile);
-	//updateDiagonalNeighborConnections(foreTile, affectedTiles);
-	//updateDiagonalNeighborConnections(backTile, affectedTiles);
-	/*for (Tile* t : affectedTiles) {
-		updateDiagonalNeighborConnections(t);
-	}*/
+	updateNeighborConnections(foreTile);
+	updateNeighborConnections(backTile);
 
 	updateCornerSafety(foreTile);
 	updateCornerSafety(backTile);
 	for (int i = 0; i < 4; i++) {
-		Tile* neighbor1 = foreTile->getNeighbor(LocalDirection(i));
-		int mapIndex = foreTile->neighborhood.maps[i][0];
-		Tile* neighbor1a = neighbor1->getNeighbor(tnav::getMappedAlignment(mapIndex, LocalDirection((i + 1) % 4)));
-		Tile* neighbor1b = neighbor1->getNeighbor(tnav::getMappedAlignment(mapIndex, LocalDirection((i + 3) % 4)));
+		Tile* neighbor1 = foreTile->neighbors[i];
+		int mapIndex = foreTile->neighborAlignmentMaps[i];
+		Tile* neighbor1a = neighbor1->neighbors[tnav::getMappedAlignment(mapIndex, LocalDirection((i + 1) % 4))];
+		Tile* neighbor1b = neighbor1->neighbors[tnav::getMappedAlignment(mapIndex, LocalDirection((i + 3) % 4))];
 		updateCornerSafety(neighbor1);
 		updateCornerSafety(neighbor1a);
 		updateCornerSafety(neighbor1b);
 
-		neighbor1 = backTile->getNeighbor(LocalDirection(i));
-		mapIndex = backTile->neighborhood.maps[i][0];
-		neighbor1a = neighbor1->getNeighbor(tnav::getMappedAlignment(mapIndex, LocalDirection((i + 1) % 4)));
-		neighbor1b = neighbor1->getNeighbor(tnav::getMappedAlignment(mapIndex, LocalDirection((i + 3) % 4)));
+		neighbor1 = backTile->neighbors[i];
+		mapIndex = backTile->neighborAlignmentMaps[i];
+		neighbor1a = neighbor1->neighbors[tnav::getMappedAlignment(mapIndex, LocalDirection((i + 1) % 4))];
+		neighbor1b = neighbor1->neighbors[tnav::getMappedAlignment(mapIndex, LocalDirection((i + 3) % 4))];
 		updateCornerSafety(neighbor1);
 		updateCornerSafety(neighbor1a);
 		updateCornerSafety(neighbor1b);
 	}
+
+	createMetaNodeConnections(foreTile, backTile);
 
 	// Finally, we can add them to the list!
 	foreTile->index = (int)tiles.size();
@@ -121,47 +103,122 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	return true;
 }
 
-void TileManager::updateDiagonalNeighborConnections(Tile* tile, std::vector<Tile*>& affectedTiles)
+void TileManager::removeConnectedMetaNodes(Tile* tile, Tile* sibling, 
+										   std::vector<MetaCenterNode*>& affectedCenterNodes,
+										   std::vector<MetaSideNode*>& affectedSideNodes, 
+										   std::vector<MetaCornerNode*>& affectedCornerNodes)
 {
-	Tile* neighbor; Tile* neighborNeighbor; LocalDirection toNeighborNeighbor;
-	int toNeighborMapIndex, toNeighborNeighborMapIndex;
+	for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos=LocalPosition(pos+1)) {
+		Tile* neighbor = tile->neighbors[pos];
+		if (neighbor == sibling) {
+			continue; // There was no node there yet anyway.
+		}
+		LocalPosition neighborPosition = tile->mapAlignmentToNeighbor(pos, tnav::oppositeAlignment(pos));
+		MetaSideNode* sideNode = neighbor->sideMetaNodes[neighborPosition];
+		
+		affectedSideNodes.push_back(sideNode->sideNodeNeighbors[0]);
+		affectedSideNodes.push_back(sideNode->sideNodeNeighbors[1]);
+		// Note: it is possible for the conrer node pointers to be null!
+		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[0]);
+		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[1]);
+		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[2]);
+		affectedCornerNodes.push_back(sideNode->cornerNodeNeighbors[3]);
 
-	for (int i = 0; i < 4; i++) {
-		neighbor = tile->getNeighbor(LocalDirection(i));
-		
-		toNeighborNeighbor = tile->mapAlignmentTo1stDegreeNeighbor(LocalDirection(i), LocalDirection((i + 1) % 4));
-		neighborNeighbor = neighbor->getNeighbor(toNeighborNeighbor);
-		affectedTiles.push_back(neighborNeighbor);
-		tile->neighborhood.tiles[i][1] = neighborNeighbor;
-		toNeighborMapIndex = tile->neighborhood.maps[i][0];
-		toNeighborNeighborMapIndex = neighbor->neighborhood.maps[toNeighborNeighbor][0];
-		tile->neighborhood.maps[i][1] = tnav::combineAlignmentMappings(toNeighborMapIndex, toNeighborNeighborMapIndex);
-		
-		toNeighborNeighbor = tile->mapAlignmentTo1stDegreeNeighbor(LocalDirection(i), LocalDirection((i + 3) % 4));
-		neighborNeighbor = neighbor->getNeighbor(toNeighborNeighbor);
-		affectedTiles.push_back(neighborNeighbor);
-		tile->neighborhood.tiles[i][2] = neighborNeighbor;
-		toNeighborMapIndex = tile->neighborhood.maps[i][0];
-		toNeighborNeighborMapIndex = neighbor->neighborhood.maps[toNeighborNeighbor][0];
-		tile->neighborhood.maps[i][2] = tnav::combineAlignmentMappings(toNeighborMapIndex, toNeighborNeighborMapIndex);
+		p_metaNodeNetwork->removeNode(neighbor->sideMetaNodes[pos]);
+
+		neighborPosition = LocalPosition(neighborPosition + 4);
+		const LocalDirection* components = tnav::getAlignmentComponents(neighborPosition);
+		neighbor = tile->neighbors[components[1]];
+		neighborPosition = tnav::combineAlignments(components[0], tnav::oppositeAlignment(components[1]));
+		neighborPosition = tile->mapAlignmentToNeighbor(components[1], neighborPosition);
+		MetaCornerNode* cornerNode = neighbor->cornerMetaNodes[neighborPosition];
+		if (cornerNode == nullptr) {
+			continue; // corner node is unsafe!
+		}
+		for (int i = 0; i < 8; i++) {
+			affectedSideNodes.push_back(cornerNode->sideNodeNeighbors[i]);
+			// Again, it is possible for these to be null so be careful:
+			affectedCornerNodes.push_back(cornerNode->cornerNodeNeighbors[i]);
+		}
+		p_metaNodeNetwork->removeNode(neighbor->sideMetaNodes[pos]);
 	}
 }
 
-void TileManager::updateDiagonalNeighborConnections(Tile* tile)
+void TileManager::createMetaNodeConnections(Tile* tile, Tile* sibling)
 {
-	Tile* neighbor; Tile* neighborNeighbor; LocalDirection toNeighborNeighbor;
+	std::vector<Tile*> affectedTiles;
+	std::vector<LocalDirection> affectedPositions;
+	removeConnectedMetaNodes(tile, sibling, affectedTiles, affectedPositions);
 
-	for (int i = 0; i < 4; i++) {
-		neighbor = tile->getNeighbor(LocalDirection(i));
-
-		toNeighborNeighbor = tile->mapAlignmentTo1stDegreeNeighbor(LocalDirection(i), LocalDirection((i + 1) % 4));
-		neighborNeighbor = neighbor->getNeighbor(toNeighborNeighbor);
-		tile->neighborhood.tiles[i][1] = neighborNeighbor;
-
-		toNeighborNeighbor = tile->mapAlignmentTo1stDegreeNeighbor(LocalDirection(i), LocalDirection((i + 3) % 4));
-		neighborNeighbor = neighbor->getNeighbor(toNeighborNeighbor);
-		tile->neighborhood.tiles[i][2] = neighborNeighbor;
+	tile->centerMetaNode = p_metaNodeNetwork->addNode(MetaCenterNode(tile->index));
+	sibling->centerMetaNode = p_metaNodeNetwork->addNode(MetaCenterNode(sibling->index));
+	
+	for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos = LocalPosition(pos + 1)) {
+		if (tile->neighbors[pos] == sibling) {
+			int siblingToNodeMap = sibling->neighborAlignmentMaps[pos];
+			MetaSideNode sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
+									  sibling->index, pos, siblingToNodeMap);
+			
+			tile->sideMetaNodes[pos] = p_metaNodeNetwork->addNode(sideNode);
+			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
+			
+			sibling->sideMetaNodes[pos] = tile->sideMetaNodes[pos];
+			sibling->metaNodeAlignmentMaps[pos] = sibling->neighborAlignmentMaps[pos];
+		}
+		else {
+			
+		}
 	}
+
+	for (LocalPosition pos = LOCAL_POSITION_0_1; pos < LOCAL_POSITION_CENTER; pos = LocalPosition(pos + 1)) {
+		if (tile->cornerIsSafe[pos - 4]) {
+			LocalDirection toNeighbor0 = tnav::getAlignmentComponents(pos)[0];
+			LocalDirection toNeighbor1 = tnav::getAlignmentComponents(pos)[1];
+			LocalDirection toNeighbor2 = toNeighbor0;
+			toNeighbor2 = tile->mapAlignmentToNeighbor(toNeighbor1, toNeighbor2);
+			
+			Tile* neighbor0 = tile->neighbors[toNeighbor0];
+			Tile* neighbor1 = tile->neighbors[toNeighbor1];
+			Tile* neighbor2 = neighbor1->neighbors[toNeighbor2];
+
+			LocalPosition neighbor0Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor0), toNeighbor1);
+			neighbor0Pos = tile->mapAlignmentToNeighbor(toNeighbor0, neighbor0Pos);
+			LocalPosition neighbor1Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor1), toNeighbor0);
+			neighbor1Pos = tile->mapAlignmentToNeighbor(toNeighbor1, neighbor1Pos);
+			LocalPosition neighbor2Pos = tnav::oppositeAlignment(pos);
+			neighbor2Pos = tile->mapAlignmentToNeighbor(toNeighbor1, neighbor2Pos);
+			neighbor2Pos = tile->mapAlignmentToNeighbor(toNeighbor2, neighbor2Pos);
+
+			int neighbor0ToTileMap = tnav::inverseAlignmentMapIndex(tile->neighborAlignmentMaps[toNeighbor0]);
+			int neighbor1ToTileMap = tnav::inverseAlignmentMapIndex(tile->neighborAlignmentMaps[toNeighbor1]);
+			int neighbor2ToTileMap = tnav::inverseAlignmentMapIndex(neighbor1->neighborAlignmentMaps[toNeighbor2]);
+			neighbor2ToTileMap = tnav::combineAlignmentMappings(neighbor2ToTileMap, neighbor1ToTileMap);
+
+			MetaCornerNode sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
+										neighbor0->index, neighbor0Pos, neighbor0ToTileMap,
+										neighbor1->index, neighbor1Pos, neighbor1ToTileMap,
+										neighbor2->index, neighbor2Pos, neighbor2ToTileMap);
+			tile->cornerMetaNodes[pos] = p_metaNodeNetwork->addNode(sideNode);
+			
+			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
+			neighbor0->metaNodeAlignmentMaps[neighbor0Pos] = tile->neighborAlignmentMaps[toNeighbor0];
+			neighbor1->metaNodeAlignmentMaps[neighbor1Pos] = tile->neighborAlignmentMaps[toNeighbor1];
+			neighbor2->metaNodeAlignmentMaps[neighbor2Pos] = tile->neighborAlignmentMaps[toNeighbor2];
+
+			if (neighbor0 == sibling || neighbor1 == sibling) {
+				// there is only one corner node connected to the tiles.
+				sibling->cornerMetaNodes[pos] = tile->cornerMetaNodes[pos];
+			}
+			else {
+				// another corner node needs to be created, connected to the sibling tile.
+			}
+		}
+	}
+}
+
+void TileManager::updateMetaNodeConnections(Tile* tile)
+{
+
 }
 
 void TileManager::updateCornerSafety(Tile* tile)
@@ -170,24 +227,24 @@ void TileManager::updateCornerSafety(Tile* tile)
 		int cornerIndex = i;
 		LocalDirection dir1 = LocalDirection(i);
 		LocalDirection dir2 = LocalDirection((dir1 + 3) % 4); // cornerSafety[0] maps to tile corner[0]
-		Tile* neighbor1 = tile->getNeighbor(dir1);
-		Tile* neighbor2 = tile->getNeighbor(dir2);
+		Tile* neighbor1 = tile->neighbors[dir1];
+		Tile* neighbor2 = tile->neighbors[dir2];
 
 		if (neighbor1->index == neighbor2->index) {
-			tile->cornerSafety[i] = Tile::CORNER_UNSAFE;
+			tile->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
 			continue;
 		}
 
-		LocalDirection dir1a = tile->mapAlignmentTo1stDegreeNeighbor(dir1, dir2);
-		LocalDirection dir2a = tile->mapAlignmentTo1stDegreeNeighbor(dir2, dir1);
-		Tile* neighborNeighbor1 = neighbor1->getNeighbor(dir1a);
-		Tile* neighborNeighbor2 = neighbor2->getNeighbor(dir2a);
+		LocalDirection dir1a = tile->mapAlignmentToNeighbor(dir1, dir2);
+		LocalDirection dir2a = tile->mapAlignmentToNeighbor(dir2, dir1);
+		Tile* neighborNeighbor1 = neighbor1->neighbors[dir1a];
+		Tile* neighborNeighbor2 = neighbor2->neighbors[dir2a];
 
 		if (neighborNeighbor1->index == neighborNeighbor2->index) {
-			tile->cornerSafety[i] = Tile::CORNER_SAFE;
+			tile->cornerIsSafe[i] = Tile::CORNER_SAFE;
 		}
 		else {
-			tile->cornerSafety[i] = Tile::CORNER_UNSAFE;
+			tile->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
 		}
 
 	}
@@ -199,7 +256,7 @@ void TileManager::updateCornerSafety(Tile* tile)
 // connection visibility will be queried.  
 // *Note that the index follows Tile (not DrawTile) ordering.
 const int tileVisibility(Tile* tile, int sideIndex) {
-	TileType connectionTileType = tile->getNeighbor(LocalDirection(sideIndex))->type;
+	TileType connectionTileType = tile->neighbors[sideIndex]->type;
 	return tnav::getTileVisibility(tile->type, LocalDirection(sideIndex), connectionTileType);
 }
 
@@ -225,16 +282,12 @@ bool tileIsMoreVisible(Tile* subject, int subjectSideIndex,
 		newConnectionVisibility > subjectConnectionVisibility;
 }
 
-void TileManager::updateAdjacentNeighborConnections(Tile* tile)
+void TileManager::updateNeighborConnections(Tile* tile)
 {
 	// These act as initializer values, as if the tile is not connected to anything else, it must be connected to its sibling:
 	for (int i = 0; i < 4; i++) {
-		tile->neighborhood.tiles[i][0] = tile->sibling;
-		tile->neighborhood.tiles[i][1] = tile;
-		tile->neighborhood.tiles[i][2] = tile;
-		tile->neighborhood.maps[i][0] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
-		tile->neighborhood.maps[i][1] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
-		tile->neighborhood.maps[i][2] = ALIGNMENT_TRANSLATION_MAP_INDEX_IDENTITY;
+		tile->neighbors[i] = tile->sibling;
+		tile->neighborAlignmentMaps[i] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
 	}
 
 	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
@@ -317,11 +370,11 @@ bool TileManager::tryConnect(Tile* subject, Tile* other)
 	LocalDirection subjectConnectionIndex = subjectConnections[0];
 	if (tileIsMoreVisible(subject, subjectConnectionIndex, other, otherConnections[0])) {
 
-		subject->neighborhood.tiles[subjectConnectionIndex][0] = other;
-		subject->neighborhood.maps[subjectConnectionIndex][0] = getNeighborMap(subjectConnectionIndex, otherConnections[0]);
+		subject->neighbors[subjectConnectionIndex] = other;
+		subject->neighborAlignmentMaps[subjectConnectionIndex] = getNeighborMap(subjectConnectionIndex, otherConnections[0]);
 		
-		other->neighborhood.tiles[otherConnections[0]][0] = subject;
-		other->neighborhood.maps[otherConnections[0]][0] = getNeighborMap(otherConnections[0], subjectConnections[0]);
+		other->neighbors[otherConnections[0]] = subject;
+		other->neighborAlignmentMaps[otherConnections[0]] = getNeighborMap(otherConnections[0], subjectConnections[0]);
 		
 		true;
 	}
@@ -345,20 +398,20 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
 	std::vector<Tile*> neighbors;
 	for (int i = 0; i < 4; i++) {
-		if (tile->neighborhood.tiles[i][0] != sibling) {
-			neighbors.push_back(tile->neighborhood.tiles[i][0]);
+		if (tile->neighbors[i] != sibling) {
+			neighbors.push_back(tile->neighbors[i]);
 		}
-		if (sibling->neighborhood.tiles[i][0] != tile) {
-			neighbors.push_back(sibling->neighborhood.tiles[i][0]);
+		if (sibling->neighbors[i] != tile) {
+			neighbors.push_back(sibling->neighbors[i]);
 		}
 	}
 
 	/*Tile* diagonalNeighbors[16];
 	for (int i = 0; i < 4; i++) {
-		diagonalNeighbors[4*i + 0]= tile->neighborhood.tiles[i][1];
-		diagonalNeighbors[4*i + 1]= tile->neighborhood.tiles[i][2];
-		diagonalNeighbors[4*i + 2]= sibling->neighborhood.tiles[i][1];
-		diagonalNeighbors[4*i + 3]= sibling->neighborhood.tiles[i][2];
+		diagonalNeighbors[4*i + 0]= tile->neighbors[i][1];
+		diagonalNeighbors[4*i + 1]= tile->neighbors[i][2];
+		diagonalNeighbors[4*i + 2]= sibling->neighbors[i][1];
+		diagonalNeighbors[4*i + 3]= sibling->neighbors[i][2];
 	}*/
 
 	int firstIndex = std::min(tile->index, sibling->index);
@@ -369,7 +422,7 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 	}
 
 	for (Tile* t : neighbors) {
-		updateAdjacentNeighborConnections(t);
+		updateNeighborConnections(t);
 	}
 	//for (int i = 0; i < 8; i++) {
 	//	updateDiagonalNeighborConnections(neighborTilePtrs[i]);
@@ -384,7 +437,7 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 		updateCornerSafety(t);
 		// TODO: clean this up a little.  No need to update all these tiles
 		for (int j = 0; j < 4; j++) {
-			updateCornerSafety(t->getNeighbor(LocalDirection(j)));
+			updateCornerSafety(t->neighbors[j]);
 		}
 	}
 
@@ -434,7 +487,7 @@ TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSid
 		newInitialTexIndex = newInitialSideIndex;
 	}
 
-	newTarget = currentPov->tile->neighborhood.tiles[connectionIndex][0];
+	newTarget = currentPov->tile->neighbors[connectionIndex];
 
 	return TileTarget(newTarget, newSideInfosOffset, newInitialSideIndex, newInitialTexIndex);
 }
