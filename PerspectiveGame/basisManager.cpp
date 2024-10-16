@@ -5,28 +5,28 @@ void BasisManager::update() {
 	updateConsumers();
 }
 
-void BasisManager::addBasis(Tile* tile, LocalDirection orientation, BasisType basisType) {
+void BasisManager::addBasis(Tile* node, LocalDirection orientation, BasisType basisType) {
 	switch (basisType) {
 	case BASIS_TYPE_NONE:
-		deleteBasis(tile);
+		deleteBasis(node);
 		break;
 	case BASIS_TYPE_PRODUCER:
-		createProducer(tile, ENTITY_TYPE_OMNI, orientation, LOCAL_ORIENTATION_0, false);
+		createProducer(node, ENTITY_TYPE_OMNI, orientation, LOCAL_ORIENTATION_0, false);
 		break;
 	case BASIS_TYPE_CONSUMER:
-		createConsumer(tile, false);
+		createConsumer(node, false);
 		break;
 	case BASIS_TYPE_FORCE_GENERATOR:
-		createForceGenerator(tile, orientation, false);
+		createForceGenerator(node, orientation, false);
 		break;
 	}
 }
 
-void BasisManager::deleteBasis(Tile* tile) {
-	switch (tile->basis.type) {
-	case BASIS_TYPE_PRODUCER:        deleteProducer(tile);       break;
-	case BASIS_TYPE_CONSUMER:        deleteConsumer(tile);       break;
-	case BASIS_TYPE_FORCE_GENERATOR: deleteForceGenerator(tile); break;
+void BasisManager::deleteBasis(Tile* node) {
+	switch (node->basis.type) {
+	case BASIS_TYPE_PRODUCER:        deleteProducer(node);       break;
+	case BASIS_TYPE_CONSUMER:        deleteConsumer(node);       break;
+	case BASIS_TYPE_FORCE_GENERATOR: deleteForceGenerator(node); break;
 	}
 }
 
@@ -76,42 +76,42 @@ void BasisManager::deleteBasis(Tile* tile) {
 //	}
 //}
 
-bool BasisManager::createProducer(Tile* tile, EntityType targetType, LocalDirection targetDirection, LocalOrientation targetOrientation, bool override) {
-	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
+bool BasisManager::createProducer(Tile* node, EntityType targetType, LocalDirection targetDirection, LocalOrientation targetOrientation, bool override) {
+	if (!override && node->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}
-	tile->basis.type = BASIS_TYPE_PRODUCER;
-	producers.push_back(Producer(tile->index, targetType, targetDirection, targetOrientation));
+	node->basis.type = BASIS_TYPE_PRODUCER;
+	producers.push_back(Producer(node->index, targetType, targetDirection, targetOrientation));
 	return true;
 }
 
-void BasisManager::deleteProducer(Tile* tile) {
+void BasisManager::deleteProducer(Tile* node) {
 	for (int i = 0; i < producers.size(); i++) {
-		if (producers[i].tileIndex == tile->index) {
+		if (producers[i].tileIndex == node->index) {
 			producers.erase(producers.begin() + i);
-			tile->basis.type = BASIS_TYPE_NONE;
+			node->basis.type = BASIS_TYPE_NONE;
 			return;
 		}
 	}
 }
 
-bool BasisManager::createConsumer(Tile* tile, bool override) {
-	if (!override && tile->basis.type != BASIS_TYPE_NONE) {
+bool BasisManager::createConsumer(Tile* node, bool override) {
+	if (!override && node->basis.type != BASIS_TYPE_NONE) {
 		return false;
 	}
 
-	tile->basis.type = BASIS_TYPE_CONSUMER;
+	node->basis.type = BASIS_TYPE_CONSUMER;
 
-	consumers.push_back(Consumer(tile));
+	consumers.push_back(Consumer(node));
 
 	return true;
 }
 
-void BasisManager::deleteConsumer(Tile* tile) {
+void BasisManager::deleteConsumer(Tile* node) {
 	for (int i = 0; i < consumers.size(); i++) {
-		if (consumers[i].tileIndex == tile->index) {
+		if (consumers[i].tileIndex == node->index) {
 			consumers.erase(consumers.begin() + i);
-			tile->basis.type = BASIS_TYPE_NONE;
+			node->basis.type = BASIS_TYPE_NONE;
 			return;
 		}
 	}
@@ -132,11 +132,11 @@ void BasisManager::updateConsumers() {
 
 		Tile* consumerTile = p_tileManager->tiles[consumer.tileIndex];
 
-		int centerEntityIndex = consumerTile->entityIndices[LOCAL_POSITION_CENTER];
-		if (centerEntityIndex != -1) {
-			// FIX THIS IT WILL LOOK ASS:
-			p_entityManager->deleteEntity(&p_entityManager->entities[centerEntityIndex]);
-		}
+		//int centerEntityIndex = consumerTile->entityIndices[LOCAL_POSITION_CENTER];
+		//if (centerEntityIndex != -1) {
+		//	// FIX THIS IT WILL LOOK ASS:
+		//	p_entityManager->deleteEntity(&p_entityManager->entities[centerEntityIndex]);
+		//}
 
 		/*if (consumerTile->hadEntity) {
 			p_entityManager->deleteEntity(consumerTile->getNeighbor(consumerTile->lastEntityDir));
@@ -147,19 +147,19 @@ void BasisManager::updateConsumers() {
 	}
 }
 
-bool BasisManager::createForceGenerator(Tile* tile, LocalDirection orientation, bool override) {
-	if (!override && tile->hasBasis()) {
+bool BasisManager::createForceGenerator(Tile* node, LocalDirection orientation, bool override) {
+	/*if (!override && tile->hasBasis()) {
 		return false;
 	}
 	tile->basis.type = BASIS_TYPE_FORCE_GENERATOR;
 	tile->basis.localOrientation = orientation;
 	p_forceManager->createForcePropogator(tile->index, orientation);
-
+*/
 	return true;
 }
 
-void BasisManager::deleteForceGenerator(Tile* tile) {
-	tile->basis.type = BASIS_TYPE_NONE;
+void BasisManager::deleteForceGenerator(Tile* node) {
+	node->basis.type = BASIS_TYPE_NONE;
 
-	p_forceManager->createForceEater(tile->index, tile->basis.localOrientation);
+	p_forceManager->createForceEater(node->index, node->basis.localOrientation);
 }

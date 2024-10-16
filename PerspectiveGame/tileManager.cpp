@@ -103,147 +103,217 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	return true;
 }
 
-void TileManager::removeConnectedMetaNodes(Tile* tile, Tile* sibling, std::vector<SuperPosition*>& affectedNodes)
+void TileManager::removeConnectedSuperPositions(Tile* node, Tile* sibling, std::vector<SuperPosition*>& affectedSuperPositions)
 {
 	bool lastDirCornersChecked = false;
 	for (LocalDirection dir = LOCAL_DIRECTION_0; dir < 4; dir = LocalDirection(dir + 1)) {
-		Tile* neighbor = tile->neighbors[dir];
+		Tile* neighbor = node->neighbors[dir];
 		if (neighbor == sibling) {
 			continue; // There was no node there yet anyway.
-		}
-		LocalDirection neighborDirection = tile->mapAlignmentToNeighbor(dir, tnav::oppositeAlignment(dir));
-		SideSuperPosition* sideNode = (SideSuperPosition*)neighbor->metaNodes[neighborDirection];
-
-		for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
-			if (sideNode->getNeighbor(d) == nullptr) { continue; }
-			affectedNodes.push_back(sideNode->getNeighbor(d));
 		}
 
 		// We also need to get the connected corner nodes:
 		// We only need to check 2 of the neighbors as it is impossible 
 		// for an overlapping meta node to exist in the corners here:
 		if (lastDirCornersChecked == false) {
-			CornerSuperPosition* cornerNode = (CornerSuperPosition*)neighbor->metaNodes[neighborDirection + 4];
-			for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
-				if (cornerNode->getNeighbor(d) == nullptr) { continue; }
-				affectedNodes.push_back(cornerNode->getNeighbor(d));
-			}
-			cornerNode = (CornerSuperPosition*)neighbor->metaNodes[((neighborDirection + 3) % 4) + 4];
-			for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
-				if (cornerNode->getNeighbor(d) == nullptr) { continue; }
-				affectedNodes.push_back(cornerNode->getNeighbor(d));
-			}
+			LocalDirection neighborDirection = node->mapAlignmentToNeighbor(dir, tnav::oppositeAlignment(dir));
+			//p_superPositionNetwork->remove(neighbor->superPositions[neighborDirection + 4], affectedSuperPositions);
+			//p_superPositionNetwork->remove(neighbor->superPositions[((neighborDirection + 3) % 4) + 4], affectedSuperPositions);
 			lastDirCornersChecked = true;
 		}
 		else {
 			lastDirCornersChecked = false;
 		}
 
-		p_metaNodeNetwork->removeNode(neighbor->metaNodes[dir]);
 	}
 }
 
-void TileManager::createMetaNodeConnections(Tile* tile, Tile* sibling)
+void TileManager::updateSuperPositionNeighbors(SuperPosition* pos)
 {
-	std::vector<Tile*> affectedTiles;
-	std::vector<LocalDirection> affectedPositions;
-	removeConnectedMetaNodes(tile, sibling, affectedTiles, affectedPositions);
+	//Tile* tile;
 
-	tile->centerMetaNode = p_metaNodeNetwork->add(CenterSuperPosition(tile->index));
-	sibling->centerMetaNode = p_metaNodeNetwork->add(CenterSuperPosition(sibling->index));
-	
-	for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos = LocalPosition(pos + 1)) {
-		if (tile->neighbors[pos] == sibling) {
-			int siblingToNodeMap = sibling->neighborAlignmentMaps[pos];
-			SideSuperPosition sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
-									  sibling->index, pos, siblingToNodeMap);
-			
-			tile->sideMetaNodes[pos] = p_metaNodeNetwork->add(sideNode);
-			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
-			
-			sibling->sideMetaNodes[pos] = tile->sideMetaNodes[pos];
-			sibling->metaNodeAlignmentMaps[pos] = sibling->neighborAlignmentMaps[pos];
-		}
-		else {
-			
-		}
-	}
+	//switch (pos->type) {
+	//case SUPER_POSITION_TYPE_CENTER:
+	//	CenterSuperPosition* centerPos = (CenterSuperPosition*)pos;
+	//	tile = tiles[centerPos->tileIndex];
+	//	// if the super pos is a center super pos, it's basis is the same as the tile its in, so no conversion is necessary.
+	//	for (LocalDirection dir : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
+	//		if (tile->superPositions[dir] != nullptr) {
+	//			centerPos->setNeighbor(dir, tile->superPositions[dir]);
+	//			centerPos->setNeighborAlignmentMapIndex(dir, tile->superPositionAlignmentMaps[dir]);
+	//		}
+	//	}
+	//	break;
+	//case SUPER_POSITION_TYPE_SIDE:
+	//	SideSuperPosition* sidePos = (SideSuperPosition*)pos;
 
-	for (LocalPosition pos = LOCAL_POSITION_0_1; pos < LOCAL_POSITION_CENTER; pos = LocalPosition(pos + 1)) {
-		if (tile->cornerIsSafe[pos - 4]) {
-			LocalDirection toNeighbor0 = tnav::getAlignmentComponents(pos)[0];
-			LocalDirection toNeighbor1 = tnav::getAlignmentComponents(pos)[1];
-			LocalDirection toNeighbor2 = toNeighbor0;
-			toNeighbor2 = tile->mapAlignmentToNeighbor(toNeighbor1, toNeighbor2);
-			
-			Tile* neighbor0 = tile->neighbors[toNeighbor0];
-			Tile* neighbor1 = tile->neighbors[toNeighbor1];
-			Tile* neighbor2 = neighbor1->neighbors[toNeighbor2];
+	//	tile = tiles[sidePos->getFirstTileIndex()];
+	//	LocalPosition tilePosition = sidePos->getFirstTilePosition();
+	//	int toTileMap = sidePos->getFirstTileAlignmentMap();
+	//	int inverseMap = tnav::inverseAlignmentMapIndex(toTileMap);
+	//	LocalDirection outTileDirSuperPosBasis = tnav::getMappedAlignment(inverseMap, tilePosition);
+	//	Tile* neighbor = tile->neighbors[tilePosition];
 
-			LocalPosition neighbor0Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor0), toNeighbor1);
-			neighbor0Pos = tile->mapAlignmentToNeighbor(toNeighbor0, neighbor0Pos);
-			LocalPosition neighbor1Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor1), toNeighbor0);
-			neighbor1Pos = tile->mapAlignmentToNeighbor(toNeighbor1, neighbor1Pos);
-			LocalPosition neighbor2Pos = tnav::oppositeAlignment(pos);
-			neighbor2Pos = tile->mapAlignmentToNeighbor(toNeighbor1, neighbor2Pos);
-			neighbor2Pos = tile->mapAlignmentToNeighbor(toNeighbor2, neighbor2Pos);
+	//	// these are inside the super position basis:
+	//	LocalPosition a = outTileDirSuperPosBasis;
+	//	LocalPosition b = LocalPosition((outTileDirSuperPosBasis + 1) % 4);
+	//	LocalPosition c = LocalPosition((outTileDirSuperPosBasis + 2) % 4);
+	//	LocalPosition d = LocalPosition((outTileDirSuperPosBasis + 3) % 4);
+	//	LocalPosition e = tnav::combineAlignments(c, b);
+	//	LocalPosition f = tnav::combineAlignments(c, d);
+	//	LocalPosition g = tnav::combineAlignments(a, b);
+	//	LocalPosition h = tnav::combineAlignments(a, d);
 
-			int neighbor0ToTileMap = tnav::inverseAlignmentMapIndex(tile->neighborAlignmentMaps[toNeighbor0]);
-			int neighbor1ToTileMap = tnav::inverseAlignmentMapIndex(tile->neighborAlignmentMaps[toNeighbor1]);
-			int neighbor2ToTileMap = tnav::inverseAlignmentMapIndex(neighbor1->neighborAlignmentMaps[toNeighbor2]);
-			neighbor2ToTileMap = tnav::combineAlignmentMappings(neighbor2ToTileMap, neighbor1ToTileMap);
-
-			CornerSuperPosition sideNode(tile->index, pos, ALIGNMENT_MAP_IDENTITY,
-										neighbor0->index, neighbor0Pos, neighbor0ToTileMap,
-										neighbor1->index, neighbor1Pos, neighbor1ToTileMap,
-										neighbor2->index, neighbor2Pos, neighbor2ToTileMap);
-			tile->cornerMetaNodes[pos] = p_metaNodeNetwork->add(sideNode);
-			
-			tile->metaNodeAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
-			neighbor0->metaNodeAlignmentMaps[neighbor0Pos] = tile->neighborAlignmentMaps[toNeighbor0];
-			neighbor1->metaNodeAlignmentMaps[neighbor1Pos] = tile->neighborAlignmentMaps[toNeighbor1];
-			neighbor2->metaNodeAlignmentMaps[neighbor2Pos] = tile->neighborAlignmentMaps[toNeighbor2];
-
-			if (neighbor0 == sibling || neighbor1 == sibling) {
-				// there is only one corner node connected to the tiles.
-				sibling->cornerMetaNodes[pos] = tile->cornerMetaNodes[pos];
-			}
-			else {
-				// another corner node needs to be created, connected to the sibling tile.
-			}
-		}
-	}
+	//	// These are inside the tile basis:
+	//	LocalDirection a1 = tnav::getMappedAlignment(toTileMap, a);
+	//	LocalDirection b1 = tnav::getMappedAlignment(toTileMap, b);
+	//	LocalDirection c1 = tnav::getMappedAlignment(toTileMap, c);
+	//	LocalDirection d1 = tnav::getMappedAlignment(toTileMap, d);
+	//	LocalDirection e1 = tnav::getMappedAlignment(toTileMap, e);
+	//	LocalDirection f1 = tnav::getMappedAlignment(toTileMap, f);
+	//	LocalDirection g1 = tnav::getMappedAlignment(toTileMap, g);
+	//	LocalDirection h1 = tnav::getMappedAlignment(toTileMap, h);
+	//	break;
+	//case SUPER_POSITION_TYPE_CORNER:
+	//	break;
+	//}
 }
 
-void TileManager::updateMetaNodeConnections(Tile* tile)
+void TileManager::createCornerSuperPosition(Tile* node, LocalPosition pos)
+{
+	/*LocalDirection toNeighbor0 = tnav::getAlignmentComponents(pos)[0];
+	LocalDirection toNeighbor1 = tnav::getAlignmentComponents(pos)[1];
+	LocalDirection toNeighbor2 = toNeighbor0;
+	toNeighbor2 = node->mapAlignmentToNeighbor(toNeighbor1, toNeighbor2);
+
+	Tile* neighbor0 = node->neighbors[toNeighbor0];
+	Tile* neighbor1 = node->neighbors[toNeighbor1];
+	Tile* neighbor2 = neighbor1->neighbors[toNeighbor2];
+
+	LocalPosition neighbor0Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor0), toNeighbor1);
+	neighbor0Pos = node->mapAlignmentToNeighbor(toNeighbor0, neighbor0Pos);
+	LocalPosition neighbor1Pos = tnav::combineAlignments(tnav::oppositeAlignment(toNeighbor1), toNeighbor0);
+	neighbor1Pos = node->mapAlignmentToNeighbor(toNeighbor1, neighbor1Pos);
+	LocalPosition neighbor2Pos = tnav::oppositeAlignment(pos);
+	neighbor2Pos = node->mapAlignmentToNeighbor(toNeighbor1, neighbor2Pos);
+	neighbor2Pos = node->mapAlignmentToNeighbor(toNeighbor2, neighbor2Pos);
+
+	int neighbor0ToTileMap = tnav::inverseAlignmentMapIndex(node->neighborAlignmentMaps[toNeighbor0]);
+	int neighbor1ToTileMap = tnav::inverseAlignmentMapIndex(node->neighborAlignmentMaps[toNeighbor1]);
+	int neighbor2ToTileMap = tnav::inverseAlignmentMapIndex(neighbor1->neighborAlignmentMaps[toNeighbor2]);
+	neighbor2ToTileMap = tnav::combineAlignmentMappings(neighbor2ToTileMap, neighbor1ToTileMap);
+
+	CornerSuperPosition sideNode(SuperPositionTileInfo(node->index, pos, ALIGNMENT_MAP_IDENTITY),
+								 SuperPositionTileInfo(neighbor0->index, neighbor0Pos, neighbor0ToTileMap),
+								 SuperPositionTileInfo(neighbor1->index, neighbor1Pos, neighbor1ToTileMap),
+								 SuperPositionTileInfo(neighbor2->index, neighbor2Pos, neighbor2ToTileMap));
+	node->superPositions[pos] = p_superPositionNetwork->add(sideNode);
+	node->superPositionAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
+
+	neighbor0->superPositions[neighbor0Pos] = node->superPositions[pos];
+	neighbor0->superPositionAlignmentMaps[neighbor0Pos] = node->neighborAlignmentMaps[toNeighbor0];
+
+	neighbor1->superPositionAlignmentMaps[neighbor1Pos] = node->neighborAlignmentMaps[toNeighbor1];
+	neighbor1->superPositions[neighbor1Pos] = node->superPositions[pos];
+
+	neighbor2->superPositionAlignmentMaps[neighbor2Pos] = node->neighborAlignmentMaps[toNeighbor2];
+	neighbor2->superPositions[neighbor2Pos] = node->superPositions[pos];*/
+}
+
+void TileManager::createMetaNodeConnections(Tile* node, Tile* sibling)
+{
+	//std::vector<SuperPosition*> affectedSuperPositions;
+	//removeConnectedSuperPositions(node, sibling, affectedSuperPositions);
+
+	//node->superPositions[LOCAL_POSITION_CENTER] = p_superPositionNetwork->add(CenterSuperPosition(node->index));
+	//sibling->superPositions[LOCAL_POSITION_CENTER] = p_superPositionNetwork->add(CenterSuperPosition(sibling->index));
+	//
+	//for (LocalPosition pos = LOCAL_POSITION_0; pos < 4; pos = LocalPosition(pos + 1)) {
+	//	Tile* neighbor = node->neighbors[pos];
+	//	if (neighbor == sibling) {
+	//		int superToSiblingMap = node->neighborAlignmentMaps[pos];
+
+	//		SideSuperPosition sideNode(SideSuperPositionOrientation(pos % 2), 
+	//								   SuperPositionTileInfo(node->index, pos, ALIGNMENT_MAP_IDENTITY),
+	//								   SuperPositionTileInfo(sibling->index, pos, superToSiblingMap));
+	//		
+	//		node->superPositions[pos] = p_superPositionNetwork->add(sideNode);
+	//		node->superPositionAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
+	//		affectedSuperPositions.push_back(node->superPositions[pos]);
+	//		
+	//		sibling->superPositions[pos] = node->superPositions[pos];
+	//		sibling->superPositionAlignmentMaps[pos] = sibling->neighborAlignmentMaps[pos];
+	//		affectedSuperPositions.push_back(sibling->superPositions[pos]);
+	//	}
+	//	else {
+	//		int superToNeighborMap = node->neighborAlignmentMaps[pos];
+	//		LocalPosition neighborToTile = node->mapAlignmentToNeighbor(pos, tnav::oppositeAlignment(pos));
+	//		SuperPositionTileInfo tileInfo(node->index, pos, ALIGNMENT_MAP_IDENTITY);
+	//		SuperPositionTileInfo neighborInfo(neighbor->index, neighborToTile, superToNeighborMap);
+	//		SideSuperPosition* sideNode;
+
+	//		if (pos < 2) { sideNode = new SideSuperPosition(SideSuperPositionOrientation(pos % 2), neighborInfo, tileInfo); }
+	//		else { sideNode = new SideSuperPosition(SideSuperPositionOrientation(pos % 2), tileInfo, neighborInfo); }
+
+	//		node->superPositions[pos] = p_superPositionNetwork->add(*sideNode);
+	//		node->superPositionAlignmentMaps[pos] = ALIGNMENT_MAP_IDENTITY;
+	//		affectedSuperPositions.push_back(node->superPositions[pos]);
+
+	//		neighbor->superPositions[neighborToTile] = node->superPositions[pos];
+	//		neighbor->superPositionAlignmentMaps[neighborToTile] = neighbor->neighborAlignmentMaps[neighborToTile];
+	//		affectedSuperPositions.push_back(neighbor->superPositions[neighborToTile]);
+	//		
+	//		delete sideNode;
+	//	}
+	//}
+
+	//for (LocalPosition pos = LOCAL_POSITION_0_1; pos < 9; pos = LocalPosition(pos + 1)) {
+	//	if (node->cornerIsSafe[pos - 4]) {
+	//		createCornerSuperPosition(node, pos);
+
+	//		// Corner lies on a single fold and there is another corner super position needing to be created
+	//		// on the other side of the tile in the sibling tile.
+	//		if (node->neighbors[tnav::getAlignmentComponents(pos)[0]] != sibling && 
+	//			node->neighbors[tnav::getAlignmentComponents(pos)[1]] != sibling) {
+	//			createCornerSuperPosition(sibling, pos);
+	//		}
+	//	}
+	//}
+
+	//for (SuperPosition* pos : affectedSuperPositions) {
+	//	updateSuperPositionNeighbors(pos);
+	//}
+}
+
+void TileManager::updateMetaNodeConnections(Tile* node)
 {
 
 }
 
-void TileManager::updateCornerSafety(Tile* tile)
+void TileManager::updateCornerSafety(Tile* node)
 {
 	for (int i = 0; i < 4; i++) {
 		int cornerIndex = i;
 		LocalDirection dir1 = LocalDirection(i);
 		LocalDirection dir2 = LocalDirection((dir1 + 3) % 4); // cornerSafety[0] maps to tile corner[0]
-		Tile* neighbor1 = tile->neighbors[dir1];
-		Tile* neighbor2 = tile->neighbors[dir2];
+		Tile* neighbor1 = node->neighbors[dir1];
+		Tile* neighbor2 = node->neighbors[dir2];
 
 		if (neighbor1->index == neighbor2->index) {
-			tile->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
+			node->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
 			continue;
 		}
 
-		LocalDirection dir1a = tile->mapAlignmentToNeighbor(dir1, dir2);
-		LocalDirection dir2a = tile->mapAlignmentToNeighbor(dir2, dir1);
+		LocalDirection dir1a = node->mapAlignmentToNeighbor(dir1, dir2);
+		LocalDirection dir2a = node->mapAlignmentToNeighbor(dir2, dir1);
 		Tile* neighborNeighbor1 = neighbor1->neighbors[dir1a];
 		Tile* neighborNeighbor2 = neighbor2->neighbors[dir2a];
 
 		if (neighborNeighbor1->index == neighborNeighbor2->index) {
-			tile->cornerIsSafe[i] = Tile::CORNER_SAFE;
+			node->cornerIsSafe[i] = Tile::CORNER_SAFE;
 		}
 		else {
-			tile->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
+			node->cornerIsSafe[i] = Tile::CORNER_UNSAFE;
 		}
 
 	}
@@ -254,9 +324,9 @@ void TileManager::updateCornerSafety(Tile* tile)
 // with the higher visibility will win out.  'sideIndex' is the index to the side who's
 // connection visibility will be queried.  
 // *Note that the index follows Tile (not DrawTile) ordering.
-const int tileVisibility(Tile* tile, int sideIndex) {
-	TileType connectionTileType = tile->neighbors[sideIndex]->type;
-	return tnav::getTileVisibility(tile->type, LocalDirection(sideIndex), connectionTileType);
+const int tileVisibility(Tile* node, int sideIndex) {
+	TileType connectionTileType = node->neighbors[sideIndex]->type;
+	return tnav::getTileVisibility(node->type, LocalDirection(sideIndex), connectionTileType);
 }
 
 // Will return a value [0-4] denoting the potential tile connection's 'visibility.'  Higher 
@@ -281,12 +351,12 @@ bool tileIsMoreVisible(Tile* subject, int subjectSideIndex,
 		newConnectionVisibility > subjectConnectionVisibility;
 }
 
-void TileManager::updateNeighborConnections(Tile* tile)
+void TileManager::updateNeighborConnections(Tile* node)
 {
 	// These act as initializer values, as if the tile is not connected to anything else, it must be connected to its sibling:
 	for (int i = 0; i < 4; i++) {
-		tile->neighbors[i] = tile->sibling;
-		tile->neighborAlignmentMaps[i] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
+		node->neighbors[i] = node->sibling;
+		node->neighborAlignmentMaps[i] = tnav::getNeighborMap(LocalAlignment(i), LocalAlignment(i));
 	}
 
 	// Each side of a tile can only even theoredically connect to some types/orientations of tile,
@@ -294,7 +364,7 @@ void TileManager::updateNeighborConnections(Tile* tile)
 	// (connectableTiles[][X]).
 
 	TileType possibleTileType;
-	glm::ivec3 subjectTileMaxPoint = tile->position;
+	glm::ivec3 subjectTileMaxPoint = node->position;
 	glm::ivec3 otherTileMaxPoint;
 	glm::ivec3 possibleMaxPoint;
 
@@ -305,13 +375,13 @@ void TileManager::updateNeighborConnections(Tile* tile)
 
 			for (int connectionType = 0; connectionType < 3; connectionType++) {
 
-				possibleTileType = tnav::getConnectableTileType(tile->type, sideIndex, connectionType);
+				possibleTileType = tnav::getConnectableTileType(node->type, sideIndex, connectionType);
 				if (otherTile->type != possibleTileType) {
 					continue;
 				}
-				possibleMaxPoint = subjectTileMaxPoint + tnav::getConnectableTileOffset(tile->type, sideIndex, connectionType);
+				possibleMaxPoint = subjectTileMaxPoint + tnav::getConnectableTileOffset(node->type, sideIndex, connectionType);
 				if (otherTileMaxPoint == possibleMaxPoint) {
-					tryConnect(tile, otherTile);
+					tryConnect(node, otherTile);
 				}
 			}
 		}
@@ -380,14 +450,14 @@ bool TileManager::tryConnect(Tile* subject, Tile* other)
 	return false;
 }
 
-void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
+void TileManager::deleteTilePair(Tile* node, bool allowDeletePovTile)
 {
 	// Stuff will break if you delete the tile you are on.  Don't do that:
-	if (!allowDeletePovTile && (tile == povTile.tile || tile->sibling == povTile.tile)) {
+	if (!allowDeletePovTile && (node == povTile.node || node->sibling == povTile.node)) {
 		return;
 	}
 
-	Tile* sibling = tile->sibling;
+	Tile* sibling = node->sibling;
 #ifdef RUNNING_DEBUG
 	if (sibling == nullptr) {
 		throw std::runtime_error("NO SIBLING FOUND TO DELETE!");
@@ -397,10 +467,10 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 	// Gather up all the info needed to reconnect neighbor tiles to the map after removing the tile pair:
 	std::vector<Tile*> neighbors;
 	for (int i = 0; i < 4; i++) {
-		if (tile->neighbors[i] != sibling) {
-			neighbors.push_back(tile->neighbors[i]);
+		if (node->neighbors[i] != sibling) {
+			neighbors.push_back(node->neighbors[i]);
 		}
-		if (sibling->neighbors[i] != tile) {
+		if (sibling->neighbors[i] != node) {
 			neighbors.push_back(sibling->neighbors[i]);
 		}
 	}
@@ -413,7 +483,7 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 		diagonalNeighbors[4*i + 3]= sibling->neighbors[i][2];
 	}*/
 
-	int firstIndex = std::min(tile->index, sibling->index);
+	int firstIndex = std::min(node->index, sibling->index);
 	tiles.erase(tiles.begin() + firstIndex);
 	tiles.erase(tiles.begin() + firstIndex);
 	for (int i = firstIndex; i < tiles.size(); i++) {
@@ -443,7 +513,7 @@ void TileManager::deleteTilePair(Tile* tile, bool allowDeletePovTile)
 	// The index values stored in the tiles are messed up, so we need to update the gpu info as well:
 	updateTileGpuInfos();
 
-	delete tile;
+	delete node;
 	delete sibling;
 }
 
@@ -462,20 +532,20 @@ void TileManager::updateWindowFrustum() {
 }
 
 TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSideIndex) {
+	Tile* newTarget;
 	int newInitialSideIndex,
 		newInitialTexIndex,
 		newSideInfosOffset,
 		connectionIndex = currentPov->sideIndex(drawTileSideIndex);
-	Tile* newTarget;
 
-	if (currentPov->tile->is1stDegreeNeighborMirrored(connectionIndex)) {
+	if (currentPov->node->is1stDegreeNeighborMirrored(connectionIndex)) {
 		newSideInfosOffset = (currentPov->sideInfosOffset + 2) % 4;
 	}
 	else {
 		newSideInfosOffset = currentPov->sideInfosOffset;
 	}
 
-	newInitialSideIndex = currentPov->tile->get1stDegreeNeighborConnectedSideIndex(LocalDirection(connectionIndex));
+	newInitialSideIndex = currentPov->node->get1stDegreeNeighborConnectedSideIndex(LocalDirection(connectionIndex));
 	newInitialSideIndex += VERT_INFO_OFFSETS[drawTileSideIndex] * newSideInfosOffset;
 	newInitialSideIndex %= 4;
 
@@ -486,7 +556,7 @@ TileTarget TileManager::adjustTileTarget(TileTarget* currentPov, int drawTileSid
 		newInitialTexIndex = newInitialSideIndex;
 	}
 
-	newTarget = currentPov->tile->neighbors[connectionIndex];
+	newTarget = currentPov->node->neighbors[connectionIndex];
 
 	return TileTarget(newTarget, newSideInfosOffset, newInitialSideIndex, newInitialTexIndex);
 }
@@ -496,9 +566,9 @@ void TileManager::updatePovTileTarget() {
 	// have crossed over the draw tile side that is indexed under '1' (as a refresher 
 	// the draw tile index order is top, right, bottom, left, or Y+, X+, Y-, X-).
 
+	bool outside = false;
 	if (p_camera->viewPlanePos.x > 1.0f) {
-		lastpovTileTransf = currentpovTileTransf;
-		lastpovTileTransfWeight = 1.0f;
+		outside = true;
 		lastCamPosOffset = p_camera->viewPlanePos - glm::vec3(1, 0, 0);
 
 		p_camera->viewPlanePos.x -= 1.0f;
@@ -506,29 +576,31 @@ void TileManager::updatePovTileTarget() {
 
 	}
 	else if (p_camera->viewPlanePos.x < 0.0f) {
-		lastpovTileTransf = currentpovTileTransf;
-		lastpovTileTransfWeight = 1.0f;
+		outside = true;
 		lastCamPosOffset = p_camera->viewPlanePos + glm::vec3(1, 0, 0);
 
 		p_camera->viewPlanePos.x += 1.0f;
 		povTile = adjustTileTarget(&povTile, 2);
 	}
-	if (p_camera->viewPlanePos.y > 1.0f) {
-		lastpovTileTransf = currentpovTileTransf;
-		lastpovTileTransfWeight = 1.0f;
-		lastCamPosOffset = p_camera->viewPlanePos - glm::vec3(0, 1, 0);
 
+	if (p_camera->viewPlanePos.y > 1.0f) {
+		outside = true;
+		lastCamPosOffset = p_camera->viewPlanePos - glm::vec3(0, 1, 0);
 		p_camera->viewPlanePos.y -= 1.0f;
 		povTile = adjustTileTarget(&povTile, 3);
 	}
 	else if (p_camera->viewPlanePos.y < 0.0f) {
-		lastpovTileTransf = currentpovTileTransf;
-		lastpovTileTransfWeight = 1.0f;
+		outside = true;
 		lastCamPosOffset = p_camera->viewPlanePos + glm::vec3(0, 1, 0);
-
 		p_camera->viewPlanePos.y += 1.0f;
 		povTile = adjustTileTarget(&povTile, 1);
 	}
+
+	if (outside) {
+		lastpovTileTransf = currentpovTileTransf;
+		lastpovTileTransfWeight = 1.0f;
+	}
+
 	// After moving the camera around, we must make sure the new position 
 	// is properly recorded in all the tranforms needed for drawing!
 	p_camera->getProjectionMatrix();
@@ -559,7 +631,7 @@ void TileManager::solvePlayerUnsafeCornerCollisions() {
 	else {
 		target = adjustTileTarget(&target, 1);
 	}
-	cornerIndex1 = target.tile->index;
+	cornerIndex1 = target.node->index;
 
 	if (p_camera->viewPlanePos.y > 0.5f) {
 		target = adjustTileTarget(&povTile, 3);
@@ -573,9 +645,9 @@ void TileManager::solvePlayerUnsafeCornerCollisions() {
 	else {
 		target = adjustTileTarget(&target, 2);
 	}
-	cornerIndex2 = target.tile->index;
+	cornerIndex2 = target.node->index;
 
-	bool isUnsafeCorner = cornerIndex1 == povTile.tile->index || cornerIndex1 != cornerIndex2;
+	bool isUnsafeCorner = cornerIndex1 == povTile.node->index || cornerIndex1 != cornerIndex2;
 	if (isUnsafeCorner) {
 		glm::vec2 vecFromPosToCorner = closestCorner - (glm::vec2)p_camera->viewPlanePos;
 		float distToCorner = glm::length(vecFromPosToCorner);
@@ -591,10 +663,10 @@ void TileManager::update3dRotationAdj()
 {
 	using namespace vechelp;
 
-	glm::vec3 upVec = povTile.tile->getVertPos(povTile.vertIndex(0))
-		- povTile.tile->getVertPos(povTile.vertIndex(1));
+	glm::vec3 upVec = povTile.node->getVertPos(povTile.vertIndex(0))
+		- povTile.node->getVertPos(povTile.vertIndex(1));
 	glm::mat4 rotate(1);
-	switch (povTile.tile->type) {
+	switch (povTile.node->type) {
 	case TileType::TILE_TYPE_XYF: rotate = glm::mat4(1); break;
 	case TileType::TILE_TYPE_XYB: rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 1, 0)); break;
 	case TileType::TILE_TYPE_XZF: rotate = glm::rotate(glm::mat4(1), float(M_PI / 2.0f), glm::vec3(1, 0, 0)); break;
@@ -616,14 +688,14 @@ void TileManager::update3dRotationAdj()
 		rotate = glm::rotate(glm::mat4(1), float(M_PI), glm::vec3(0, 0, 1)) * rotate;
 	}
 
-	glm::vec3 povTileNormal = povTile.tile->getNormal();
+	glm::vec3 povTileNormal = povTile.node->getNormal();
 	glm::vec3 adjPovTileNormal = glm::vec3(rotate * glm::vec4(povTileNormal, 1));
 	glm::vec3 targetNormal = povTileNormal;
 	glm::vec3 targetNormalAdj(0, 0, 0);
 	glm::vec3 flippedNormalAdj(0, 0, 0);
 	TileTarget target;
 	if (p_camera->viewPlanePos.x > 0.5f) {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 0).tile->getNormal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 0).node->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= -((p_camera->viewPlanePos.x - 0.5f) * 2.0f - 1.0f);
 			flippedNormalAdj += glm::vec3(1, 0, 0) * (p_camera->viewPlanePos.x - 0.5f) * 2.0f;
@@ -633,7 +705,7 @@ void TileManager::update3dRotationAdj()
 		}
 	}
 	else {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 2).tile->getNormal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 2).node->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			targetNormal *= p_camera->viewPlanePos.x * 2.0f;
 			flippedNormalAdj += glm::vec3(-1, 0, 0) * -((p_camera->viewPlanePos.x * 2.0f) - 1.0f);
@@ -643,7 +715,7 @@ void TileManager::update3dRotationAdj()
 		}
 	}
 	if (p_camera->viewPlanePos.y > 0.5f) {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 3).tile->getNormal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 3).node->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			glm::vec3 pensive = povTileNormal * -((p_camera->viewPlanePos.y - 0.5f) * 2.0f - 1.0f);
 			if (glm::length(pensive) < glm::length(targetNormal)) {
@@ -655,7 +727,7 @@ void TileManager::update3dRotationAdj()
 			targetNormalAdj += neighborNormal * (p_camera->viewPlanePos.y - 0.5f) * 2.0f;
 	}
 	else {
-		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 1).tile->getNormal();
+		glm::vec3 neighborNormal = adjustTileTarget(&povTile, 1).node->getNormal();
 		if (neighborNormal == -povTileNormal) {
 			glm::vec3 pensive = povTileNormal * p_camera->viewPlanePos.y * 2.0f;
 			if (glm::length(pensive) < glm::length(targetNormal)) {
@@ -716,41 +788,41 @@ void TileManager::getRelativePovPosGpuInfos(glm::vec2* relativePos, int* relativ
 	TileTarget temp;
 
 	// By definition we are always in the povTile:
-	relativePosTileIndices[0] = povTile.tile->index;
+	relativePosTileIndices[0] = povTile.node->index;
 	relativePos[0] = getRelativePovPosCentral(povTile);
 
 	// Top/Bottom:
 	if (p_camera->viewPlanePos.y >= 0.5f) {
 		temp = adjustTileTarget(&povTile, 3);
-		relativePosTileIndices[1] = temp.tile->index;
+		relativePosTileIndices[1] = temp.node->index;
 		relativePos[1] = getRelativePovPosTop(temp);
 
 		// Corner:
 		if (p_camera->viewPlanePos.x >= 0.5f) {
 			temp = adjustTileTarget(&temp, 0);
-			relativePosTileIndices[2] = temp.tile->index;
+			relativePosTileIndices[2] = temp.node->index;
 			relativePos[2] = getRelativePovPosTopRight(temp);
 		}
 		else {
 			temp = adjustTileTarget(&temp, 2);
-			relativePosTileIndices[2] = temp.tile->index;
+			relativePosTileIndices[2] = temp.node->index;
 			relativePos[2] = getRelativePovPosTopLeft(temp);
 		}
 	}
 	else {
 		temp = adjustTileTarget(&povTile, 1);
-		relativePosTileIndices[1] = temp.tile->index;
+		relativePosTileIndices[1] = temp.node->index;
 		relativePos[1] = getRelativePovPosBottom(temp);
 
 		// Corner:
 		if (p_camera->viewPlanePos.x >= 0.5f) {
 			temp = adjustTileTarget(&temp, 0);
-			relativePosTileIndices[2] = temp.tile->index;
+			relativePosTileIndices[2] = temp.node->index;
 			relativePos[2] = getRelativePovPosBottomRight(temp);
 		}
 		else {
 			temp = adjustTileTarget(&temp, 2);
-			relativePosTileIndices[2] = temp.tile->index;
+			relativePosTileIndices[2] = temp.node->index;
 			relativePos[2] = getRelativePovPosBottomLeft(temp);
 		}
 	}
@@ -758,35 +830,35 @@ void TileManager::getRelativePovPosGpuInfos(glm::vec2* relativePos, int* relativ
 	// Left/Right and Corner:
 	if (p_camera->viewPlanePos.x >= 0.5f) {
 		temp = adjustTileTarget(&povTile, 0);
-		relativePosTileIndices[3] = temp.tile->index;
+		relativePosTileIndices[3] = temp.node->index;
 		relativePos[3] = getRelativePovPosRight(temp);
 
 		// Corner:
 		if (p_camera->viewPlanePos.y >= 0.5f) {
 			temp = adjustTileTarget(&temp, 3);
-			relativePosTileIndices[4] = temp.tile->index;
+			relativePosTileIndices[4] = temp.node->index;
 			relativePos[4] = getRelativePovPosTopRight(temp);
 		}
 		else {
 			temp = adjustTileTarget(&temp, 1);
-			relativePosTileIndices[4] = temp.tile->index;
+			relativePosTileIndices[4] = temp.node->index;
 			relativePos[4] = getRelativePovPosBottomRight(temp);
 		}
 	}
 	else {
 		temp = adjustTileTarget(&povTile, 2);
-		relativePosTileIndices[3] = temp.tile->index;
+		relativePosTileIndices[3] = temp.node->index;
 		relativePos[3] = getRelativePovPosLeft(temp);
 
 		// Corner:
 		if (p_camera->viewPlanePos.y >= 0.5f) {
 			temp = adjustTileTarget(&temp, 3);
-			relativePosTileIndices[4] = temp.tile->index;
+			relativePosTileIndices[4] = temp.node->index;
 			relativePos[4] = getRelativePovPosTopLeft(temp);
 		}
 		else {
 			temp = adjustTileTarget(&temp, 1);
-			relativePosTileIndices[4] = temp.tile->index;
+			relativePosTileIndices[4] = temp.node->index;
 			relativePos[4] = getRelativePovPosBottomLeft(temp);
 		}
 	}
@@ -1030,7 +1102,7 @@ glm::vec2 TileManager::getRelativePovPosBottomLeft(TileTarget& target) {
 
 void TileManager::updateTileGpuInfos() {
 	tileGpuInfos.clear();
-	for (Tile* tile : tiles) {
-		tileGpuInfos.push_back(GPU_TileInfo(tile));
+	for (Tile* node : tiles) {
+		tileGpuInfos.push_back(GPU_TileInfo(node));
 	}
 }

@@ -25,7 +25,7 @@ private:
 			tileIndex = 0;
 		}
 
-		Consumer(Tile* tile) : tileIndex(tile->index)
+		Consumer(Tile* node) : tileIndex(node->index)
 		{}
 
 		void update()
@@ -47,20 +47,20 @@ public:
 
 	void update();
 
-	void addBasis(Tile* tile, LocalDirection orientation, BasisType basisType);
-	void deleteBasis(Tile* tile);
+	void addBasis(Tile* node, LocalDirection orientation, BasisType basisType);
+	void deleteBasis(Tile* node);
 
 	//bool createForceSink(Tile* tile, bool override);
 	//void deleteForceSink(Tile* tile);
 
-	bool createProducer(Tile* tile, EntityType targetType, LocalDirection targetDirection, LocalOrientation targetOrientation, bool override);
+	bool createProducer(Tile* node, EntityType targetType, LocalDirection targetDirection, LocalOrientation targetOrientation, bool override);
 	void updateProducers();
-	void deleteProducer(Tile* tile);
+	void deleteProducer(Tile* node);
 
-	bool createConsumer(Tile* tile, bool override);
+	bool createConsumer(Tile* node, bool override);
 	void updateConsumers();
-	void deleteConsumer(Tile* tile);
+	void deleteConsumer(Tile* node);
 
-	bool createForceGenerator(Tile* tile, LocalDirection orientation, bool override);
-	void deleteForceGenerator(Tile* tile);
+	bool createForceGenerator(Tile* node, LocalDirection orientation, bool override);
+	void deleteForceGenerator(Tile* node);
 };

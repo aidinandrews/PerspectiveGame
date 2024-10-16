@@ -24,7 +24,6 @@
 #include"vertexManager.h"
 #include"frameBuffer.h"
 #include"tile.h"
-#include "metaPositionNetwork.h"
 
 struct TileManager {
 
@@ -49,7 +48,7 @@ public:
 	Framebuffer *p_framebuffer;
 	ButtonManager *p_buttonManager;
 	InputManager *p_inputManager;
-	MetaPositionNetwork* p_metaNodeNetwork;
+	//SuperPositionNetwork* p_superPositionNetwork;
 
 	std::vector<Tile*> tiles;
 	std::vector<GPU_TileInfo> tileGpuInfos;
@@ -78,7 +77,7 @@ public:
 public: // INITIALIZERS:
 
 	TileManager(Camera* camera, ShaderManager* shaderManager, GLFWwindow* window, Framebuffer* framebuffer, 
-				ButtonManager* bm, InputManager* im, MetaPositionNetwork* nn) {
+				ButtonManager* bm, InputManager* im, SuperPositionNetwork* sp) {
 
 		currentpovTileTransf = glm::mat4(1);
 		lastpovTileTransf = glm::mat4(1);
@@ -90,7 +89,6 @@ public: // INITIALIZERS:
 		p_framebuffer = framebuffer;
 		p_buttonManager = bm;
 		p_inputManager = im;
-		p_metaNodeNetwork = nn;
 
 		// make sure the camera is in the middle of the starting draw tile:
 		p_camera->viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
@@ -98,7 +96,7 @@ public: // INITIALIZERS:
 		// by this point there should be two tiles in the scene:
 		createTilePair(TILE_TYPE_XY, glm::ivec3(1, 1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.8));
 
-		povTile.tile = tiles[0];
+		povTile.node = tiles[0];
 		povTile.initialSideIndex = 0;
 		povTile.initialVertIndex = 0;
 		povTile.sideInfosOffset = 1;
@@ -119,10 +117,10 @@ public: // MEMBER FUNCTIONS:
 	bool createTilePair(SuperTileType tileType, glm::ivec3 maxPoint, glm::vec3 frontTileColor, glm::vec3 backTileColor);
 
 	// An individual tile can never be deleted alone as every tile has a 'backer' tile (sibling) connected to it.
-	void deleteTilePair(Tile* tile, bool allowDeletePovTile);
+	void deleteTilePair(Tile* node, bool allowDeletePovTile);
 
 	void updateTileGpuInfos();
-	void updateCornerSafety(Tile* tile);
+	void updateCornerSafety(Tile* node);
 
 	// The tiles are drawn one by one, and need to know when they are off screen.  This is 
 	// done by translating the edges of the window to scene coordinates, in this function.
@@ -154,11 +152,13 @@ public: // MEMBER FUNCTIONS:
 	
 	// In the creation of a tile, it needs to be connected to it's neighbors so that things can move from
 	// one tile to another.
-	void updateNeighborConnections(Tile *tile);
+	void updateNeighborConnections(Tile *node);
 
-	void removeConnectedMetaNodes(Tile* tile, Tile* sibling, std::vector<MetaNode*>& affectedNodes);
-	void createMetaNodeConnections(Tile* tile, Tile* sibling);
-	void updateMetaNodeConnections(Tile* tile);
+	void createCornerSuperPosition(Tile* node, LocalPosition pos);
+	void updateSuperPositionNeighbors(SuperPosition* pos);
+	void removeConnectedSuperPositions(Tile* node, Tile* sibling, std::vector<SuperPosition*>& affectedSuperPositions);
+	void createMetaNodeConnections(Tile* node, Tile* sibling);
+	void updateMetaNodeConnections(Tile* node);
 	
 	// Tries to connect the subject tile to the other tile.
 	// Returns false if the tiles cannot connect.

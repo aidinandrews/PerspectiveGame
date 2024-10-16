@@ -81,7 +81,7 @@ struct EntityTileInfo {
 	int isLeavings;
 };
 
-layout (std430, binding = 1) buffer tileInfosBuffer   { TileInfo tileInfos[];     };
+layout (std430, binding = 1) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 layout (std430, binding = 2) buffer entityInfosBuffer { EntityInfo entityInfos[]; };
 layout (std430, binding = 3) buffer entityTileInfosBuffer { EntityTileInfo entityTileInfos[]; };
 

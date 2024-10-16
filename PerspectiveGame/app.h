@@ -39,6 +39,7 @@
 #include "currentSelection.h"
 #include "frameBuffer.h"
 #include "scenarioSetup.h"
+#include "pov.h"
 
 struct App {
 	Window window;
@@ -60,7 +61,9 @@ struct App {
 	EntityManager* p_entityManager;
 	CurrentSelection* p_currentSelection;
 	BasisManager* p_basisManager;
-	MetaPositionNodeManager metaNodeManager;
+	
+	PositionNodeNetwork* p_nodeNetwork;
+	POV* p_pov;
 
 	App() {}
 
@@ -72,6 +75,8 @@ struct App {
 		delete p_entityManager;
 		delete p_basisManager;
 		delete p_currentSelection;
+		delete p_nodeNetwork;
+		delete p_pov;
 
 		glfwTerminate();
 	}
@@ -110,8 +115,13 @@ struct App {
 
 		p_buttonManager = new ButtonManager(&framebuffer, &shaderManager, window.window, &inputManager);
 
-		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, &metaNodeManager);
+		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
 		p_tileManager->texID = p_wave->ID;
+		
+		p_nodeNetwork = new PositionNodeNetwork();
+		p_nodeNetwork->texID = p_wave->ID;
+
+		p_pov = new POV(p_nodeNetwork, &camera);
 
 		p_forceManager = new ForceManager(p_tileManager);
 
@@ -123,7 +133,8 @@ struct App {
 
 		#ifdef USE_GUI_WINDOW
 		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera,
-									  p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager);
+									  p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager, 
+									  p_nodeNetwork, p_pov);
 		#else
 		p_guiManager = new GuiManager(window.window, nullptr, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
 		#endif
@@ -157,6 +168,7 @@ struct App {
 	void updateWorld()
 	{
 		p_tileManager->update();
+		p_nodeNetwork->update();
 
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
 			LastUpdateTime = TimeSinceProgramStart;

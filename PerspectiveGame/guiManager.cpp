@@ -74,16 +74,6 @@ void GuiManager::imGuiSetup() {
 #endif
 }
 
-GuiManager::GuiManager(GLFWwindow *w, GLFWwindow *imgw, ShaderManager *sm, InputManager *im, Camera *c, TileManager *tm,
-					   Framebuffer *fb, ButtonManager *bm, CurrentSelection*cs, EntityManager* em)
-	: p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_tileManager(tm), p_framebuffer(fb),
-	p_buttonManager(bm), p_currentSelection(cs), p_entityManager(em) {
-
-	imGuiSetup();
-
-	GUI_EDGE_COLOR = glm::vec3(1, 0, 1);
-}
-
 GuiManager::~GuiManager() {
 #ifdef USE_GUI_WINDOW
 	ImGui_ImplOpenGL3_Shutdown();
@@ -356,6 +346,100 @@ void GuiManager::draw2d3rdPersonCpuCropping() {
 	draw2D3rdPerson();
 }
 
+void GuiManager::bindSSBOs2d3rdPersonViaNodeNetwork()
+{
+	// Position Node Info Buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->positionNodeInfosBufferID);
+	glBufferData(GL_UNIFORM_BUFFER,
+				 p_nodeNetwork->gpuPositionNodeInfos.size() * sizeof(GPU_PositionNodeInfo),
+				 p_nodeNetwork->gpuPositionNodeInfos.data(),
+				 GL_DYNAMIC_DRAW);
+	GLuint positionNodeInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "positionNodeInfosBuffer");
+	GLuint positionNodeInfosBindingPoint = 1;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, positionNodeInfosBlockID, positionNodeInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, positionNodeInfosBindingPoint, p_nodeNetwork->positionNodeInfosBufferID);
+
+	// Tile Info Info Buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->tileInfosBufferID);
+	glBufferData(GL_UNIFORM_BUFFER,
+				 p_nodeNetwork->gpuTileInfos.size() * sizeof(GPU_TileInfoNode),
+				 p_nodeNetwork->gpuTileInfos.data(),
+				 GL_DYNAMIC_DRAW);
+	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "tileInfosBuffer");
+	GLuint tileInfosBindingPoint = 2;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, tileInfosBlockID, tileInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, tileInfosBindingPoint, p_nodeNetwork->tileInfosBufferID);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
+}
+
+void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
+{
+	float updateProgress = float(TimeSinceProgramStart - LastUpdateTime) / UpdateTime;
+	GLuint programID = p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID;
+
+	glUniform1f(glGetUniformLocation(programID, "deltaTime"), TimeSinceProgramStart);
+	glUniform1f(glGetUniformLocation(programID, "updateProgress"), updateProgress);
+	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->node->getIndex());
+	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapIndex);
+	
+	//glm::vec2 relativePos[5]; // player position in current tile and neighbors:
+	//int relativePosTileIndices[5];
+	//p_tileManager->getRelativePovPosGpuInfos(relativePos, relativePosTileIndices);
+	//// Pack relative position data into a mat4:
+	//glm::mat4 relativePosData = {
+	//	relativePos[0].x, relativePos[0].y, relativePosTileIndices[0],	relativePos[4].x,
+	//	relativePos[1].x, relativePos[1].y, relativePosTileIndices[1],	relativePos[4].y,
+	//	relativePos[2].x, relativePos[2].y, relativePosTileIndices[2],	relativePosTileIndices[4],
+	//	relativePos[3].x, relativePos[3].y, relativePosTileIndices[3],	0,
+	//};
+	//GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
+	//glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
+
+	glm::mat4 screenSpaceToWorldSpace = glm::inverse(
+		p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
+	GLuint windowToWorldID = glGetUniformLocation(programID, "inWindowToWorldSpace");
+	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
+}
+
+void GuiManager::draw2d3rdPersonViaNodeNetwork()
+{
+	// by this time we have updated the camera transformation matrix
+	glDisable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_BLEND);
+
+	glBindVertexArray(p_framebuffer->VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
+	Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex];
+
+	setVertAttribVec2Pos();
+	p_shaderManager->POV2D3rdPersonViaNodeNetwork.use();
+
+	bindSSBOs2d3rdPersonViaNodeNetwork();
+	bindUniforms2d3rdPersonViaNodeNetwork(sceneView);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+	// full screen quad:
+	std::vector<GLfloat> verts = { -1, 1, 1, 1, 1, -1, -1, -1, };
+	std::vector<GLsizei> indices = { 0, 1, 3, 1, 2, 3, };
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+	glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
 void GuiManager::bindSSBOs2d3rdPerson() {
 	// Tile buffer:
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, p_tileManager->tileInfosBufferID);
@@ -369,7 +453,6 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	for (int i = 0; i < p_tileManager->tileGpuInfos.size(); ++i) {
 		tileData[i] = p_tileManager->tileGpuInfos[i];
 	}
-
 	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "tileInfosBuffer");
 	GLuint tileInfosBindingPoint = 1;
 	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, tileInfosBlockID, tileInfosBindingPoint);
@@ -400,7 +483,7 @@ void GuiManager::bindSSBOs2d3rdPerson() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
 }
 
-void GuiManager::bindUniforms2d3rdPerson() {
+void GuiManager::bindUniforms2d3rdPerson(Button* sceneView) {
 	GLuint deltaTimeID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "deltaTime");
 	glUniform1f(deltaTimeID, TimeSinceProgramStart);
 
@@ -408,7 +491,7 @@ void GuiManager::bindUniforms2d3rdPerson() {
 	glUniform1f(updateProgressID, float(TimeSinceProgramStart - LastUpdateTime) / UpdateTime);
 
 	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
-	glUniform1i(initialTileIndexID, p_tileManager->povTile.tile->index);
+	glUniform1i(initialTileIndexID, p_tileManager->povTile.node->index);
 
 	GLuint initialTileSide0IndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialSideIndex");
 	glUniform1i(initialTileSide0IndexID, p_tileManager->povTile.initialSideIndex);
@@ -419,8 +502,23 @@ void GuiManager::bindUniforms2d3rdPerson() {
 	GLuint initialTileSideOffsetID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialSideOffset");
 	glUniform1i(initialTileSideOffsetID, p_tileManager->povTile.sideInfosOffset);
 
-	GLuint povPosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovPosWindowSpace");
-	glUniform2f(povPosID, 0, 0);
+	glm::vec2 relativePos[5];
+	int relativePosTileIndices[5];
+	p_tileManager->getRelativePovPosGpuInfos(relativePos, relativePosTileIndices);
+	// Pack relative position data into a mat4:
+	glm::mat4 relativePosData = {
+		relativePos[0].x, relativePos[0].y, relativePosTileIndices[0],	relativePos[4].x,
+		relativePos[1].x, relativePos[1].y, relativePosTileIndices[1],	relativePos[4].y,
+		relativePos[2].x, relativePos[2].y, relativePosTileIndices[2],	relativePosTileIndices[4],
+		relativePos[3].x, relativePos[3].y, relativePosTileIndices[3],	0,
+	};
+	GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
+	glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
+
+	glm::mat4 screenSpaceToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
+																				   (float)sceneView->pixelHeight()));
+	GLuint windowToWorldID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inWindowToWorldSpace");
+	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
 }
 
 void GuiManager::draw2d3rdPersonGpuRaycasting() {
@@ -440,36 +538,16 @@ void GuiManager::draw2d3rdPersonGpuRaycasting() {
 	p_shaderManager->POV2D3rdPerson.use();
 
 	bindSSBOs2d3rdPerson();
-
-	bindUniforms2d3rdPerson();
-
-	glm::vec2 relativePos[5];
-	int relativePosTileIndices[5];
-	p_tileManager->getRelativePovPosGpuInfos(relativePos, relativePosTileIndices);
-	// Pack relative position data into a mat4:
-	glm::mat4 relativePosData = {
-		relativePos[0].x, relativePos[0].y, relativePosTileIndices[0],	relativePos[4].x,
-		relativePos[1].x, relativePos[1].y, relativePosTileIndices[1],	relativePos[4].y,
-		relativePos[2].x, relativePos[2].y, relativePosTileIndices[2],	relativePosTileIndices[4],
-		relativePos[3].x, relativePos[3].y, relativePosTileIndices[3],	0,
-	};
-	GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
-	glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
-
-	glm::mat4 screenSpaceToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), 
-																				   (float)sceneView->pixelHeight()));
-	GLuint windowToWorldID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inWindowToWorldSpace");
-	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
-
-	// full screen quad:
-	std::vector<GLfloat> verts = { -1, 1, 1, 1, 1, -1, -1, -1, };
-	std::vector<GLsizei> indices = { 0, 1, 3, 1, 2, 3, };
+	bindUniforms2d3rdPerson(sceneView);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tileManager->texID);
 
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
+	// full screen quad:
+	std::vector<GLfloat> verts = { -1, 1, 1, 1, 1, -1, -1, -1, };
+	std::vector<GLsizei> indices = { 0, 1, 3, 1, 2, 3, };
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 	glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
@@ -486,6 +564,7 @@ void GuiManager::draw2d3rdPerson() {
 	switch (renderType2d3rdPerson) {
 	case cpuCropping: draw2d3rdPersonCpuCropping(); break;
 	case gpu2dRayCasting: draw2d3rdPersonGpuRaycasting(); break;
+	case gpuViaNodeNetwork: draw2d3rdPersonViaNodeNetwork(); break;
 	}
 
 	if (p_currentSelection->canEditTiles) {

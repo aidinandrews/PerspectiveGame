@@ -28,7 +28,7 @@ struct Player {
 
 		gpuInfo.color = glm::vec4(1, 1, 1, 1);
 
-		gpuInfo.tileIndices[0] = povTileTarget->tile->index;
+		gpuInfo.tileIndices[0] = povTileTarget->node->index;
 
 		//float tileX = 
 

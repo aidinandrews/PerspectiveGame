@@ -182,8 +182,6 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	int getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
-	LocalAlignment alignmentToNeighborAlignmentMap(LocalDirection leavingDirection, LocalAlignment currentAlignment);
-
 	const int combineAlignmentMappings(int alignmentMapIndex0, int alignmentMapIndex1);
 
 	const int inverseAlignmentMapIndex(int alignmentMapIndex);

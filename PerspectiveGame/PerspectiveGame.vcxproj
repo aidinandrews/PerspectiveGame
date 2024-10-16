@@ -194,10 +194,13 @@
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
+    <ClInclude Include="positionNode.h" />
+    <ClInclude Include="positionNodeNetwork.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
     <ClInclude Include="portal.h" />
+    <ClInclude Include="pov.h" />
     <ClInclude Include="scenarioSetup.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaderManager.h" />
@@ -230,7 +233,7 @@
     <ClCompile Include="guiManager.cpp" />
     <ClCompile Include="inputManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="metaPositionNetwork.h" />
+    <ClCompile Include="superPositionNetwork.h" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="textureManager.cpp" />
@@ -249,6 +252,8 @@
     <None Include="shaders\2d3rdPersonPovHeader.frag" />
     <None Include="shaders\2d3rdPersonPov.vert" />
     <None Include="shaders\2d3rdPersonPovBody.frag" />
+    <None Include="shaders\2d3rdPersonPovViaNodeNetwork.frag" />
+    <None Include="shaders\2d3rdPersonPovViaNodeNetwork.vert" />
     <None Include="shaders\3D3rdPersonPOV.frag" />
     <None Include="shaders\3D3rdPersonPOV.vert" />
     <None Include="shaders\default.frag" />

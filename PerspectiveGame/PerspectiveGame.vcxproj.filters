@@ -168,6 +168,15 @@
     <ClInclude Include="scenarioSetup.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
+    <ClInclude Include="positionNodeNetwork.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="pov.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="positionNode.h">
+      <Filter>Source Files\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -257,7 +266,7 @@
     <ClCompile Include="tileInternals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="metaPositionNetwork.h">
+    <ClCompile Include="superPositionNetwork.h">
       <Filter>Source Files\World</Filter>
     </ClCompile>
   </ItemGroup>
@@ -321,6 +330,12 @@
     </None>
     <None Include="shaders\2d3rdPersonPovBody.frag">
       <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovViaNodeNetwork.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovViaNodeNetwork.vert">
+      <Filter>Resource Files\Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

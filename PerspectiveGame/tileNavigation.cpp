@@ -473,20 +473,19 @@ int tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDire
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
 const int ALIGNMENT_MAP_COMBINATIONS[8][8] = {
-	{ 0, 1, 2, 3, 7, 4, 5, 6 },
+	{ 0, 1, 2, 3, 4, 5, 6, 7 },
 	{ 1, 2, 3, 0, 6, 7, 4, 5 },
 	{ 2, 3, 0, 1, 5, 6, 7, 4 },
 	{ 3, 0, 1, 2, 4, 5, 6, 7 },
-
 	{ 4, 5, 6, 7, 0, 1, 2, 3 },
 	{ 5, 6, 7, 4, 3, 0, 1, 2 },
 	{ 6, 7, 4, 5, 2, 3, 0, 1 },
 	{ 7, 4, 5, 6, 1, 2, 3, 0 }
 };
 
-const int tnav:: combineAlignmentMappings(int alignmentMapIndex0, int alignmentMapIndex1)
+const int tnav:: combineAlignmentMappings(int firstMappingIndex, int secondMappingIndex)
 {
-	return ALIGNMENT_MAP_COMBINATIONS[alignmentMapIndex0][alignmentMapIndex1];
+	return ALIGNMENT_MAP_COMBINATIONS[firstMappingIndex][secondMappingIndex];
 }
 
 const int tnav::inverseAlignmentMapIndex(int alignmentMapIndex)

@@ -9,8 +9,8 @@ Tile::Tile(TileType type, glm::ivec3 position) : type(type), position(position)
 	texCoords[3] = glm::vec2(0, 1);
 
 	for (int i = 0; i < 4; i++) { cornerIsSafe[i] = true; }
-	for (int i = 0; i < 9; i++) { metaNodes[i] = nullptr; }
-	for (int i = 0; i < 8; i++) { metaNodeAlignmentMaps[i] = -1; }
+	for (int i = 0; i < 9; i++) { superPositions[i] = nullptr; }
+	for (int i = 0; i < 8; i++) { superPositionAlignmentMaps[i] = -1; }
 
 }
 
@@ -59,33 +59,33 @@ glm::ivec3 Tile::getVertPos(int index)
 	}
 }
 
-GPU_TileInfo::GPU_TileInfo(Tile* tile)
+GPU_TileInfo::GPU_TileInfo(Tile* node)
 {
-	color = glm::vec4(tile->color, 1);
+	color = glm::vec4(node->color, 1);
 
-	basisType = (int)tile->basis.type;
-	basisOrientation = tile->basis.localOrientation;
+	basisType = (int)node->basis.type;
+	basisOrientation = node->basis.localOrientation;
 
-	getTileType = (int)tile->type;
+	getTileType = (int)node->type;
 
 	for (int i = 0; i < 4; i++) {
-		neighborIndices[i] = tile->neighbors[i]->index;
+		neighborIndices[i] = node->neighbors[i]->index;
 		//neighborMirrored[i] = (int)tile->isNeighborConnectionsMirrored[i];
 		//neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
 // TODO: fix gpu-info/shaders to use the new alignment mappings
-		neighborMirrored[i] = (int)tile->is1stDegreeNeighborMirrored(i);
-		neighborSideIndex[i] = tnav::getMappedAlignment(tile->neighborAlignmentMaps[i], tnav::oppositeAlignment(LocalAlignment(i)));
-		texCoords[i] = tile->texCoords[i];
-		cornerIsSafe[i] = tile->cornerIsSafe[i];
+		neighborMirrored[i] = (int)node->is1stDegreeNeighborMirrored(i);
+		neighborSideIndex[i] = tnav::getMappedAlignment(node->neighborAlignmentMaps[i], tnav::oppositeAlignment(LocalAlignment(i)));
+		texCoords[i] = node->texCoords[i];
+		cornerIsSafe[i] = node->cornerIsSafe[i];
 	}
 
 	// Entity info is UNORDERED by position in the gpu info to save space.  There can only ever be 4
 	// entities in a tile at once after all, so why store 9 ints when you can store 4 instead?
 	int numEntitiesInTile = 0;
 	for (int i = 0; i < 9; i++) {
-		if (tile->entityIndices[i] == -1) { continue; }
-		entityIndices[numEntitiesInTile] = tile->entityIndices[i];
-		entityInfoIndices[numEntitiesInTile] = tile->entityInfoIndices[i];
+		//if (tile->entityIndices[i] == -1) { continue; }
+		//entityIndices[numEntitiesInTile] = tile->entityIndices[i];
+		//entityInfoIndices[numEntitiesInTile] = tile->entityInfoIndices[i];
 		numEntitiesInTile++;
 	}
 	for (int i = numEntitiesInTile; i < 4; i++) {

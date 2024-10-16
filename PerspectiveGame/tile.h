@@ -30,7 +30,7 @@
 #include "frameBuffer.h"
 #include "tileNavigation.h"
 #include "tileInternals.h"
-#include "metaPositionNetwork.h"
+#include "superPositionNetwork.h"
 
 struct TileManager;
 
@@ -70,8 +70,8 @@ public:
 	bool cornerIsSafe[4];
 
 	// Used for sorting out collisions:
-	SuperPosition* metaNodes[9];
-	int metaNodeAlignmentMaps[8]; // Center is always of the same basis, so it needs no map.
+	SuperPosition* superPositions[9];
+	int superPositionAlignmentMaps[8]; // Center is always of the same basis, so it needs no map.
 
 public: // MEMBER FUNCTIONS:
 
@@ -129,16 +129,16 @@ public: // MEMBER FUNCTIONS:
 // rendering scenes and animations effects.  The thought is to wrap whatever tile you are 'on'
 // in one of these, so that it is easier to keep track of stuff.
 struct TileTarget {
-	Tile *tile;
+	Tile *node;
 	int sideInfosOffset;
 	int initialSideIndex;
 	int initialVertIndex;
 
 	TileTarget() :
-		tile(nullptr), sideInfosOffset(1), initialSideIndex(0), initialVertIndex(0) {}
+		node(nullptr), sideInfosOffset(1), initialSideIndex(0), initialVertIndex(0) {}
 
-	TileTarget(Tile *tile, int sideInfosOffset, int initialSideIndex, int initialVertIndex) :
-		tile(tile), sideInfosOffset(sideInfosOffset), initialSideIndex(initialSideIndex),
+	TileTarget(Tile *node, int sideInfosOffset, int initialSideIndex, int initialVertIndex) :
+		node(node), sideInfosOffset(sideInfosOffset), initialSideIndex(initialSideIndex),
 		initialVertIndex(initialVertIndex) {}
 
 	// Returns the index to the vertex info of the tile target.  This index will key into 
@@ -158,7 +158,7 @@ struct TileTarget {
 	// Returns the ith vertex coordinates respecting DrawTile ordering: 
 	// 0 (top left) -> 1 (top right) -> 2 (bottom right) -> 3 (bottom left)...
 	glm::vec3 drawTilePos(int i) {
-		return (glm::vec3)tile->getVertPos(vertIndex(i));
+		return (glm::vec3)node->getVertPos(vertIndex(i));
 	}
 	// Returns the side info of the ith side index respecting Draw Tile ordering:
 	// 0 (top left) -> 1 (top right) -> 2 (bottom right) -> 3 (bottom left)...
@@ -173,7 +173,7 @@ struct TileTarget {
 	bool woundCounterClockwise() { return !woundClockwise(); }
 
 	TileTarget &operator=(const TileTarget &other) {
-		this->tile = other.tile;
+		this->node = other.node;
 		this->sideInfosOffset = other.sideInfosOffset;
 		this->initialSideIndex = other.initialSideIndex;
 		this->initialVertIndex = other.initialVertIndex;
@@ -203,7 +203,7 @@ struct alignas(32) GPU_TileInfo {
 
 //	alignas(4) int padding[];
 
-	GPU_TileInfo(Tile *tile);
+	GPU_TileInfo(Tile *node);
 };
 
 #endif

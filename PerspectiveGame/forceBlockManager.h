@@ -18,9 +18,9 @@ public:
 
 private:
 	bool createForceBlock(int tileIndex, LocalDirection orientation, int magnitude) {
-		Tile* tile = p_tileManager->tiles[tileIndex];
+		Tile* node = p_tileManager->tiles[tileIndex];
 
-		if (tile->isObstructed(OldLocalPosition::OLD_LOCAL_POSITIONCENTER)) {
+		if (node->isObstructed(OldLocalPosition::OLD_LOCAL_POSITIONCENTER)) {
 			return false;
 		}
 
@@ -32,8 +32,8 @@ private:
 		//tile->entity->direction = (tile->force.magnitude > 0) ? tile->forceLocalDirection : 0;
 		//tile->entity->mass = 3;
 
-		Tile* neighborTile = p_tileManager->tiles[tile->sideInfos.neighborTilePtrs[orientation]->index];
-		LocalDirection neighborOrientation = TileNavigator::directionToDirectionMap(tile->type, neighborTile->type, orientation);
+		Tile* neighborTile = p_tileManager->tiles[node->sideInfos.neighborTilePtrs[orientation]->index];
+		LocalDirection neighborOrientation = TileNavigator::directionToDirectionMap(node->type, neighborTile->type, orientation);
 		p_forceManager->createForcePropogator(neighborTile->index, neighborOrientation);
 
 		return true;

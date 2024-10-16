@@ -13,7 +13,7 @@ void create4x4TileGrid(TileManager* tm)
 			tm->createTilePair(TILE_TYPE_XY, glm::ivec3(w, h, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 0.5));
 		}
 	}
-	tm->povTile.tile = tm->tiles[0];
+	tm->povTile.node = tm->tiles[0];
 }
 
 void clearWorld(TileManager* tm, EntityManager* em)

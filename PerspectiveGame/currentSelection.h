@@ -101,7 +101,7 @@ struct CurrentSelection {
 
 		// If the cursor is inside the povTile, then we dont have to do the move complex steps:
 		if (cursorWorldPos.x > 0 && cursorWorldPos.x < 1 && cursorWorldPos.y > 0 && cursorWorldPos.y < 1) {
-			hoveredTile = p_tileManager->povTile.tile;
+			hoveredTile = p_tileManager->povTile.node;
 			addTileParentTarget = p_tileManager->povTile;
 			return;
 		}
@@ -176,7 +176,7 @@ struct CurrentSelection {
 			stepCount++;
 		}
 
-		hoveredTile = target.tile;
+		hoveredTile = target.node;
 
 		addTileParentSideConnectionIndex = (addTileParentTarget.initialVertIndex
 											+ drawSideIndex * addTileParentTarget.sideInfosOffset)
@@ -193,23 +193,23 @@ struct CurrentSelection {
 			infosOffset = abs(infosOffset) * 3 % 4;
 		}
 		int v1Index = (addTileParentTarget.initialVertIndex + infosOffset) % 4;
-		glm::ivec3 v1 = addTileParentTarget.tile->getVertPos(v1Index);
-		glm::ivec3 v2 = addTileParentTarget.tile->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset) % 4);
+		glm::ivec3 v1 = addTileParentTarget.node->getVertPos(v1Index);
+		glm::ivec3 v2 = addTileParentTarget.node->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset) % 4);
 		glm::ivec3 v3, v4;
 
 		switch (heldTileRelativeOrientation) {
 		case RELATIVE_TILE_ORIENTATION_DOWN:
-			v3 = v1 - addTileParentTarget.tile->getNormal();
-			v4 = v2 - addTileParentTarget.tile->getNormal();
+			v3 = v1 - addTileParentTarget.node->getNormal();
+			v4 = v2 - addTileParentTarget.node->getNormal();
 			break;
 		case RELATIVE_TILE_ORIENTATION_FLAT:
-			glm::ivec3 offset = v1 - addTileParentTarget.tile->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset * 3) % 4);
+			glm::ivec3 offset = v1 - addTileParentTarget.node->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset * 3) % 4);
 			v3 = v1 + offset;
 			v4 = v2 + offset;
 			break;
 		default: /*case RELATIVE_TILE_ORIENTATION_UP:*/
-			v3 = v1 + addTileParentTarget.tile->getNormal();
-			v4 = v2 + addTileParentTarget.tile->getNormal();
+			v3 = v1 + addTileParentTarget.node->getNormal();
+			v4 = v2 + addTileParentTarget.node->getNormal();
 			break;
 		}
 		SuperTileType tileType = getSuperTileType(v1, v2, v3);
@@ -242,7 +242,7 @@ struct CurrentSelection {
 	}
 	void tryEditEntities()
 	{
-		if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
+		/*if (p_inputManager->leftMouseButtonClicked() && hoveredTile->entityIndices[8] == -1) {
 			queuedEntities.push_back(QueuedEntity(hoveredTile->index, heldEntity->type,
 												  heldEntity->getDirection(0), heldEntity->getOrientation(0)));
 		}
@@ -252,7 +252,7 @@ struct CurrentSelection {
 					p_entityManager->deleteEntity(&p_entityManager->entities[hoveredTile->entityIndices[i]]);
 				}
 			};
-		}
+		}*/
 	}
 
 	void tryEditWorld()

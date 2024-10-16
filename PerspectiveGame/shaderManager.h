@@ -35,8 +35,13 @@ struct ShaderManager {
 	Program stencilShader;
 	Program simpleShader;
 	Program justVertsAndColors;
+
 	Program POV2D3rdPerson;
 	Program POV3D3rdPerson;
+
+	Program POV2D3rdPersonViaNodeNetwork;
+	Program POV3D3rdPersonNodeNetwork;
+
 	std::vector<GLuint> texIDs;
 
 	void init() {
@@ -46,6 +51,9 @@ struct ShaderManager {
 		justVertsAndColors.init("shaders/passthrough.vert", "shaders/empty.frag");
 		POV2D3rdPerson.init2d3rdPersonPov();
 		POV3D3rdPerson.init("shaders/3D3rdPersonPOV.vert", "shaders/3D3rdPersonPOV.frag");
+		
+		POV2D3rdPersonViaNodeNetwork.init("shaders/2d3rdPersonPovViaNodeNetwork.vert", "shaders/2d3rdPersonPovViaNodeNetwork.frag");
+		//POV3D3rdPersonNodeNetwork.init("shaders/3D3rdPersonPOVNodeNetwork.vert", "shaders/3D3rdPersonPOVNodeNetwork.frag");
 	}
 
 	~ShaderManager() {
