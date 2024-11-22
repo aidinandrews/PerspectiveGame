@@ -114,7 +114,7 @@ public: // MEMBER FUNCTIONS:
 	void updateVisualInfos();
 
 	// An individual tile can never be created by itself as every tile has a 'backer' tile (sibling) connected to it.
-	bool createTilePair(SuperTileType tileType, glm::ivec3 maxPoint, glm::vec3 frontTileColor, glm::vec3 backTileColor);
+	bool createTilePair(SuperTileType tileMapType, glm::ivec3 maxPoint, glm::vec3 frontTileColor, glm::vec3 backTileColor);
 
 	// An individual tile can never be deleted alone as every tile has a 'backer' tile (sibling) connected to it.
 	void deleteTilePair(Tile* node, bool allowDeletePovTile);

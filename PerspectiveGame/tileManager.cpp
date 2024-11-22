@@ -41,13 +41,13 @@ bool TileManager::tileIsUnique(Tile& newTile) {
 	return true;
 }
 
-bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
+bool TileManager::createTilePair(SuperTileType tileMapType, glm::ivec3 maxPoint,
 	glm::vec3 frontTileColor, glm::vec3 backTileColor) 
 {
 	using namespace tnav;
 
-	Tile* foreTile = new Tile(getTileType(tileType, true), maxPoint);
-	Tile* backTile = new Tile(getTileType(tileType, false), maxPoint);
+	Tile* foreTile = new Tile(getTileType(tileMapType, true), maxPoint);
+	Tile* backTile = new Tile(getTileType(tileMapType, false), maxPoint);
 
 	// before connecting everything up, it is importand that this new tile pair 
 	// does not overlap another tile pair, as that would be against the rules:
@@ -56,11 +56,11 @@ bool TileManager::createTilePair(SuperTileType tileType, glm::ivec3 maxPoint,
 	}
 
 	foreTile->sibling = backTile;
-	foreTile->type = TileType(tileType * 2);
+	foreTile->type = TileType(tileMapType * 2);
 	foreTile->color = frontTileColor;
 
 	backTile->sibling = foreTile;
-	backTile->type = TileType(tileType * 2 + 1);
+	backTile->type = TileType(tileMapType * 2 + 1);
 	backTile->color = backTileColor;
 
 	updateNeighborConnections(foreTile);

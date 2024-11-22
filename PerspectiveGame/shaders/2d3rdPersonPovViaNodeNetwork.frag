@@ -2,7 +2,7 @@
 
 // INPUTS:
 
-layout(location = 0) in vec2 fragWorldPos;
+layout(location = 0) in vec2 pixelWorldPos;
 layout(location = 1) in vec2 povWorldPos;
 
 uniform float     deltaTime;
@@ -54,11 +54,9 @@ layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 int currentNodeIndex = initialNodeIndex;
 int currentMapIndex = initialMapIndex;
 
-vec2 fragDrawTilePos;
-const vec2  povPosToPixelPos = fragWorldPos - povWorldPos;
-const float totalDist = length(povPosToPixelPos);
-const bool  goingRight = povPosToPixelPos.x > 0.0f;
-const bool  goingUp = povPosToPixelPos.y > 0.0f;
+vec2 localPixelPosition;
+const vec2  povToPixelPos = pixelWorldPos - povWorldPos;
+const float totalDist = length(povToPixelPos);
 
 // CONST FUNCTIONS:
 
@@ -74,17 +72,17 @@ const int MAP_DIRECTION[8][8] = {
 	{ 3, 2, 1, 0, 6, 5, 4, 7 }
 };
 
-int NORTH    = MAP_DIRECTION[initialMapIndex][3];
-int EAST = MAP_DIRECTION[initialMapIndex][0];
-int SOUTH  = MAP_DIRECTION[initialMapIndex][1];
-int WEST  = MAP_DIRECTION[initialMapIndex][2];
+int getLocalEast()  { return MAP_DIRECTION[currentMapIndex][LOCAL_DIRECTION_0]; }
+int getLocalSouth() { return MAP_DIRECTION[currentMapIndex][LOCAL_DIRECTION_1]; }
+int getLocalWest()  { return MAP_DIRECTION[currentMapIndex][LOCAL_DIRECTION_2]; }
+int getLocalNorth() { return MAP_DIRECTION[currentMapIndex][LOCAL_DIRECTION_3]; }
 
 // ALIGNMENT_MAP_COMBINATIONS[initial mapping][next mapping]
 const int COMBINE_MAP_INDICES[8][8] = {
 	{ 0, 1, 2, 3, 4, 5, 6, 7 },
-	{ 1, 2, 3, 0, 6, 7, 4, 5 },
-	{ 2, 3, 0, 1, 5, 6, 7, 4 },
-	{ 3, 0, 1, 2, 4, 5, 6, 7 },
+	{ 1, 2, 3, 0, 7, 4, 5, 6 },
+	{ 2, 3, 0, 1, 6, 7, 4, 5 },
+	{ 3, 0, 1, 2, 5, 6, 7, 4 },
 	{ 4, 5, 6, 7, 0, 1, 2, 3 },
 	{ 5, 6, 7, 4, 3, 0, 1, 2 },
 	{ 6, 7, 4, 5, 2, 3, 0, 1 },
@@ -96,24 +94,22 @@ const int COMBINE_MAP_INDICES[8][8] = {
 // Returns the coordinates of the fragment local to its tile.
 // Domain is 0-1 for x and y and is relative to the screen.  (x+ == right, y+ == up).
 void getFragDrawTilePos() {
-	fragDrawTilePos = (fragWorldPos) - floor(fragWorldPos);
-	// We flipped (abs) the coordinates to get in a domain of [0, 1] for negative fragWorldPositions, so now we flip them back:
-	//if (fragWorldPos.x < 0) { fragDrawTilePos.x = 1 - fragDrawTilePos.x; }
-	//if (fragWorldPos.y < 0) { fragDrawTilePos.y = 1 - fragDrawTilePos.y; }
+	localPixelPosition = (pixelWorldPos) - floor(pixelWorldPos);
 }
 
 // Given a local draw tile coordinate, will return the color of the base texture of a tile.
 vec4 tileTexColor() {
 	// catch mirrored local directions:
-	int s = SOUTH, w = WEST, n = NORTH;
+	int s = getLocalSouth(), w = getLocalWest(), n = getLocalNorth();
 	if (currentMapIndex > 3) { s = ++s % 4; w = ++w % 4; n = ++n % 4; }
 
-	vec2 bottomRightUV = CurrentTileInfo.texCoords[s];
-	vec2 bottomLeftUV  = CurrentTileInfo.texCoords[w];
-	vec2 topLeftUV     = CurrentTileInfo.texCoords[n];
+	vec2 southEastUV = CurrentTileInfo.texCoords[s];
+	vec2 southWestUV = CurrentTileInfo.texCoords[w];
+	vec2 northWestUV = CurrentTileInfo.texCoords[n];
 
-	vec2 xDir = bottomRightUV - bottomLeftUV, yDir = topLeftUV - bottomLeftUV;
-	vec2 texCoord = bottomLeftUV + (fragDrawTilePos.x * xDir) + (fragDrawTilePos.y * yDir);
+	vec2 xDir = southEastUV - southWestUV;
+	vec2 yDir = northWestUV - southWestUV;
+	vec2 texCoord = southWestUV + (localPixelPosition.x * xDir) + (localPixelPosition.y * yDir);
 	
 	return texture(inTexture, texCoord);
 }
@@ -132,55 +128,46 @@ void shiftCurrentTile(int d) {
 	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[D];
 
 	// Transistion to the neighbor tile (a center node).
-	currentMapIndex = nodeInfos[currentNodeIndex].neighborMapIndices[d];
+	int M = nodeInfos[currentNodeIndex].neighborMapIndices[d];
 	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[d];
 
 	// Adjust the window space -> tile space mappings:
-	m = COMBINE_MAP_INDICES[m][currentMapIndex];
-	WEST = MAP_DIRECTION[m][WEST];
-	EAST = MAP_DIRECTION[m][EAST];
-	NORTH = MAP_DIRECTION[m][NORTH];
-	SOUTH = MAP_DIRECTION[m][SOUTH];
+	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][m];
+	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][M];
 }
 
 void findTile() {
 	vec2 runningDist;
-	vec2 stepDist = totalDist / abs(povPosToPixelPos);
+	vec2 stepDist = totalDist / abs(povToPixelPos);
 	int stepCount = 0;
-	int connectionIndex;
-	int drawSideIndex;
-	float currentDist = 0; // Used for incrementing the ray:
+	const bool GO_WINDOW_EAST  = povToPixelPos.x > 0.0f;
+	const bool GO_WINDOW_NORTH = povToPixelPos.y > 0.0f;
 
 	// Setup:
-	if (goingRight) { runningDist.x = (1.0f - povWorldPos.x) * stepDist.x; } 
+	if (GO_WINDOW_EAST) { runningDist.x = (1.0f - povWorldPos.x) * stepDist.x; } 
 	else { runningDist.x = povWorldPos.x * stepDist.x; }
 	
-	if (goingUp) { runningDist.y = (1.0f - povWorldPos.y) * stepDist.y; } 
+	if (GO_WINDOW_NORTH) { runningDist.y = (1.0f - povWorldPos.y) * stepDist.y; } 
 	else { runningDist.y = povWorldPos.y * stepDist.y; }
 
 	// Raycast:
-	while (stepCount < MAX_STEPS) {
+	while (stepCount++ < MAX_STEPS) {
+		if (runningDist.x > totalDist && runningDist.y > totalDist) { break; } // We have arrived!
+
 		if (runningDist.x < runningDist.y) {
-			if ((currentDist = runningDist.x) > totalDist) { break; } // We have arrived!
-			
-			if (goingRight) { shiftCurrentTile(EAST); } 
-			else { shiftCurrentTile(WEST); } // Going left
+			if (GO_WINDOW_EAST) { shiftCurrentTile(getLocalEast()); } else { shiftCurrentTile(getLocalWest()); }
 			runningDist.x += stepDist.x;
 		} 
 		else { // runningDist.x > runningDist.y
-			if ((currentDist = runningDist.y) > totalDist) { break; } // We have arrived!
-			
-			if (goingUp) { shiftCurrentTile(NORTH); } 
-			else { shiftCurrentTile(SOUTH);} // Going down
+			if (GO_WINDOW_NORTH) { shiftCurrentTile(getLocalNorth()); } else { shiftCurrentTile(getLocalSouth()); }
 			runningDist.y += stepDist.y;
 		}
-		stepCount++;
 	}
 }
 
 void main() {
 	// Quick check to see if we are in the initial tile.  If so, we don't have to bother raycasting:
-	if (fragWorldPos.x > 0 && fragWorldPos.x < 1 && fragWorldPos.y > 0 && fragWorldPos.y < 1) {
+	if (pixelWorldPos.x > 0 && pixelWorldPos.x < 1 && pixelWorldPos.y > 0 && pixelWorldPos.y < 1) {
 		getFragDrawTilePos();
 		//getRelativeVertPositions();
 		colorPixel();

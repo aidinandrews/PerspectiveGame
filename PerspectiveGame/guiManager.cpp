@@ -380,7 +380,7 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 
 	glUniform1f(glGetUniformLocation(programID, "deltaTime"), TimeSinceProgramStart);
 	glUniform1f(glGetUniformLocation(programID, "updateProgress"), updateProgress);
-	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->node->getIndex());
+	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->getNode()->getIndex());
 	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapIndex);
 	
 	//glm::vec2 relativePos[5]; // player position in current tile and neighbors:

@@ -435,7 +435,7 @@ struct SuperPositionNetwork
 	{
 		freeSuperPositionIndices.push_back(pos->index);
 
-		for (LocalDirection d : tnav::NON_STATIC_LOCAL_DIRECTION_LIST) {
+		for (LocalDirection d : tnav::DIRECTION_SET) {
 			SuperPosition* neighbor = pos->getNeighbor(d);
 			if (neighbor == nullptr) {
 				continue;

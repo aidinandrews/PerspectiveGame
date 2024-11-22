@@ -1,16 +1,20 @@
 #include "tileNavigation.h"
 
-const LocalAlignment tnav::LOCAL_ALIGNMENT_LIST[] = {
+const LocalAlignment tnav::LOCAL_ALIGNMENT_SET[] = {
 		LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
 		LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0,
 		LOCAL_ALIGNMENT_NONE,
 };
 
-const LocalDirection tnav::NON_STATIC_LOCAL_DIRECTION_LIST[8] = {
+const LocalDirection tnav::DIRECTION_SET[8] = {
 	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
 	LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0
 };
 
+
+const LocalDirection tnav::ORTHOGONAL_DIRECTION_SET[4] = {
+	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3
+};
 
 void tnav::checkOrthogonal(LocalAlignment alignment)
 {
@@ -369,6 +373,19 @@ GlobalAlignment tnav::localToGlobalDir(TileType type, LocalDirection direction)
 	return LOCAL_DIR_TO_GLOBAL_DIR[type][direction];
 }
 
+glm::vec3 tnav::globalDirToVec3(GlobalAlignment g)
+{
+	switch (g) {
+		case GLOBAL_ALIGNMENT_pX: return glm::vec3( 1,  0,  0);
+		case GLOBAL_ALIGNMENT_nX: return glm::vec3(-1,  0,  0);
+		case GLOBAL_ALIGNMENT_pY: return glm::vec3( 0,  1,  0);
+		case GLOBAL_ALIGNMENT_nY: return glm::vec3( 0, -1,  0);
+		case GLOBAL_ALIGNMENT_pZ: return glm::vec3( 0,  0,  1);
+		case GLOBAL_ALIGNMENT_nZ: return glm::vec3( 0,  0, -1);
+		default: return glm::vec3(0, 0, 0);
+	}
+}
+
 bool tnav::isOrthogonal(LocalDirection direction) { return direction < 4; }
 
 bool tnav::isDiagonal(LocalDirection direction) { return 3 < direction && direction < 8; }
@@ -472,11 +489,11 @@ int tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDire
 }
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
-const int ALIGNMENT_MAP_COMBINATIONS[8][8] = {
+const int COMBINE_MAP_INDICES[8][8] = {
 	{ 0, 1, 2, 3, 4, 5, 6, 7 },
-	{ 1, 2, 3, 0, 6, 7, 4, 5 },
-	{ 2, 3, 0, 1, 5, 6, 7, 4 },
-	{ 3, 0, 1, 2, 4, 5, 6, 7 },
+	{ 1, 2, 3, 0, 7, 4, 5, 6 },
+	{ 2, 3, 0, 1, 6, 7, 4, 5 },
+	{ 3, 0, 1, 2, 5, 6, 7, 4 },
 	{ 4, 5, 6, 7, 0, 1, 2, 3 },
 	{ 5, 6, 7, 4, 3, 0, 1, 2 },
 	{ 6, 7, 4, 5, 2, 3, 0, 1 },
@@ -485,7 +502,7 @@ const int ALIGNMENT_MAP_COMBINATIONS[8][8] = {
 
 const int tnav:: combineAlignmentMappings(int firstMappingIndex, int secondMappingIndex)
 {
-	return ALIGNMENT_MAP_COMBINATIONS[firstMappingIndex][secondMappingIndex];
+	return COMBINE_MAP_INDICES[firstMappingIndex][secondMappingIndex];
 }
 
 const int tnav::inverseAlignmentMapIndex(int alignmentMapIndex)
@@ -515,9 +532,9 @@ const SuperTileType tnav::getSuperTileType(TileType type)
 	return SuperTileType(type / 2);
 }
 
-const TileType tnav::getTileType(SuperTileType tileType, bool isFront)
+const TileType tnav::getTileType(SuperTileType tileMapType, bool isFront)
 {
-	return TileType(int(tileType) * 2 + int(!isFront));
+	return TileType(int(tileMapType) * 2 + int(!isFront));
 }
 
 const TileType tnav::inverseTileType(TileType type)
@@ -618,6 +635,31 @@ const int tnav::getTileVisibility(TileType subjetTileType, LocalDirection orthoS
 	return TILE_VISIBILITY[subjetTileType][orthoSide][otherTileType];
 }
 
+const glm::vec3 tnav::getNormal(TileType type)
+{
+	switch (type) {
+	case TILE_TYPE_XYF: return glm::vec3(0, 0, 1);
+	case TILE_TYPE_XYB: return glm::vec3(0, 0, -1);
+	case TILE_TYPE_XZF: return glm::vec3(0, 1, 0);
+	case TILE_TYPE_XZB: return glm::vec3(0, -1, 0);
+	case TILE_TYPE_YZF: return glm::vec3(1, 0, 0);
+	case TILE_TYPE_YZB: return glm::vec3(-1, 0, 0);
+	default: throw std::runtime_error("Tile sub type is ERROR on getNormal()!");
+	}
+}
+
+const TileType tnav::getTileType(glm::vec3 normal)
+{
+	if (normal == glm::vec3(0, 0, 1)) { return TILE_TYPE_XYF; }
+	else if (normal == glm::vec3(0, 0, -1)) { return TILE_TYPE_XYB; }
+	else if (normal == glm::vec3(0, 1, 0)) { return TILE_TYPE_XZF; }
+	else if (normal == glm::vec3(0, -1, 0)) { return TILE_TYPE_XZB; }
+	else if (normal == glm::vec3(1, 0, 0)) { return TILE_TYPE_YZF; }
+	else if (normal == glm::vec3(-1, 0, 0)) { return TILE_TYPE_YZB; }
+	throw std::runtime_error("Given normal does not corrispond to a tile type!");
+}
+
+
 const LocalAlignment tnav::getOtherComponent(LocalAlignment diagonal, LocalAlignment component)
 {
 	switch (diagonal) {
@@ -647,4 +689,15 @@ const LocalAlignment tnav::getOtherComponent(LocalAlignment diagonal, LocalAlign
 		}
 	default: return LOCAL_ALIGNMENT_ERROR;
 	}
+}
+
+const glm::vec3 tnav::TO_SIDE_NODE_OFFSETS[3][4] = {
+	{ glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f) },
+	{ glm::vec3(0.0f, 0.0f, 0.5f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.5f, 0.0f, 0.0f) },
+	{ glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 0.5f) }
+};
+
+const glm::vec3* tnav::getToSideNodePositionOffsets(SuperTileType type)
+{
+	return TO_SIDE_NODE_OFFSETS[(int)type];
 }

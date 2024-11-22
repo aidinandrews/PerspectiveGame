@@ -53,6 +53,7 @@ void InputManager::updateViaMouse() {
 		mouseButton.update();
 	}
 	if (mouseButtons[LEFT_CLICK_MOUSE_BUTTON].click || mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].click) {
+		std::cout << "CLICK" << std::endl;
 		setCursorLastClickPos();
 	}
 	distFromLastClickCursorPixelPos = CursorPixelPos - lastClickCursorPixelPos;

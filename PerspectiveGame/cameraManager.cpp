@@ -112,8 +112,6 @@ void Camera::updatePos() {
 }
 
 void Camera::getProjectionMatrix() {
-	//println(viewPlanePos);
-
 	translationMatrix = glm::translate(glm::mat4(1), -viewPlanePos);
 	glm::mat4 rotateZ = glm::rotate(glm::mat4(1), yaw, glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1), -pitch, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -136,7 +134,6 @@ void Camera::getProjectionMatrix() {
 	viewMatrix = glm::mat4(1);// glm::lookAt(glm::vec3(0.0f, 0.01f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	float windowAdj = float(WindowSize.x) / float(WindowSize.y);
-	//windowAdj.y = p_inputManager->currentWindowRatio;
 	projectionMatrix = glm::ortho(
 		-1.0f * windowAdj, 1.0f * windowAdj,
 		1.0f, -1.0f,
@@ -149,6 +146,7 @@ void Camera::getProjectionMatrix() {
 	rotateX = glm::rotate(glm::mat4(1), pitch, glm::vec3(1.0f, 0.0f, 0.0f));
 	z = 1 / (float)pow(2, zoom);
 	scale = glm::scale(glm::mat4(1), glm::vec3(windowAdj * z, z, z));
+	
 	inverseTransfMatrix = inverseTranslationMatrix * rotateZ * rotateX * scale;
 }
 

@@ -39,7 +39,6 @@ struct KeyBindings {
 
 #define ZOOM_IN_KEY		0
 #define ZOOM_OUT_KEY	1
-
 #define MOVE_LEFT_KEY	2
 #define MOVE_RIGHT_KEY	3
 #define MOVE_FORTH_KEY	4
@@ -123,10 +122,10 @@ struct InputManager {
 	void updateViaMouse();
 	void update();
 
-	bool leftMouseButtonClicked() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].click; }
+	bool leftClicked() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].click; }
 	bool leftMouseButtonPressed() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].pressed; }
 	bool leftMouseButtonReleased() { return mouseButtons[LEFT_CLICK_MOUSE_BUTTON].released; }
 	bool rightMouseButtonPressed() { return mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].pressed; }
-	bool rightMouseButtonClicked() { return mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].click; }
+	bool rightClicked() { return mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].click; }
 	bool rightMouseButtonReleased() { return mouseButtons[RIGHT_CLICK_MOUSE_BUTTON].released; }
 };

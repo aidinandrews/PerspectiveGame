@@ -8,6 +8,8 @@
 #include "basisManager.h"
 #include "buttonManager.h"
 #include "cameraManager.h"
+#include "positionNodeNetwork.h"
+#include "pov.h"
 
 struct QueuedEntity {
 	int tileIndex;
@@ -34,9 +36,16 @@ struct CurrentSelection {
 	ButtonManager* p_buttonManager;
 	BasisManager* p_basisManager;
 	Camera* p_camera;
+	PositionNodeNetwork* p_nodeNetwork;
+	POV* p_pov;
 
-	Tile* hoveredTile;
+	PositionNode* hoveredTile;
 	int	hoveredTileConnectionIndex;
+	POV* addTileParentPOV;
+	LocalDirection addTileParentAddDirection;
+	
+	TileInfo heldTileInfo;
+	glm::vec3 heldTilePos;
 
 	Tile::Basis heldBasis;
 	Entity* heldEntity;
@@ -49,16 +58,16 @@ struct CurrentSelection {
 	bool canEditTiles;
 
 	bool tryingToAddTile;
-	Tile* heldTile;
 	glm::vec3 heldTileColor;
 	RelativeTileOrientation heldTileRelativeOrientation;
 
-	// Tile before the preview tile we want to add.  tile 'connecting' preview tile to scene:
-	TileTarget addTileParentTarget;
-	int addTileParentSideConnectionIndex;
+	bool leftClick = false;
 
-	CurrentSelection(InputManager* im, TileManager* tm, EntityManager* em, ButtonManager* bm, Camera* (cam), BasisManager* bam) : p_inputManager(im), p_tileManager(tm), p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam)
+	CurrentSelection(InputManager* im, TileManager* tm, EntityManager* em, ButtonManager* bm, Camera* (cam),
+					 BasisManager* bam, PositionNodeNetwork* nn, POV* pov) : p_inputManager(im), p_tileManager(tm),
+		p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam), p_nodeNetwork(nn), p_pov(pov)
 	{
+		addTileParentPOV = new POV(p_nodeNetwork, p_camera);
 		hoveredTile = nullptr;
 		hoveredTileConnectionIndex = 0;
 
@@ -66,7 +75,6 @@ struct CurrentSelection {
 		tryingToAddTile = false;
 		tryingToAddTile = true; // TESTING, TEMP!
 
-		heldTile = new Tile(TILE_TYPE_XYF, glm::ivec3(1, 1, 0));
 		heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
 		heldTileColor = glm::vec3(1, 0, 0);
 
@@ -78,8 +86,8 @@ struct CurrentSelection {
 
 	~CurrentSelection()
 	{
-		delete heldTile;
 		delete heldEntity;
+		delete addTileParentPOV;
 	}
 
 	void addQueuedEntities()
@@ -95,150 +103,131 @@ struct CurrentSelection {
 		// find what tile the cursor is hovering over:
 		// This algorithm mirrors the on in 2D3rdPersonPOV frag shader, which is documented better.
 		Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
-		glm::mat4 inWindowToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
-																					(float)sceneView->pixelHeight()));
+		glm::mat4 inWindowToWorldSpace = 
+			glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
 		glm::vec2 cursorWorldPos = glm::vec2(inWindowToWorldSpace * glm::vec4(-CursorScreenPos.x, CursorScreenPos.y, 0, 1));
+		POV targetPOV = *p_pov;
 
 		// If the cursor is inside the povTile, then we dont have to do the move complex steps:
 		if (cursorWorldPos.x > 0 && cursorWorldPos.x < 1 && cursorWorldPos.y > 0 && cursorWorldPos.y < 1) {
-			hoveredTile = p_tileManager->povTile.node;
-			addTileParentTarget = p_tileManager->povTile;
-			return;
+			*addTileParentPOV = *p_pov;
+			// TODO: nodes have tile centers at (n, n) whereas cursor world pos/GPU has tile centers at (0.5n, 0.5n)
+			// syncronize these!
+			if (abs(cursorWorldPos.x - 0.5f) > abs(cursorWorldPos.y - 0.5f)) {
+				addTileParentAddDirection = (cursorWorldPos.x > 0.5f)? p_pov->getEast() : p_pov->getWest();
+			}
+			else {
+				addTileParentAddDirection = (cursorWorldPos.y > 0.5f)? p_pov->getNorth() : p_pov->getSouth();
+			}
 		}
 
-		// Welp, here goes the more complex steps:
 		glm::vec2 povPos = (glm::vec2)p_camera->viewPlanePos;
-		glm::vec2 povPosToPixelPos = cursorWorldPos - povPos;
-		float totalDist = glm::length(povPosToPixelPos);
-		glm::vec2 stepDist = totalDist / abs(povPosToPixelPos);
+		glm::vec2 povToCursorPos = cursorWorldPos - povPos;
+		float totalDist = glm::length(povToCursorPos);
+		glm::vec2 stepDist = totalDist / abs(povToCursorPos);
 
-		bool goingRight = povPosToPixelPos.x > 0.0f;
-		bool goingUp = povPosToPixelPos.y > 0.0f;
+		bool goingEast  = povToCursorPos.x > 0.0f;
+		bool goingNorth = povToCursorPos.y > 0.0f;
+
 		glm::vec2 runningDist;
-
-		if (goingRight) { runningDist.x = (1.0f - povPos.x) * stepDist.x; }
-		else { runningDist.x = povPos.x * stepDist.x; }
-
-		if (goingUp) { runningDist.y = (1.0f - povPos.y) * stepDist.y; }
-		else { runningDist.y = povPos.y * stepDist.y; }
+		runningDist.x = goingEast?  (1.0f - povPos.x) * stepDist.x : povPos.x * stepDist.x;
+		runningDist.y = goingNorth? (1.0f - povPos.y) * stepDist.y : povPos.y * stepDist.y;
 
 		const int MAX_STEPS = 1000; int stepCount = 0;
 		float currentDist = 0;
-		TileTarget target = p_tileManager->povTile;
-		hoveredTileConnectionIndex = 0;
-		int drawSideIndex = 0;
-		glm::vec2 drawTileOffset(0, 0);
 
-		while (stepCount < MAX_STEPS) {
+		// Raycast:
+		while (stepCount++ < MAX_STEPS) {
+			if (runningDist.x > totalDist && runningDist.y > totalDist) { break; } // We have arrived!
+			*addTileParentPOV = targetPOV;
 
 			if (runningDist.x < runningDist.y) {
-
-				currentDist = runningDist.x;
-				if (currentDist > totalDist) {
-					break; // We have arrived!
-				}
 				runningDist.x += stepDist.x;
-
-				// Shift tile target left/right depending on goingRight:
-				if (goingRight) {
-					hoveredTileConnectionIndex = target.initialSideIndex;
-					drawSideIndex = 0;
-					drawTileOffset += glm::vec2(1, 0);
+				if (goingEast) { 
+					addTileParentAddDirection = targetPOV.getEast(); 
+					targetPOV.shiftPovEast(); 
 				}
-				else { // Going left:
-					hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 2) % 4;
-					drawSideIndex = 2;
-					drawTileOffset += glm::vec2(-1, 0);
+				else { 
+					addTileParentAddDirection = targetPOV.getWest(); 
+					targetPOV.shiftPovWest(); 
 				}
 			}
 			else { // runningDist.x > runningDist.y
-
-				currentDist = runningDist.y;
-				if (currentDist > totalDist) {
-					break; // We have arrived!
-				}
 				runningDist.y += stepDist.y;
-
-				// Shift tile target up/down depending on goingUp:
-				if (goingUp) {
-					hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 3) % 4;
-					drawSideIndex = 3;
-					drawTileOffset += glm::vec2(0, 1);
-				}
-				else { // Going down:
-					hoveredTileConnectionIndex = (target.initialSideIndex + target.sideInfosOffset * 1) % 4;
-					drawSideIndex = 1;
-					drawTileOffset += glm::vec2(0, -1);
+				if (goingNorth) { 
+					addTileParentAddDirection = targetPOV.getNorth();
+					targetPOV.shiftPovNorth(); 
+				} 
+				else { 
+					addTileParentAddDirection = targetPOV.getSouth();
+					targetPOV.shiftPovSouth(); 
 				}
 			}
-			addTileParentTarget = target;
-			target = TileManager::adjustTileTarget(&target, drawSideIndex);
-			stepCount++;
 		}
-
-		hoveredTile = target.node;
-
-		addTileParentSideConnectionIndex = (addTileParentTarget.initialVertIndex
-											+ drawSideIndex * addTileParentTarget.sideInfosOffset)
-			% 4;
+		hoveredTile = targetPOV.getTile();
 	}
 
 	void findPreviewTile()
 	{
-		using namespace tnav;
-
-		// Figure out the preview tile's type:
-		int infosOffset = hoveredTileConnectionIndex - addTileParentTarget.initialSideIndex;
-		if (infosOffset < 0) {
-			infosOffset = abs(infosOffset) * 3 % 4;
-		}
-		int v1Index = (addTileParentTarget.initialVertIndex + infosOffset) % 4;
-		glm::ivec3 v1 = addTileParentTarget.node->getVertPos(v1Index);
-		glm::ivec3 v2 = addTileParentTarget.node->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset) % 4);
-		glm::ivec3 v3, v4;
-
+		PositionNode* node = addTileParentPOV->getNode();
+		TileType addParentTileType = (TileType)node->getMappingID();
+		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
+		glm::vec3 sideNodePos = node->getPosition();
+		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());
+		
+		TileType newTileType;
+		//glm::vec3 sideToCenterNodePos;
 		switch (heldTileRelativeOrientation) {
-		case RELATIVE_TILE_ORIENTATION_DOWN:
-			v3 = v1 - addTileParentTarget.node->getNormal();
-			v4 = v2 - addTileParentTarget.node->getNormal();
-			break;
 		case RELATIVE_TILE_ORIENTATION_FLAT:
-			glm::ivec3 offset = v1 - addTileParentTarget.node->getVertPos((addTileParentTarget.initialVertIndex + infosOffset + addTileParentTarget.sideInfosOffset * 3) % 4);
-			v3 = v1 + offset;
-			v4 = v2 + offset;
+			heldTilePos = sideNodePos + 0.5f * toSideNode;
+			newTileType = addParentTileType; 
 			break;
-		default: /*case RELATIVE_TILE_ORIENTATION_UP:*/
-			v3 = v1 + addTileParentTarget.node->getNormal();
-			v4 = v2 + addTileParentTarget.node->getNormal();
+		case RELATIVE_TILE_ORIENTATION_UP:
+			heldTilePos = sideNodePos + 0.5f * tnav::getNormal(addParentTileType);
+			newTileType = tnav::getTileType(-toSideNode);
+			break;
+		default: // RELATIVE_TILE_ORIENTATION_DOWN:
+			heldTilePos = sideNodePos - 0.5f * tnav::getNormal(addParentTileType);
+			newTileType = tnav::getTileType(toSideNode);
 			break;
 		}
-		SuperTileType tileType = getSuperTileType(v1, v2, v3);
-		TileType tileSubType = getTileType(tileType, true);
-		glm::ivec3 maxVert = vechelp::getMaxVert(v1, v2, v3, v4);
-		(*heldTile) = Tile(tileSubType, maxVert);
+
+		glm::vec3 color = tnav::getNormal(newTileType);
+		if (color.x < 0 || color.y < 0 || color.z < 0) { color *= -0.8; }
+		heldTileInfo = TileInfo(newTileType,-1, -1, color);
 	}
 
 	void tryEditTiles()
 	{
 		using namespace tnav;
 
-		if (p_inputManager->leftMouseButtonClicked()) {
-			std::cout << getSuperTileType(heldTile->type) << std::endl;
-			p_tileManager->createTilePair(
-				getSuperTileType(heldTile->type), heldTile->position, heldTileColor, heldTileColor * 0.5f);
+		std::cout << "editing tiles\n";
+
+		leftClick = leftClick || p_inputManager->leftClicked();
+		std::cout << leftClick;
+
+
+		if (p_inputManager->leftClicked()) {
+			std::cout << "\n  clicked!\n";
+
+			vechelp::print(heldTilePos);
+			int nodeIndex = p_nodeNetwork->getNode(heldTileInfo.nodeIndex)->getTileInfoIndex();
+			TileType type = p_nodeNetwork->getTileInfo(nodeIndex)->type;
+			p_nodeNetwork->addTile(heldTilePos, tnav::getSuperTileType(type));
+
 		}
-		else if (p_inputManager->rightMouseButtonClicked()) {
-			p_tileManager->deleteTilePair(hoveredTile, false);
+		else if (p_inputManager->rightClicked()) {
+			//p_tileManager->deleteTilePair(hoveredTile, false);
 		}
 	}
 	void tryEditBases()
 	{
-		if (p_inputManager->leftMouseButtonClicked()) {
+		/*if (p_inputManager->leftMouseButtonClicked()) {
 			p_basisManager->addBasis(hoveredTile, heldBasis.localOrientation, heldBasis.type);
 		}
 		else if (p_inputManager->rightMouseButtonClicked()) {
 			p_basisManager->deleteBasis(hoveredTile);
-		}
+		}*/
 	}
 	void tryEditEntities()
 	{
@@ -265,9 +254,9 @@ struct CurrentSelection {
 	void print(RelativeTileOrientation rto)
 	{
 		switch (rto) {
-		case RELATIVE_TILE_ORIENTATION_UP: std::cout << "UP" << std::endl; break;
-		case RELATIVE_TILE_ORIENTATION_FLAT:std::cout << "FLAT" << std::endl; break;
-		case RELATIVE_TILE_ORIENTATION_DOWN:std::cout << "DOWN" << std::endl; break;
+		case RELATIVE_TILE_ORIENTATION_UP: std::cout <<  " RELATIVE_TILE_ORIENTATION_UP__ "; break;
+		case RELATIVE_TILE_ORIENTATION_FLAT:std::cout << " RELATIVE_TILE_ORIENTATION_FLAT "; break;
+		case RELATIVE_TILE_ORIENTATION_DOWN:std::cout << " RELATIVE_TILE_ORIENTATION_DOWN "; break;
 		}
 	}
 
@@ -277,6 +266,7 @@ struct CurrentSelection {
 		findPreviewTile();
 
 		if (p_inputManager->keys[ROTATE_KEY].click) {
+				std::cout << "rotating" << std::endl;
 			if (canEditBases) {
 				heldBasis.localOrientation = LocalDirection((heldBasis.localOrientation + 1) % 4);
 			}
@@ -285,26 +275,10 @@ struct CurrentSelection {
 				tnav::println(heldEntity->getDirection(0));
 			}
 			if (canEditTiles) {
-				heldTileRelativeOrientation = RelativeTileOrientation((heldTileRelativeOrientation + 1) % 3);
-				print(heldTileRelativeOrientation);
+				// NOTE: IMGUI IS HANDLING THIS RN!
+				//heldTileRelativeOrientation = RelativeTileOrientation((heldTileRelativeOrientation + 1) % 3);
+				//print(heldTileRelativeOrientation);
 			}
-		}
-
-		tryEditWorld();
-	}
-
-	void cyclePreviewTileOrientation()
-	{
-		switch (heldTileRelativeOrientation) {
-		case CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN:
-			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT;
-			return;
-		case CurrentSelection::RELATIVE_TILE_ORIENTATION_FLAT:
-			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_UP;
-			return;
-		default: /*RELATIVE_TILE_ORIENTATION_UP*/
-			heldTileRelativeOrientation = CurrentSelection::RELATIVE_TILE_ORIENTATION_DOWN;
-			return;
 		}
 	}
 };

@@ -29,11 +29,11 @@ enum TileEdgeType {
 // (internal angle of 90, 180, or 270 degrees).  
 // Both 90 and 270 are interchangeable depending on the perspective between two tiles, 
 // but it can be useful to desribe them as different in certain circumstances.
-enum TileDihedral {
-	TILE_DIHEDRAL_90,
-	TILE_DIHEDRAL_180,
-	TILE_DIHEDRAL_270,
-};
+//enum TileDihedral {
+//	TILE_DIHEDRAL_90,
+//	TILE_DIHEDRAL_180,
+//	TILE_DIHEDRAL_270,
+//};
 
 enum TileRelation {
 	TILE_RELATION_FLAT,
@@ -45,12 +45,15 @@ enum TileRelation {
 // Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
 // should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
 enum TileType {
-	TILE_TYPE_XYF,
-	TILE_TYPE_XYB,
-	TILE_TYPE_XZF,
-	TILE_TYPE_XZB,
-	TILE_TYPE_YZF,
-	TILE_TYPE_YZB,
+	TILE_TYPE_XYF, TILE_TYPE_XYB,
+	TILE_TYPE_XZF, TILE_TYPE_XZB,
+	TILE_TYPE_YZF, TILE_TYPE_YZB,
+	TILE_TYPE_ERROR
+};
+
+// This enum list mirrors the TileType enum but is used in nodes to map from one basis to another.
+enum MappingID {
+	MAP_ID_0, MAP_ID_1, MAP_ID_2, MAP_ID_3, MAP_ID_4, MAP_ID_5,MAP_ID_ERROR
 };
 
 enum BasisType {
@@ -156,13 +159,16 @@ enum GlobalAlignment {
 
 namespace tnav { // tnav is short for 'tile navigation'
 
-	const extern LocalAlignment LOCAL_ALIGNMENT_LIST[9];
-	const extern LocalDirection NON_STATIC_LOCAL_DIRECTION_LIST[8];
+	const extern LocalAlignment LOCAL_ALIGNMENT_SET[9];
+	const extern LocalDirection DIRECTION_SET[8];
+	const extern glm::vec3 TO_SIDE_NODE_OFFSETS[3][4];
+	const extern LocalDirection ORTHOGONAL_DIRECTION_SET[4];
 
 	void checkOrthogonal(LocalAlignment alignment);
 	
 	// Given a local direction and a tile type, will return the global euclidean direction equivelant.
 	GlobalAlignment localToGlobalDir(TileType type, LocalDirection direction);
+	glm::vec3 globalDirToVec3(GlobalAlignment g);
 	
 	//LocalAlignment alignmentToAlignmentMap(TileType currentTileType, TileType neighborTileType, LocalDirection exitingSide, LocalAlignment alignment);
 	//#define positionToPositionMap alignmentToAlignmentMap
@@ -207,6 +213,18 @@ namespace tnav { // tnav is short for 'tile navigation'
 		default: std::cout << "OUT OF SCOPE";
 		} std::cout << std::endl;
 	}
+
+	inline void println(TileType tt)
+	{
+		switch (tt) {
+		case TILE_TYPE_XYF: std::cout << "TILE_TYPE_XYF" << std::endl; return;
+		case TILE_TYPE_XYB: std::cout << "TILE_TYPE_XYB" << std::endl; return;
+		case TILE_TYPE_XZF: std::cout << "TILE_TYPE_XZF" << std::endl; return;
+		case TILE_TYPE_XZB: std::cout << "TILE_TYPE_XZB" << std::endl; return;
+		case TILE_TYPE_YZF: std::cout << "TILE_TYPE_YZF" << std::endl; return;
+		case TILE_TYPE_YZB: std::cout << "TILE_TYPE_YZB" << std::endl; return;
+		} 
+	}
 	
 	bool isOrthogonal(LocalDirection direction);
 	bool isDiagonal(LocalDirection direction);
@@ -241,4 +259,9 @@ namespace tnav { // tnav is short for 'tile navigation'
 	// Given a diagonal alignment and one of its components, will return the other component.
 	// LOCAL_ALIGNMENT_ERROR is returned if 'component' is not a component of diagonal or 'diagonal' is not a diagonal alignment.
 	const LocalAlignment getOtherComponent(LocalAlignment diagonal, LocalAlignment component);
+
+	const glm::vec3 getNormal(TileType type);
+	const TileType getTileType(glm::vec3 normal);
+
+	const glm::vec3* getToSideNodePositionOffsets(SuperTileType type);
 }

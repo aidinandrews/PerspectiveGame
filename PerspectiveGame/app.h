@@ -129,7 +129,8 @@ struct App {
 
 		p_basisManager = new BasisManager(p_tileManager, p_forceManager, p_entityManager);
 
-		p_currentSelection = new CurrentSelection(&inputManager, p_tileManager, p_entityManager, p_buttonManager, &camera, p_basisManager);
+		p_currentSelection = new CurrentSelection(&inputManager, p_tileManager, p_entityManager, p_buttonManager, 
+												  &camera, p_basisManager, p_nodeNetwork, p_pov);
 
 		#ifdef USE_GUI_WINDOW
 		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera,
@@ -167,22 +168,23 @@ struct App {
 
 	void updateWorld()
 	{
-		p_tileManager->update();
+		//p_tileManager->update();
+		p_pov->update();
 		p_nodeNetwork->update();
 
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
 			LastUpdateTime = TimeSinceProgramStart;
 
 			if (CurrentTick % 4 == 0) {
-				p_currentSelection->addQueuedEntities();
+				p_currentSelection->tryEditWorld();
+				//p_currentSelection->addQueuedEntities();
 				//p_forceManager->update();
 				//p_basisManager->update();
 			}
 
-			p_entityManager->update();
-
-			p_tileManager->updateTileGpuInfos();
-			p_entityManager->updateGpuInfos();
+			//p_entityManager->update();
+			//p_tileManager->updateTileGpuInfos();
+			//p_entityManager->updateGpuInfos();
 
 			CurrentTick++;
 
@@ -236,7 +238,7 @@ struct App {
 			updateWorld();
 			
 			camera.update();
-			p_tileManager->updateVisualInfos();
+			//p_tileManager->updateVisualInfos();
 
 			updateGui();
 
