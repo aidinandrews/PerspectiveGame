@@ -43,7 +43,7 @@ struct CurrentSelection {
 	int	hoveredTileConnectionIndex;
 	POV* addTileParentPOV;
 	LocalDirection addTileParentAddDirection;
-	
+
 	TileInfo heldTileInfo;
 	glm::vec3 heldTilePos;
 
@@ -103,7 +103,7 @@ struct CurrentSelection {
 		// find what tile the cursor is hovering over:
 		// This algorithm mirrors the on in 2D3rdPersonPOV frag shader, which is documented better.
 		Button* sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex]; // CHANGE TO BE MORE GENERIC
-		glm::mat4 inWindowToWorldSpace = 
+		glm::mat4 inWindowToWorldSpace =
 			glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
 		glm::vec2 cursorWorldPos = glm::vec2(inWindowToWorldSpace * glm::vec4(-CursorScreenPos.x, CursorScreenPos.y, 0, 1));
 		POV targetPOV = *p_pov;
@@ -114,10 +114,10 @@ struct CurrentSelection {
 			// TODO: nodes have tile centers at (n, n) whereas cursor world pos/GPU has tile centers at (0.5n, 0.5n)
 			// syncronize these!
 			if (abs(cursorWorldPos.x - 0.5f) > abs(cursorWorldPos.y - 0.5f)) {
-				addTileParentAddDirection = (cursorWorldPos.x > 0.5f)? p_pov->getEast() : p_pov->getWest();
+				addTileParentAddDirection = (cursorWorldPos.x > 0.5f) ? p_pov->getEast() : p_pov->getWest();
 			}
 			else {
-				addTileParentAddDirection = (cursorWorldPos.y > 0.5f)? p_pov->getNorth() : p_pov->getSouth();
+				addTileParentAddDirection = (cursorWorldPos.y > 0.5f) ? p_pov->getNorth() : p_pov->getSouth();
 			}
 		}
 
@@ -126,12 +126,12 @@ struct CurrentSelection {
 		float totalDist = glm::length(povToCursorPos);
 		glm::vec2 stepDist = totalDist / abs(povToCursorPos);
 
-		bool goingEast  = povToCursorPos.x > 0.0f;
+		bool goingEast = povToCursorPos.x > 0.0f;
 		bool goingNorth = povToCursorPos.y > 0.0f;
 
 		glm::vec2 runningDist;
-		runningDist.x = goingEast?  (1.0f - povPos.x) * stepDist.x : povPos.x * stepDist.x;
-		runningDist.y = goingNorth? (1.0f - povPos.y) * stepDist.y : povPos.y * stepDist.y;
+		runningDist.x = goingEast ? (1.0f - povPos.x) * stepDist.x : povPos.x * stepDist.x;
+		runningDist.y = goingNorth ? (1.0f - povPos.y) * stepDist.y : povPos.y * stepDist.y;
 
 		const int MAX_STEPS = 1000; int stepCount = 0;
 		float currentDist = 0;
@@ -143,28 +143,28 @@ struct CurrentSelection {
 
 			if (runningDist.x < runningDist.y) {
 				runningDist.x += stepDist.x;
-				if (goingEast) { 
-					addTileParentAddDirection = targetPOV.getEast(); 
-					targetPOV.shiftPovEast(); 
+				if (goingEast) {
+					addTileParentAddDirection = targetPOV.getEast();
+					targetPOV.shiftPovEast();
 				}
-				else { 
-					addTileParentAddDirection = targetPOV.getWest(); 
-					targetPOV.shiftPovWest(); 
+				else {
+					addTileParentAddDirection = targetPOV.getWest();
+					targetPOV.shiftPovWest();
 				}
 			}
 			else { // runningDist.x > runningDist.y
 				runningDist.y += stepDist.y;
-				if (goingNorth) { 
+				if (goingNorth) {
 					addTileParentAddDirection = targetPOV.getNorth();
-					targetPOV.shiftPovNorth(); 
-				} 
-				else { 
+					targetPOV.shiftPovNorth();
+				}
+				else {
 					addTileParentAddDirection = targetPOV.getSouth();
-					targetPOV.shiftPovSouth(); 
+					targetPOV.shiftPovSouth();
 				}
 			}
 		}
-		hoveredTile = targetPOV.getTile();
+		hoveredTile = targetPOV.getNode();
 	}
 
 	void findPreviewTile()
@@ -174,13 +174,13 @@ struct CurrentSelection {
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
 		glm::vec3 sideNodePos = node->getPosition();
 		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());
-		
+
 		TileType newTileType;
 		//glm::vec3 sideToCenterNodePos;
 		switch (heldTileRelativeOrientation) {
 		case RELATIVE_TILE_ORIENTATION_FLAT:
 			heldTilePos = sideNodePos + 0.5f * toSideNode;
-			newTileType = addParentTileType; 
+			newTileType = addParentTileType;
 			break;
 		case RELATIVE_TILE_ORIENTATION_UP:
 			heldTilePos = sideNodePos + 0.5f * tnav::getNormal(addParentTileType);
@@ -194,27 +194,15 @@ struct CurrentSelection {
 
 		glm::vec3 color = tnav::getNormal(newTileType);
 		if (color.x < 0 || color.y < 0 || color.z < 0) { color *= -0.8; }
-		heldTileInfo = TileInfo(newTileType,-1, -1, color);
+		heldTileInfo = TileInfo(newTileType, -1, -1, color);
 	}
 
 	void tryEditTiles()
 	{
 		using namespace tnav;
 
-		std::cout << "editing tiles\n";
-
-		leftClick = leftClick || p_inputManager->leftClicked();
-		std::cout << leftClick;
-
-
 		if (p_inputManager->leftClicked()) {
-			std::cout << "\n  clicked!\n";
-
-			vechelp::print(heldTilePos);
-			int nodeIndex = p_nodeNetwork->getNode(heldTileInfo.nodeIndex)->getTileInfoIndex();
-			TileType type = p_nodeNetwork->getTileInfo(nodeIndex)->type;
-			p_nodeNetwork->addTile(heldTilePos, tnav::getSuperTileType(type));
-
+			p_nodeNetwork->addTile(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
 		}
 		else if (p_inputManager->rightClicked()) {
 			//p_tileManager->deleteTilePair(hoveredTile, false);
@@ -254,7 +242,7 @@ struct CurrentSelection {
 	void print(RelativeTileOrientation rto)
 	{
 		switch (rto) {
-		case RELATIVE_TILE_ORIENTATION_UP: std::cout <<  " RELATIVE_TILE_ORIENTATION_UP__ "; break;
+		case RELATIVE_TILE_ORIENTATION_UP: std::cout << " RELATIVE_TILE_ORIENTATION_UP__ "; break;
 		case RELATIVE_TILE_ORIENTATION_FLAT:std::cout << " RELATIVE_TILE_ORIENTATION_FLAT "; break;
 		case RELATIVE_TILE_ORIENTATION_DOWN:std::cout << " RELATIVE_TILE_ORIENTATION_DOWN "; break;
 		}
@@ -266,7 +254,6 @@ struct CurrentSelection {
 		findPreviewTile();
 
 		if (p_inputManager->keys[ROTATE_KEY].click) {
-				std::cout << "rotating" << std::endl;
 			if (canEditBases) {
 				heldBasis.localOrientation = LocalDirection((heldBasis.localOrientation + 1) % 4);
 			}

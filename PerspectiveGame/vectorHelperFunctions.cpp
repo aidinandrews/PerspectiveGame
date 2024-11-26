@@ -402,20 +402,7 @@ bool vechelp::cropTileToFrustum(std::vector<glm::vec2>& subjectPolyVerts,
 	return true;
 }
 
-inline vechelp::SideOfLine vechelp::isLeftSpecific(glm::vec2 point, glm::vec2 lineSegPoint1, glm::vec2 lineSegPoint2)
-{
-	float val = (point.x - lineSegPoint1.x) * (lineSegPoint1.y - lineSegPoint2.y)
-		- (point.y - lineSegPoint1.y) * (lineSegPoint1.x - lineSegPoint2.x);
-	if (val > 0) {
-		return INSIDE;
-	}
-	else if (val < 0) {
-		return OUTSIDE;
-	}
-	else {
-		return ON_LINE_SEG;
-	}
-}
+
 
 // Crops subjectPoly to cropToPoly.  Both need to be wound clockwise!
 bool vechelp::sutherlandHodgemanPolyCrop(std::vector<glm::vec2>& subjectPoly, std::vector<glm::vec2> cropToPoly,

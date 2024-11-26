@@ -1,13 +1,13 @@
 #pragma once
 #include <iostream>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
 #include <array>
 #include <vector>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <chrono>
+
+#include"dependancyHeaders.h"
 
 #define RUN_DEBUG true
 

@@ -64,7 +64,7 @@ public:
 	int getNeighborIndex(LocalDirection toNeighbor) { return neighborIndices[toNeighbor]; }
 	void setNeighborIndex(int index, LocalDirection toNeighbor) { neighborIndices[toNeighbor] = index; }
 
-	int getNeighborMapIndex(LocalDirection toNeighbor) { return neighborMapIndices[toNeighbor]; }
+	int getNeighborMap(LocalDirection toNeighbor) { return neighborMapIndices[toNeighbor]; }
 	void setNeighborMapID(int index, LocalDirection toNeighbor) { neighborMapIndices[toNeighbor] = index; }
 
 	int getIndex() { return index; }
@@ -78,7 +78,7 @@ public:
 
 	LocalAlignment mapToNeighbor(LocalAlignment alignment, LocalDirection toNeighbor)
 	{
-		return tnav::getMappedAlignment(neighborMapIndices[toNeighbor], alignment);
+		return tnav::map(neighborMapIndices[toNeighbor], alignment);
 	}
 };
 
@@ -121,7 +121,7 @@ struct alignas(32) GPU_PositionNodeInfo {
 
 		for (LocalDirection d : tnav::DIRECTION_SET) {
 			neighborIndices[d] = node.getNeighborIndex(d);
-			neighborMapIndices[d] = node.getNeighborMapIndex(d);
+			neighborMapIndices[d] = node.getNeighborMap(d);
 		}
 	}
 };

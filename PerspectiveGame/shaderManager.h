@@ -1,13 +1,10 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
 #include <string>
 #include <fstream>
 #include <sstream>
-#include<GLFW/glfw3.h>
+#include"dependancyHeaders.h"
 
 struct Program {
 	GLuint ID;

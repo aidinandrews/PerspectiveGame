@@ -1,9 +1,7 @@
 #pragma once
 #include<iostream>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#include<GLFW/glfw3.h>
+
+#include"dependancyHeaders.h"
 
 #include"globalVariables.h"
 

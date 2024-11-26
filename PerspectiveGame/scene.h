@@ -1,25 +1,15 @@
 #pragma once
 #include<iostream>
-
 #include <Windows.h>
-
 #include <algorithm>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#include<GLFW/glfw3.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+
+#include"dependancyHeaders.h"
 
 #include"globalVariables.h"
 #include"windowManager.h"
 #include"inputManager.h"
 #include"shaderManager.h"
 #include"vertexManager.h"
-//#include"textureManager.h"
 #include"cameraManager.h"
 #include"makeShapes.h"
 #include"portal.h"

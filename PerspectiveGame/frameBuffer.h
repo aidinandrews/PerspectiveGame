@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#ifndef GLAD_INCLUDED
+#ifndef __gl_h_
 #include <glad/glad.h>
 #endif
 #include <glm/glm.hpp>

@@ -1,14 +1,8 @@
 #pragma once
 #include<iostream>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#include<GLFW/glfw3.h>
 #include<vector>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp> // Linear algebra.
-#include <glm/gtc/matrix_transform.hpp>
+
+#include"dependancyHeaders.h"
 
 #include"shaderManager.h"
 

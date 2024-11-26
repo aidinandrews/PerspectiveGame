@@ -445,7 +445,7 @@ struct SuperPositionNetwork
 
 			// Not strictly necessary but will catch errors if neighbors are not propoerly reconnected later:
 			LocalDirection returnDirection = tnav::oppositeAlignment(d);
-			returnDirection = tnav::getMappedAlignment(pos->getNeighborAlignmentMapIndex(d), returnDirection);
+			returnDirection = tnav::map(pos->getNeighborAlignmentMapIndex(d), returnDirection);
 			neighbor->setNeighborToNull(returnDirection);
 		}
 	}

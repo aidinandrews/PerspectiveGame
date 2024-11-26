@@ -8,19 +8,8 @@
 #include<iomanip>
 #include <stdlib.h>
 #include <time.h>
-#define NOMINMAX
-#define USING_WINDOWS
-#include "Windows.h"
-#define GLAD_INCLUDED
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+
+#include"dependancyHeaders.h"
 
 #include "globalVariables.h"
 #define GUI_MANAGER_DEFINED
@@ -171,12 +160,13 @@ struct App {
 		//p_tileManager->update();
 		p_pov->update();
 		p_nodeNetwork->update();
+		p_currentSelection->tryEditWorld();
 
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
 			LastUpdateTime = TimeSinceProgramStart;
 
 			if (CurrentTick % 4 == 0) {
-				p_currentSelection->tryEditWorld();
+				//p_currentSelection->tryEditWorld();
 				//p_currentSelection->addQueuedEntities();
 				//p_forceManager->update();
 				//p_basisManager->update();

@@ -1,10 +1,5 @@
 #pragma once
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#ifndef STB_IMAGE_IMPLEMENTATION
-#include<stb_image.h>
-#endif
+#include"dependancyHeaders.h"
 #include"shaderManager.h"
 
 struct aaTexture {

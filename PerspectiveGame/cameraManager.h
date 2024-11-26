@@ -1,14 +1,9 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
+#include"dependancyHeaders.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <chrono>

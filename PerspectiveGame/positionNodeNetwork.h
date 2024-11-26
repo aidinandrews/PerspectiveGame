@@ -35,18 +35,8 @@ public:
 
 	PositionNodeNetwork()
 	{
-		// Initially, there must be at least one tile pair:
-		/* east node:  */ nodes.push_back(PositionNode(0, -1, MAP_ID_0, glm::vec3(0.5, 0.0, 0.0), 5, 6, -1, -1, 4, 0, -1, -1, 1, 2, 1, 0, 3, 0, 3, 2));
-		/* south node: */ nodes.push_back(PositionNode(1, -1, MAP_ID_0, glm::vec3(0.0, -0.5, 0.0), -1, -1, 5, 4, -1, -1, 4, 0, 0, 2, 2, 2, 2, 0, 0, 0));
-		/* west node:  */ nodes.push_back(PositionNode(2, -1, MAP_ID_0, glm::vec3(-0.5, 0.0, 0.0), 4, 0, -1, -1, 5, 6, -1, -1, 1, 0, 1, 2, 5, 6, 3, 0));
-		/* north node: */ nodes.push_back(PositionNode(3, -1, MAP_ID_0, glm::vec3(0.0, 0.5, 0.0), -1, -1, 4, 0, -1, -1, 5, 4, 0, 0, 2, 0, 2, 2, 0, 2));
-		/* fore tile:  */ nodes.push_back(PositionNode(4, 0, MAP_ID_0, glm::vec3(0.0, 0.0, 0.0), 0, 0, 1, 0, 2, 0, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1));
-		/* back tile:  */ nodes.push_back(PositionNode(5, 1, MAP_ID_1, glm::vec3(0.0, 0.0, 0.0), 0, 6, 1, 4, 2, 6, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1));
-
-		tileInfos.push_back(TileInfo(TILE_TYPE_XYF, 0, 4, glm::vec3(0, 0, 1)));
-		tileInfos.push_back(TileInfo(TILE_TYPE_XYB, 1, 5, glm::vec3(0, 0, 0.5)));
-
 		addTile(glm::vec3(0, 0, 0), TILE_TYPE_XY);
+		addTile(glm::vec3(0, 1, 0), TILE_TYPE_XY);
 
 		// Rendering:
 		glGenBuffers(1, &positionNodeInfosBufferID);
@@ -80,7 +70,7 @@ public:
 	TileInfo* getTileInfo(TileInfo* info, LocalDirection d)
 	{
 		PositionNode* node = &nodes[info->nodeIndex];
-		LocalDirection d2 = tnav::getMappedAlignment(node->getNeighborMapIndex(d), d);
+		LocalDirection d2 = tnav::map(node->getNeighborMap(d), d);
 		PositionNode sideNode = nodes[node->getNeighborIndex(d)];
 		PositionNode neighborCenterNode = nodes[sideNode.getNeighborIndex(d2)];
 		return &tileInfos[neighborCenterNode.getTileInfoIndex()];
@@ -103,8 +93,8 @@ public:
 		}
 		else {
 			nodes.push_back(PositionNode());
-			node = &nodes[nodes.size() - 1];
-			node->setIndex(nodes.size() - 1);
+			node = &nodes[(int)nodes.size() - 1];
+			node->setIndex((int)nodes.size() - 1);
 		}
 		return node->getIndex();
 	}
@@ -120,8 +110,8 @@ public:
 		}
 		else {
 			tileInfos.push_back(TileInfo());
-			info = &tileInfos[tileInfos.size() - 1];
-			info->index = tileInfos.size() - 1;
+			info = &tileInfos[(int)tileInfos.size() - 1];
+			info->index = (int)tileInfos.size() - 1;
 		}
 		return info->index;
 	}
@@ -186,7 +176,7 @@ public:
 	}
 
 	// returns a pointer to the center node of the newly created tile or nullptr if the tile could not be made.
-	PositionNode* addTile(glm::vec3 pos, SuperTileType type)
+	TileInfo* addTile(glm::vec3 pos, SuperTileType type)
 	{
 		// check if there is already a tile where we are trying to add one:
 		// increment by 2s since we always add/remove 2 tiles at a time (front and back).
@@ -196,142 +186,146 @@ public:
 
 		// create the new tile pair and center nodes:
 		// indices are used because apparently pointers are unsafe if the vector resizes itself.
-		int n1i = addNode();
-		nodes[n1i].setPosition(pos); 
-		nodes[n1i].setMappingID((MappingID)tnav::getTileType(type, true));
+		int newFrontNodeIndex = addNode();
+		nodes[newFrontNodeIndex].setPosition(pos); 
+		nodes[newFrontNodeIndex].setMappingID((MappingID)tnav::getTileType(type, true));
 		
-		int n2i = addNode();
-		nodes[n2i].setPosition(pos);
-		nodes[n2i].setMappingID((MappingID)tnav::getTileType(type, false));
+		int newBackNodeIndex = addNode();
+		nodes[newBackNodeIndex].setPosition(pos);
+		nodes[newBackNodeIndex].setMappingID((MappingID)tnav::getTileType(type, false));
 
-		int t1i = addTileInfo();
-		tileInfos[t1i].nodeIndex = getNode(n1i)->getIndex();
-		tileInfos[t1i].type = tnav::getTileType(type, true);
+		int newFrontTile = addTileInfo();
+		tileInfos[newFrontTile].nodeIndex = getNode(newFrontNodeIndex)->getIndex();
+		tileInfos[newFrontTile].type = tnav::getTileType(type, true);
 		
-		int  t2i = addTileInfo();
-		tileInfos[t2i].nodeIndex = getNode(n2i)->getIndex();
-		tileInfos[t2i].type = tnav::getTileType(type, false);
+		int newBackTile = addTileInfo();
+		tileInfos[newBackTile].nodeIndex = getNode(newBackNodeIndex)->getIndex();
+		tileInfos[newBackTile].type = tnav::getTileType(type, false);
 
 		switch (type) {
 		case TILE_TYPE_XY:
-			tileInfos[t1i].tileColor = glm::vec3(1, 0, 0);
-			tileInfos[t2i].tileColor = glm::vec3(.5, 0, 0);
+			tileInfos[newFrontTile].tileColor = glm::vec3(1, 0, 0);
+			tileInfos[newBackTile].tileColor = glm::vec3(.5, 0, 0);
 			break;
 		case TILE_TYPE_XZ:
-			tileInfos[t1i].tileColor = glm::vec3(0, 1, 0);
-			tileInfos[t2i].tileColor = glm::vec3(0,.5, 0);
+			tileInfos[newFrontTile].tileColor = glm::vec3(0, 1, 0);
+			tileInfos[newBackTile].tileColor = glm::vec3(0,.5, 0);
 			break;
 		case TILE_TYPE_YZ:
-			tileInfos[t1i].tileColor = glm::vec3(0,0,1);
-			tileInfos[t2i].tileColor = glm::vec3(0,0,.5);
+			tileInfos[newFrontTile].tileColor = glm::vec3(0,0,1);
+			tileInfos[newBackTile].tileColor = glm::vec3(0,0,.5);
 			break;
 		}
 
-		nodes[n1i].setTileInfoIndex(t1i);
-		nodes[n2i].setTileInfoIndex(t2i);
+		nodes[newFrontNodeIndex].setTileInfoIndex(newFrontTile);
+		nodes[newBackNodeIndex].setTileInfoIndex(newBackTile);
 
 		// create side nodes and connect them:
 		const glm::vec3* toSidesOffsets = tnav::getToSideNodePositionOffsets(type);
-		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			glm::vec3 sidePos = pos + toSidesOffsets[d];
+		for (LocalDirection newSideNodeDir : tnav::ORTHOGONAL_DIRECTION_SET) {
+			glm::vec3 sidePos = pos + toSidesOffsets[newSideNodeDir];
 
-			int ni = addNode();
-			PositionNode* n = &nodes[ni];
-			n->setPosition(sidePos);
-			n->setMappingID(getNode(n1i)->getMappingID()); // arbitrary.
+			PositionNode* newNode = &nodes[addNode()];
+			newNode->setPosition(sidePos);
+			newNode->setMappingID(getNode(newFrontNodeIndex)->getMappingID()); // arbitrary.
+			// now that we are done changing the vector size, we can be confident pointers are safe:
+			PositionNode* newFrontNode = getNode(newFrontNodeIndex);
+			PositionNode* newBackNode = getNode(newBackNodeIndex);
 
-			std::vector<TileInfo> connectedTiles = getConnectedTiles(sidePos, n->getIndex());
+			std::vector<TileInfo> linkedTiles = getConnectedTiles(sidePos, newNode->getIndex());
 			//std::cout << connectedTiles.size() << std::endl;
-			if (connectedTiles.size() == 0) {
+			if (linkedTiles.size() == 0) {
 				// connect the side to just the new tile pair:
-				getNode(n1i)->setNeighborIndex(n->getIndex(), d);
-				getNode(n1i)->setNeighborMapID(MAP_ID_0, d);
+				newFrontNode->setNeighborIndex(newNode->getIndex(), newSideNodeDir);
+				newFrontNode->setNeighborMapID(MAP_ID_0, newSideNodeDir);
 
-				getNode(n2i)->setNeighborIndex(n->getIndex(), d);
-				getNode(n2i)->setNeighborMapID(tnav::getNeighborMap(d, d), d);
+				newBackNode->setNeighborIndex(newNode->getIndex(), newSideNodeDir);
+				newBackNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, newSideNodeDir), newSideNodeDir);
 
-				n->setNeighborIndex(getNode(n1i)->getIndex(), tnav::oppositeAlignment(d));
-				n->setNeighborMapID(MAP_ID_0, tnav::oppositeAlignment(d));
-				n->setNeighborIndex(getNode(n2i)->getIndex(), d);
-				n->setNeighborMapID(tnav::getNeighborMap(d, d), d);
+				newNode->setNeighborIndex(newFrontNode->getIndex(), tnav::oppositeAlignment(newSideNodeDir));
+				newNode->setNeighborMapID(MAP_ID_0, tnav::oppositeAlignment(newSideNodeDir));
+				newNode->setNeighborIndex(newBackNode->getIndex(), newSideNodeDir);
+				newNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, newSideNodeDir), newSideNodeDir);
 				continue;
 			}
 
 			// reconnect tiles based on heirarchy:
-			for (TileInfo ti : connectedTiles) {
-				LocalDirection tiD;
-				PositionNode* tiN = getNode(ti.nodeIndex);
+			for (TileInfo linkedTile : linkedTiles) {
+				LocalDirection linkedTileDir;
+				PositionNode* linkedTileSideNode = getNode(linkedTile.nodeIndex);
 
 				for (LocalDirection dir : tnav::ORTHOGONAL_DIRECTION_SET) {
-					if (nodes[tiN->getNeighborIndex(dir)].getPosition() == sidePos) {
-						tiD = dir; break;
+					if (nodes[linkedTileSideNode->getNeighborIndex(dir)].getPosition() == sidePos) {
+						linkedTileDir = dir; 
+						break;
 					}
 				}
-				TileInfo* currentNeighbor = getTileInfo(&ti, tiD);
+				TileInfo* currentNeighbor = getTileInfo(&linkedTile, linkedTileDir);
 				PositionNode* currentNeighborCenterNode = getNode(currentNeighbor->nodeIndex);
 				
-				int currentConnectionPrio = getConnectionPrio(&ti, currentNeighbor);
-				int newConnectionPrio1 = getConnectionPrio(&ti, getTileInfo(t1i));
-				int newConnectionPrio2 = getConnectionPrio(&ti, getTileInfo(t2i));
-				std::cout << "og: tile " << ti.index << " to " << currentNeighbor->index << std::endl;
-				std::cout << "p1: tile " << ti.index << " to " << getTileInfo(t1i)->index << std::endl;
-				std::cout << "p2: tile " << ti.index << " to " << getTileInfo(t2i)->index << std::endl;
-				std::cout << "og prio: " << currentConnectionPrio << ", new prio1: " << newConnectionPrio1 << ", new prio 2: " << newConnectionPrio2 << std::endl;
+				int currentConnectionPrio = getConnectionPrio(&linkedTile, currentNeighbor);
+				int newConnectionPrio1 = getConnectionPrio(&linkedTile, getTileInfo(newFrontTile));
+				int newConnectionPrio2 = getConnectionPrio(&linkedTile, getTileInfo(newBackTile));
 				if (currentConnectionPrio < newConnectionPrio1 && currentConnectionPrio < newConnectionPrio2) {
 					// the current connection is of heavier prio, so we wont switch.
 					continue;
 				}
 				
-				PositionNode* connectedSide = getNode(tiN->getNeighborIndex(tiD));
-				LocalDirection connectedSideOut = tnav::getMappedAlignment(tiN->getNeighborMapIndex(tiD), tiD);
-				LocalDirection currentNeighborOut = tnav::getMappedAlignment(connectedSide->getNeighborMapIndex(connectedSideOut), tnav::oppositeAlignment(connectedSideOut));
+				PositionNode* linkedSideNode = getNode(linkedTileSideNode->getNeighborIndex(linkedTileDir));
+				LocalDirection connectedSideOut = tnav::map(linkedTileSideNode->getNeighborMap(linkedTileDir), linkedTileDir);
+				LocalDirection currentNeighborOut = tnav::map(linkedSideNode->getNeighborMap(connectedSideOut), tnav::oppositeAlignment(connectedSideOut));
 				
-				// we need to connect this side node to the new tile pair:
+				LocalDirection oppD = tnav::oppositeAlignment(newSideNodeDir);
 
+				// we need to connect this side node to the new tile pair:
 				if (newConnectionPrio1 < newConnectionPrio2) {
 					// connectedSide connects ti to the new front tile in the direction of connectedSideOut
-					connectedSide->setNeighborIndex(getNode(n1i)->getIndex(), connectedSideOut);
-					connectedSide->setNeighborMapID(tnav::getNeighborMap(connectedSideOut, d), connectedSideOut);
-					getNode(n1i)->setNeighborIndex(connectedSide->getIndex(), d);
-					getNode(n1i)->setNeighborMapID(tnav::getNeighborMap(d, connectedSideOut), d);
-					// n connects the new back tile to currentNeighbor
-					n->setNeighborIndex(currentNeighborCenterNode->getIndex(), tnav::oppositeAlignment(d)); // n has same mapping as front tile center node.
-					n->setNeighborMapID(tnav::getNeighborMap(tnav::oppositeAlignment(d), currentNeighborOut), tnav::oppositeAlignment(d));
-					n->setNeighborIndex(getNode(n2i)->getIndex(), d);
-					n->setNeighborMapID(tnav::getNeighborMap(d, d),d);
-					currentNeighborCenterNode->setNeighborIndex(n->getIndex(), currentNeighborOut);
-					currentNeighborCenterNode->setNeighborMapID(tnav::getNeighborMap(currentNeighborOut, tnav::oppositeAlignment(d)), currentNeighborOut);
-					getNode(n2i)->setNeighborIndex(n->getIndex(), d);
-					getNode(n2i)->setNeighborMapID(tnav::getNeighborMap(d, d), d);
-				}
-				else {
-					// connectedSide connects ti to the new back tile in the direction of connectedSideOut
-					PositionNode c;
-					LocalDirection oppD = tnav::oppositeAlignment(d);
-					c.setMappingID(getNode(n2i)->getMappingID());
-					c.setIndex(connectedSide->getIndex());
-					c.setPosition(connectedSide->getPosition());
-					c.setNeighborIndex(n2i, oppD);
-					c.setNeighborMapID(MAP_ID_0, oppD);
-					c.setNeighborIndex(tiN->getIndex(), d);
-					c.setNeighborMapID(tnav::getNeighborMap(d, tiD), d);
-					(*connectedSide) = c;
-					tiN->setNeighborMapID(tnav::getNeighborMap(tiD, d), tiD);
-					getNode(n2i)->setNeighborIndex(connectedSide->getIndex(), d);
-					getNode(n2i)->setNeighborMapID(MAP_ID_0, d);
-					// n connects the new front tile to currentNeighbor
+					linkedSideNode->setNeighborIndex(newFrontNode->getIndex(), connectedSideOut);
+					linkedSideNode->setNeighborMapID(tnav::getNeighborMap(connectedSideOut, newSideNodeDir), connectedSideOut);
 					
-					n->setNeighborIndex(currentNeighborCenterNode->getIndex(), d); // n has same mapping as front tile center node.
-					n->setNeighborMapID(tnav::getNeighborMap(d, currentNeighborOut), d);
-					n->setNeighborIndex(getNode(n1i)->getIndex(), tnav::oppositeAlignment(d));
-					n->setNeighborMapID(MAP_ID_0, tnav::oppositeAlignment(d));
-					currentNeighborCenterNode->setNeighborIndex(n->getIndex(), currentNeighborOut);
-					currentNeighborCenterNode->setNeighborMapID(tnav::getNeighborMap(currentNeighborOut, d), currentNeighborOut);
-					getNode(n1i)->setNeighborIndex(n->getIndex(), d);
-					getNode(n1i)->setNeighborMapID(MAP_ID_0, d);
+					newFrontNode->setNeighborIndex(linkedSideNode->getIndex(), newSideNodeDir);
+					newFrontNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, connectedSideOut), newSideNodeDir);
+					
+					// n connects the new back tile to currentNeighbor
+					newNode->setNeighborIndex(currentNeighborCenterNode->getIndex(), oppD); // n has same mapping as front tile center node.
+					newNode->setNeighborMapID(tnav::getNeighborMap(oppD, currentNeighborOut), oppD);
+					newNode->setNeighborIndex(newBackNode->getIndex(), newSideNodeDir);
+					newNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, newSideNodeDir),newSideNodeDir);
+					
+					currentNeighborCenterNode->setNeighborIndex(newNode->getIndex(), currentNeighborOut);
+					currentNeighborCenterNode->setNeighborMapID(tnav::getNeighborMap(currentNeighborOut, oppD), currentNeighborOut);
+					
+					newBackNode->setNeighborIndex(newNode->getIndex(), newSideNodeDir);
+					newBackNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, newSideNodeDir), newSideNodeDir);
+				} 
+				else {
+					// linkedSideNode connects linkedTile to the new back tile in the direction of connectedSideOut:
+					linkedSideNode->setMappingID(newBackNode->getMappingID());
+					linkedSideNode->setNeighborIndex(newBackNodeIndex, oppD);
+					linkedSideNode->setNeighborMapID(MAP_ID_0, oppD);
+					linkedSideNode->setNeighborIndex(linkedTileSideNode->getIndex(), newSideNodeDir);
+					linkedSideNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, linkedTileDir), newSideNodeDir);
+
+					linkedTileSideNode->setNeighborMapID(tnav::getNeighborMap(linkedTileDir, newSideNodeDir), linkedTileDir);
+					
+					newBackNode->setNeighborIndex(linkedSideNode->getIndex(), newSideNodeDir);
+					newBackNode->setNeighborMapID(MAP_ID_0, newSideNodeDir);
+					
+					// newNode connects the new front tile to currentNeighbor:
+					newNode->setNeighborIndex(currentNeighborCenterNode->getIndex(), newSideNodeDir); // n has same mapping as front tile center node.
+					newNode->setNeighborMapID(tnav::getNeighborMap(newSideNodeDir, currentNeighborOut), newSideNodeDir);
+					newNode->setNeighborIndex(newFrontNode->getIndex(), oppD);
+					newNode->setNeighborMapID(MAP_ID_0, oppD);
+					
+					currentNeighborCenterNode->setNeighborIndex(newNode->getIndex(), currentNeighborOut);
+					currentNeighborCenterNode->setNeighborMapID(tnav::getNeighborMap(currentNeighborOut, newSideNodeDir), currentNeighborOut);
+					
+					newFrontNode->setNeighborIndex(newNode->getIndex(), newSideNodeDir);
+					newFrontNode->setNeighborMapID(MAP_ID_0, newSideNodeDir);
 				}
 				break;
 			}
 		}
+		return &tileInfos[newFrontTile];
 	}
 };

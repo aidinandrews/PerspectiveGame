@@ -2,7 +2,8 @@
 #include <iostream>
 #include <vector>
 
-#include "tileManager.h"
+#include"tileNavigation.h"
+#include"tileManager.h"
 
 struct ForceManager {
 private:

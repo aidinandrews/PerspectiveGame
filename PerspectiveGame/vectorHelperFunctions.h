@@ -1,13 +1,10 @@
 #pragma once
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp> // Linear algebra.
-#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <vector>
 #define _USE_MATH_DEFINES
 #include <math.h>
+
+#include"dependancyHeaders.h"
 
 namespace vechelp {
 
@@ -67,7 +64,20 @@ namespace vechelp {
 
 	bool isLeft(glm::vec2 point, glm::vec2 lineSegPoint1, glm::vec2 lineSegPoint2);
 
-	SideOfLine isLeftSpecific(glm::vec2 point, glm::vec2 lineSegPoint1, glm::vec2 lineSegPoint2);
+	inline SideOfLine isLeftSpecific(glm::vec2 point, glm::vec2 lineSegPoint1, glm::vec2 lineSegPoint2)
+	{
+		float val = (point.x - lineSegPoint1.x) * (lineSegPoint1.y - lineSegPoint2.y)
+			- (point.y - lineSegPoint1.y) * (lineSegPoint1.x - lineSegPoint2.x);
+		if (val > 0) {
+			return INSIDE;
+		}
+		else if (val < 0) {
+			return OUTSIDE;
+		}
+		else {
+			return ON_LINE_SEG;
+		}
+	}
 
 	// Checking if a point is inside a polygon
 	bool point_in_polygon(glm::vec2 point, std::vector<glm::vec2> polygon);

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
-#include <glm/glm.hpp>
+
+#include"dependancyHeaders.h"
 
 #define NO_ENTITY_INDEX -1
 #define NO_TILE_INDEX -1
@@ -184,11 +185,11 @@ namespace tnav { // tnav is short for 'tile navigation'
 	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
 	
 #define ALIGNMENT_MAP_IDENTITY 0
-	const LocalAlignment getMappedAlignment(int mapIndex, LocalAlignment currentAlignment);
+	const LocalAlignment map(int mapIndex, LocalAlignment currentAlignment);
 
 	int getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
-	const int combineAlignmentMappings(int alignmentMapIndex0, int alignmentMapIndex1);
+	const int combineMaps(int alignmentMapIndex0, int alignmentMapIndex1);
 
 	const int inverseAlignmentMapIndex(int alignmentMapIndex);
 

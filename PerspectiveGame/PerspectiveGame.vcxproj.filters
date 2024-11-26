@@ -28,17 +28,32 @@
     <Filter Include="Source Files\Dependancies\vcxproj">
       <UniqueIdentifier>{eb532003-9d09-4113-ae5c-b0bf40a2f268}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Managers">
-      <UniqueIdentifier>{bb563a69-b55a-4770-9645-c80ad6a26beb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\World">
-      <UniqueIdentifier>{50c1790c-09c9-484d-bb6e-d53687c6641e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Engine">
-      <UniqueIdentifier>{131d71ab-1eeb-4ecd-ba85-2283b0b55a07}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files\Shaders\2d3rdPersonPov">
       <UniqueIdentifier>{bae931d7-f5f3-45e4-8427-62d82ab4976b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\vcxProj">
+      <UniqueIdentifier>{67602ee2-dedf-4dcd-a5a5-bfe1d47d6e1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game">
+      <UniqueIdentifier>{7aba6d20-493a-402f-8ef7-ede942c6a4c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game\Managers">
+      <UniqueIdentifier>{bb563a69-b55a-4770-9645-c80ad6a26beb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game\Engine">
+      <UniqueIdentifier>{131d71ab-1eeb-4ecd-ba85-2283b0b55a07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game\World">
+      <UniqueIdentifier>{50c1790c-09c9-484d-bb6e-d53687c6641e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Tests">
+      <UniqueIdentifier>{91fc0658-180c-406a-9bd7-7aec3165e916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Helpers">
+      <UniqueIdentifier>{b61015ed-e034-4bc4-a219-a99707879230}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Meta">
+      <UniqueIdentifier>{49feb529-8fba-442b-a27b-1735d0590292}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -72,116 +87,119 @@
     <ClInclude Include="glew.h">
       <Filter>Source Files\Dependancies</Filter>
     </ClInclude>
-    <ClInclude Include="buttonManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="cameraManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="Building.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="entity.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="globalVariables.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="frameBuffer.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="portal.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="object.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="player.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="shaderManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="textureManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="tileManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="vertexManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="windowManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="inputManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="app.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="tile.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="scene.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="vectorHelperFunctions.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="Button.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="guiManager.h">
-      <Filter>Source Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="makeShapes.h">
-      <Filter>Source Files\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="calcFunctions.h">
       <Filter>Source Files\Dependancies</Filter>
     </ClInclude>
-    <ClInclude Include="currentSelection.h">
-      <Filter>Source Files\Engine</Filter>
+    <ClInclude Include="files\glew.h">
+      <Filter>Source Files\Dependancies</Filter>
     </ClInclude>
-    <ClInclude Include="playground.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="entityManager.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="forceManager.h">
-      <Filter>Source Files\World</Filter>
-    </ClInclude>
-    <ClInclude Include="forceBlockManager.h">
-      <Filter>Source Files\World</Filter>
+    <ClInclude Include="..\Libraries\include\glad\glad.h">
+      <Filter>Source Files\Dependancies</Filter>
     </ClInclude>
     <ClInclude Include="basisManager.h">
-      <Filter>Source Files\World</Filter>
+      <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="tileNavigation.h">
-      <Filter>Source Files\World</Filter>
+    <ClInclude Include="buttonManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="tileInternals.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="cameraManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="scenarioSetup.h">
-      <Filter>Source Files\World</Filter>
+    <ClInclude Include="entityManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="positionNodeNetwork.h">
-      <Filter>Source Files\World</Filter>
+    <ClInclude Include="forceBlockManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="forceManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="guiManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="inputManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="shaderManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="textureManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="tileManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="vertexManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="windowManager.h">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="app.h">
+      <Filter>Source Files\Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Building.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="currentSelection.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="entity.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="frameBuffer.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="globalVariables.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="pov.h">
-      <Filter>Source Files\World</Filter>
+      <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="positionNode.h">
-      <Filter>Source Files\World</Filter>
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="positionNodeNetwork.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="scene.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="tile.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="scenarioSetup.h">
+      <Filter>Source Files\Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="tileNavigation.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
+    <ClInclude Include="tileGPUInfo.h">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="vectorHelperFunctions.h">
+      <Filter>Source Files\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependancyHeaders.h">
+      <Filter>Source Files\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="makeShapes.h">
+      <Filter>Source Files\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="playground.h">
+      <Filter>Source Files\Meta</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Libraries\include\ImGui\imgui.cpp">
       <Filter>Source Files\Dependancies\ImGui</Filter>
     </ClCompile>
@@ -206,68 +224,68 @@
     <ClCompile Include="..\glad.c">
       <Filter>Source Files\Dependancies</Filter>
     </ClCompile>
-    <ClCompile Include="cameraManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="building.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="globalVariables.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="frameBuffer.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="guiManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="shaderManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="textureManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="tileManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="vertexManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="windowManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="inputManager.cpp">
-      <Filter>Source Files\Managers</Filter>
-    </ClCompile>
-    <ClCompile Include="tile.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="scene.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="vectorHelperFunctions.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="entityManager.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="entity.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="forceManager.cpp">
-      <Filter>Source Files\World</Filter>
-    </ClCompile>
-    <ClCompile Include="tileNavigation.cpp">
-      <Filter>Source Files\World</Filter>
+    <ClCompile Include="stb_image_impl.cpp">
+      <Filter>Source Files\Dependancies</Filter>
     </ClCompile>
     <ClCompile Include="basisManager.cpp">
-      <Filter>Source Files\World</Filter>
+      <Filter>Source Files\Game\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="tileInternals.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="cameraManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="superPositionNetwork.h">
-      <Filter>Source Files\World</Filter>
+    <ClCompile Include="entityManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="forceManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="guiManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="inputManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="shaderManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="textureManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="tileManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="vertexManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="windowManager.cpp">
+      <Filter>Source Files\Game\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files\Meta</Filter>
+    </ClCompile>
+    <ClCompile Include="building.cpp">
+      <Filter>Source Files\Game\World</Filter>
+    </ClCompile>
+    <ClCompile Include="entity.cpp">
+      <Filter>Source Files\Game\World</Filter>
+    </ClCompile>
+    <ClCompile Include="frameBuffer.cpp">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="globalVariables.cpp">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="scene.cpp">
+      <Filter>Source Files\Game\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="tile.cpp">
+      <Filter>Source Files\Game\World</Filter>
+    </ClCompile>
+    <ClCompile Include="tileNavigation.cpp">
+      <Filter>Source Files\Game\World</Filter>
+    </ClCompile>
+    <ClCompile Include="vectorHelperFunctions.cpp">
+      <Filter>Source Files\Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -336,6 +354,21 @@
     </None>
     <None Include="shaders\2d3rdPersonPovViaNodeNetwork.vert">
       <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="files\imgui.ini">
+      <Filter>Source Files\Dependancies</Filter>
+    </None>
+    <None Include="files\helperFunctions.glsl">
+      <Filter>Source Files\Dependancies</Filter>
+    </None>
+    <None Include="files\PerspectiveGame.vcxproj.user">
+      <Filter>Source Files\vcxProj</Filter>
+    </None>
+    <None Include="files\PerspectiveGame.vcxproj">
+      <Filter>Source Files\vcxProj</Filter>
+    </None>
+    <None Include="files\PerspectiveGame.vcxproj.filters">
+      <Filter>Source Files\vcxProj</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

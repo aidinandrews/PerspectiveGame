@@ -6,18 +6,7 @@
 #define NOMINMAX
 #include<Windows.h>
 
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#include<GLFW/glfw3.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#ifndef STB_IMAGE_IMPLEMENTATION
-#include<stb_image.h>
-#endif
+#include"dependancyHeaders.h"
 
 #include"cameraManager.h"
 #include"shaderManager.h"

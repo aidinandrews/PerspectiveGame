@@ -439,15 +439,15 @@ const LocalAlignment ALIGNMENT_TRANSLATION_MAPS[8][10] = {
 #define _2_3 LOCAL_ALIGNMENT_2_3
 #define _3_0 LOCAL_ALIGNMENT_3_0
 #define NONE LOCAL_ALIGNMENT_NONE
-#define ERROR LOCAL_ALIGNMENT_ERROR
-	{ _0, _1, _2, _3, _0_1, _1_2, _2_3, _3_0, NONE, ERROR },
-	{ _1, _2, _3, _0, _1_2, _2_3, _3_0, _0_1, NONE, ERROR },
-	{ _2, _3, _0, _1, _2_3, _3_0, _0_1, _1_2, NONE, ERROR },
-	{ _3, _0, _1, _2, _3_0, _0_1, _1_2, _2_3, NONE, ERROR },
-	{ _0, _3, _2, _1, _3_0, _2_3, _1_2, _0_1, NONE, ERROR },
-	{ _1, _0, _3, _2, _0_1, _3_0, _2_3, _1_2, NONE, ERROR },
-	{ _2, _1, _0, _3, _1_2, _0_1, _3_0, _2_3, NONE, ERROR },
-	{ _3, _2, _1, _0, _2_3, _1_2, _0_1, _3_0, NONE, ERROR }
+#define ALIGNMENT_ERROR LOCAL_ALIGNMENT_ERROR
+	{ _0, _1, _2, _3, _0_1, _1_2, _2_3, _3_0, NONE, ALIGNMENT_ERROR },
+	{ _1, _2, _3, _0, _1_2, _2_3, _3_0, _0_1, NONE, ALIGNMENT_ERROR },
+	{ _2, _3, _0, _1, _2_3, _3_0, _0_1, _1_2, NONE, ALIGNMENT_ERROR },
+	{ _3, _0, _1, _2, _3_0, _0_1, _1_2, _2_3, NONE, ALIGNMENT_ERROR },
+	{ _0, _3, _2, _1, _3_0, _2_3, _1_2, _0_1, NONE, ALIGNMENT_ERROR },
+	{ _1, _0, _3, _2, _0_1, _3_0, _2_3, _1_2, NONE, ALIGNMENT_ERROR },
+	{ _2, _1, _0, _3, _1_2, _0_1, _3_0, _2_3, NONE, ALIGNMENT_ERROR },
+	{ _3, _2, _1, _0, _2_3, _1_2, _0_1, _3_0, NONE, ALIGNMENT_ERROR }
 #undef a_0
 #undef a_1
 #undef a_2
@@ -463,7 +463,7 @@ const LocalAlignment ALIGNMENT_TRANSLATION_MAPS[8][10] = {
 // Given an index to a local alignment to local alignment map and an alignment, will convert that
 // alignment to its mapped alignment and return it.  Map indices should be stored inside tiles as
 // current tile alignments -> neighbor tile alignments maps as well as other places.
-const LocalAlignment tnav::getMappedAlignment(int mapIndex, LocalAlignment currentAlignment)
+const LocalAlignment tnav::map(int mapIndex, LocalAlignment currentAlignment)
 {
 #ifdef RUNNING_DEBUG
 	if (mapIndex > 7) std::cout << "INVALID ALIGNMENT TRANSLATION MAP INDEX" << std::endl;
@@ -500,7 +500,7 @@ const int COMBINE_MAP_INDICES[8][8] = {
 	{ 7, 4, 5, 6, 1, 2, 3, 0 }
 };
 
-const int tnav:: combineAlignmentMappings(int firstMappingIndex, int secondMappingIndex)
+const int tnav:: combineMaps(int firstMappingIndex, int secondMappingIndex)
 {
 	return COMBINE_MAP_INDICES[firstMappingIndex][secondMappingIndex];
 }

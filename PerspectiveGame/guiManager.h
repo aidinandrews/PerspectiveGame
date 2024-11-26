@@ -13,10 +13,6 @@
 #define NOMINMAX
 #include<Windows.h>
 
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-
 #include"globalVariables.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -26,7 +22,8 @@
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
-#include <GLFW/glfw3.h> // Will drag system OpenGL headers
+
+#include"dependancyHeaders.h"
 
 #include "buttonManager.h"
 #include "shaderManager.h"

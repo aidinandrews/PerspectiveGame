@@ -15,12 +15,12 @@
 
 struct POV {
 private:
-	PositionNode* node; // Tile pov resides inside.
+	int nodeIndex; // Tile pov resides inside.
 
 public:
 	// Helps orient the scene.  Changed when crossing to different tiles.  In the basis if the current tile.
 	// Identity assumed on init.
-	int mapIndex; 
+	int mapIndex;
 	LocalDirection localNorth, localSouth, localEast, localWest;
 
 	PositionNodeNetwork* p_nodeNetwork;
@@ -35,25 +35,33 @@ public:
 private:
 	// Will adjust the position, basis, and orientation of 'upward' and 'rightward' to 
 	// the tile neighbor in the given direction.
-	void shiftTile(LocalDirection toNeighbor)
+	void shiftTile(LocalDirection d)
 	{
-		LocalDirection D = toNeighbor;
-		int m1 = node->getNeighborMapIndex(toNeighbor);
+		using namespace tnav;
+
+		PositionNode* node = p_nodeNetwork->getNode(nodeIndex);
+		LocalDirection D = d;
+		int m1 = node->getNeighborMap(d);
+
 		// Transition to a side node:
-		toNeighbor = tnav::getMappedAlignment(node->getNeighborMapIndex(toNeighbor), toNeighbor);
+		d = map(node->getNeighborMap(d), d);
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(D));
+
 		// Transistion to the neighbor tile (a center node).
-		int m2 = node->getNeighborMapIndex(toNeighbor);
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(toNeighbor));
+		int m2 = node->getNeighborMap(d);
+		node = p_nodeNetwork->getNode(node->getNeighborIndex(d));
 
 		// Adjust the window space -> tile space mappings:
-		mapIndex = tnav::combineAlignmentMappings(tnav::combineAlignmentMappings(mapIndex, m1), m2);
+		mapIndex = combineMaps(mapIndex, m1);
+		mapIndex = combineMaps(mapIndex, m2);
+
+		nodeIndex = node->getIndex();
 	}
 
 public:
 	POV(PositionNodeNetwork* nodeNetwork, Camera* camera) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
-		node = p_nodeNetwork->getNode(p_nodeNetwork->getTileInfo(0)->nodeIndex);
+		nodeIndex = 0;
 		mapIndex = ALIGNMENT_MAP_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
 
 		rotationMatrix3D = glm::mat4(1);
@@ -63,16 +71,16 @@ public:
 		rotationMatrix2D = glm::mat4(1);
 	}
 
-	PositionNode* getNode() { return node; }
-	PositionNode* getTile() { return node; }
+	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
+	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
 
-	LocalDirection getNorth() { return tnav::getMappedAlignment(mapIndex, LOCAL_DIRECTION_3); }
-	LocalDirection getSouth() { return tnav::getMappedAlignment(mapIndex, LOCAL_DIRECTION_1); }
-	LocalDirection getEast() { return tnav::getMappedAlignment(mapIndex, LOCAL_DIRECTION_0); }
-	LocalDirection getWest() { return tnav::getMappedAlignment(mapIndex, LOCAL_DIRECTION_2); }
+	LocalDirection getNorth() { return tnav::map(mapIndex, LOCAL_DIRECTION_3); }
+	LocalDirection getSouth() { return tnav::map(mapIndex, LOCAL_DIRECTION_1); }
+	LocalDirection getEast() { return tnav::map(mapIndex, LOCAL_DIRECTION_0); }
+	LocalDirection getWest() { return tnav::map(mapIndex, LOCAL_DIRECTION_2); }
 
-	void shiftPovEast()  { shiftTile(getEast());  }
-	void shiftPovWest()  { shiftTile(getWest());  }
+	void shiftPovEast() { shiftTile(getEast()); }
+	void shiftPovWest() { shiftTile(getWest()); }
 	void shiftPovNorth() { shiftTile(getNorth()); }
 	void shiftPovSouth() { shiftTile(getSouth()); }
 
@@ -93,14 +101,14 @@ public:
 
 		if (p_camera->viewPlanePos.y > 1.0f) {
 			lastRotationMatrix3D = rotationMatrix3D;
-			lastRotationMatrixWeight = 1.0f;			
+			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos - glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y -= 1.0f;
 			shiftPovNorth();
 		}
 		else if (p_camera->viewPlanePos.y < 0.0f) {
 			lastRotationMatrix3D = rotationMatrix3D;
-			lastRotationMatrixWeight = 1.0f;			
+			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos + glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y += 1.0f;
 			shiftPovSouth();

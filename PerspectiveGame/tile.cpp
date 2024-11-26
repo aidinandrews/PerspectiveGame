@@ -74,7 +74,7 @@ GPU_TileInfo::GPU_TileInfo(Tile* node)
 		//neighborSideIndex[i] = tile->neighborConnectedSideIndices[i];
 // TODO: fix gpu-info/shaders to use the new alignment mappings
 		neighborMirrored[i] = (int)node->is1stDegreeNeighborMirrored(i);
-		neighborSideIndex[i] = tnav::getMappedAlignment(node->neighborAlignmentMaps[i], tnav::oppositeAlignment(LocalAlignment(i)));
+		neighborSideIndex[i] = tnav::map(node->neighborAlignmentMaps[i], tnav::oppositeAlignment(LocalAlignment(i)));
 		texCoords[i] = node->texCoords[i];
 		cornerIsSafe[i] = node->cornerIsSafe[i];
 	}

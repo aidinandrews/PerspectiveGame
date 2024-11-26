@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug2|Win32">
+      <Configuration>Debug2</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug2|x64">
+      <Configuration>Debug2</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="debug3|Win32">
+      <Configuration>debug3</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="debug3|x64">
+      <Configuration>debug3</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugCustom|Win32">
+      <Configuration>DebugCustom</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugCustom|x64">
+      <Configuration>DebugCustom</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
@@ -33,6 +57,13 @@
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -48,6 +79,13 @@
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -55,6 +93,19 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugCustom|Win32'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugCustom|x64'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='debug3|x64'">
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='debug3|Win32'">
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -64,10 +115,16 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -77,18 +134,42 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|Win32'">
+    <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|x64'">
+    <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug3|x64'">
+    <IncludePath>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui\backends;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Dev\C++_Libraries\glm;C:\Dev\C++_Libraries\stb_image;C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -106,6 +187,55 @@
       <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\GLFW;C:\Dev\C++_Libraries\glm;C:\Dev\C++_Libraries\stb_image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -127,6 +257,22 @@
       <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -144,6 +290,55 @@
       <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug2|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\GLFW;C:\Dev\C++_Libraries\glm;C:\Dev\C++_Libraries\stb_image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -165,8 +360,44 @@
       <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;C:\Dev\C++_Libraries\stb_image;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>@echo off
+set solutionPath=C:\Dev\C++_Projects\PerspectiveGame\PerspectiveGame.sln
+
+rem Clean solution
+devenv %solutionPath% /Clean Debug
+devenv %solutionPath% /Clean Release
+
+rem Rebuild solution
+devenv %solutionPath% /Rebuild Debug
+devenv %solutionPath% /Rebuild Release
+
+@echo Build completed
+pause
+</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugCustom|x64'">
+    <Link>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\glad;C:\Dev\C++_Libraries\stb_image;C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\glad;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\GLFW;C:\Dev\C++_Libraries\stb_image;C:\Dev\C++_Libraries\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug3|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Dev\C++_Libraries\stb_image;C:\Dev\C++_Libraries\glm;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\ImGui;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\GLFW;C:\Dev\C++_Projects\PerspectiveGame\Libraries\include\glad;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Dev\C++_Libraries\stb_image;C:\Dev\C++_Projects\PerspectiveGame\Libraries\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Libraries\include\glad\glad.h" />
     <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="..\Libraries\include\ImGui\backends\imgui_impl_opengl3_loader.h" />
@@ -184,8 +415,10 @@
     <ClInclude Include="calcFunctions.h" />
     <ClInclude Include="cameraManager.h" />
     <ClInclude Include="currentSelection.h" />
+    <ClInclude Include="dependancyHeaders.h" />
     <ClInclude Include="entity.h" />
     <ClInclude Include="entityManager.h" />
+    <ClInclude Include="files\glew.h" />
     <ClInclude Include="forceBlockManager.h" />
     <ClInclude Include="forceManager.h" />
     <ClInclude Include="frameBuffer.h" />
@@ -194,19 +427,18 @@
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
-    <ClInclude Include="positionNode.h" />
-    <ClInclude Include="positionNodeNetwork.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
-    <ClInclude Include="portal.h" />
+    <ClInclude Include="positionNode.h" />
+    <ClInclude Include="positionNodeNetwork.h" />
     <ClInclude Include="pov.h" />
     <ClInclude Include="scenarioSetup.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaderManager.h" />
     <ClInclude Include="textureManager.h" />
     <ClInclude Include="tile.h" />
-    <ClInclude Include="tileInternals.h" />
+    <ClInclude Include="tileGPUInfo.h" />
     <ClInclude Include="tileManager.h" />
     <ClInclude Include="tileNavigation.h" />
     <ClInclude Include="vectorHelperFunctions.h" />
@@ -233,12 +465,11 @@
     <ClCompile Include="guiManager.cpp" />
     <ClCompile Include="inputManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="superPositionNetwork.h" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaderManager.cpp" />
+    <ClCompile Include="stb_image_impl.cpp" />
     <ClCompile Include="textureManager.cpp" />
     <ClCompile Include="tile.cpp" />
-    <ClCompile Include="tileInternals.cpp" />
     <ClCompile Include="tileManager.cpp" />
     <ClCompile Include="tileNavigation.cpp" />
     <ClCompile Include="vectorHelperFunctions.cpp" />
@@ -247,6 +478,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Libraries\include\ImGui\imgui.ini" />
+    <None Include="files\helperFunctions.glsl" />
+    <None Include="files\imgui.ini" />
+    <None Include="files\PerspectiveGame.vcxproj" />
+    <None Include="files\PerspectiveGame.vcxproj.filters" />
+    <None Include="files\PerspectiveGame.vcxproj.user" />
     <None Include="helperFunctions.glsl" />
     <None Include="imgui.ini" />
     <None Include="shaders\2d3rdPersonPovHeader.frag" />

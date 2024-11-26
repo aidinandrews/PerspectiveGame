@@ -2,15 +2,8 @@
 
 #pragma once
 #include<iostream>
-#ifndef GLAD_INCLUDED
-#include <glad/glad.h>
-#endif
-#include <GLFW/glfw3.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+
+#include"dependancyHeaders.h"
 
 #include "globalVariables.h"
 #include "shaderManager.h"
