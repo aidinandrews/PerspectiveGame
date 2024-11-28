@@ -46,7 +46,7 @@ layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 #define LOCAL_DIRECTION_3_0 7
 #define LOCAL_DIRECTION_0_3 7
 
-#define MAX_STEPS 1000
+#define MAX_STEPS 500
 
 #define CurrentNode nodeInfos[currentNodeIndex]
 #define CurrentTileInfo tileInfos[CurrentNode.tileInfoIndex]
@@ -136,7 +136,7 @@ void shiftCurrentTile(int d) {
 	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][M];
 }
 
-void findTile() {
+bool findTile() {
 	vec2 runningDist;
 	vec2 stepDist = totalDist / abs(povToPixelPos);
 	int stepCount = 0;
@@ -155,14 +155,17 @@ void findTile() {
 		if (runningDist.x > totalDist && runningDist.y > totalDist) { break; } // We have arrived!
 
 		if (runningDist.x < runningDist.y) {
-			if (GO_WINDOW_EAST) { shiftCurrentTile(getLocalEast()); } else { shiftCurrentTile(getLocalWest()); }
+			if (GO_WINDOW_EAST) { shiftCurrentTile(getLocalEast()); } 
+			else { shiftCurrentTile(getLocalWest()); }
 			runningDist.x += stepDist.x;
 		} 
 		else { // runningDist.x > runningDist.y
-			if (GO_WINDOW_NORTH) { shiftCurrentTile(getLocalNorth()); } else { shiftCurrentTile(getLocalSouth()); }
+			if (GO_WINDOW_NORTH) { shiftCurrentTile(getLocalNorth()); } 
+			else { shiftCurrentTile(getLocalSouth()); }
 			runningDist.y += stepDist.y;
 		}
 	}
+	return stepCount < MAX_STEPS;
 }
 
 void main() {
@@ -174,10 +177,13 @@ void main() {
 		return;
 	}
 
-	findTile();
-	getFragDrawTilePos();
-	//getRelativeVertPositions();
-	colorPixel();
-
-	//gl_FragColor = CurrentTileInfo.color;
+	bool foundTile = findTile();
+	if (foundTile) {
+		getFragDrawTilePos();
+		//getRelativeVertPositions();
+		colorPixel();
+	}
+	else {
+		gl_FragColor = vec4(0, 0, 0, 1);
+	}
 };

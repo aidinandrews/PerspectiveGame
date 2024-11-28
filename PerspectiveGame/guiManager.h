@@ -66,11 +66,11 @@ public:
 	GLFWwindow* p_imGuiWindow;
 	InputManager* p_inputManager;
 	Camera* p_camera;
-	TileManager* p_tileManager;
 	Framebuffer* p_framebuffer;
 	ButtonManager* p_buttonManager;
 	CurrentSelection* p_currentSelection;
 	EntityManager* p_entityManager;
+	TileManager* p_tileManager;
 
 	PositionNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
@@ -89,7 +89,7 @@ public:
 	void imGuiSetup();
 	GuiManager(GLFWwindow* w, GLFWwindow* imgw, ShaderManager* sm, InputManager* im, Camera* c, TileManager* tm,
 						   Framebuffer* fb, ButtonManager* bm, CurrentSelection* cs, EntityManager* em, PositionNodeNetwork* nn, POV* pov)
-		: p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_tileManager(tm), p_framebuffer(fb),
+		: p_tileManager(tm), p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_framebuffer(fb),
 		p_buttonManager(bm), p_currentSelection(cs), p_entityManager(em), p_nodeNetwork(nn), p_pov(pov)
 	{
 
@@ -171,101 +171,6 @@ public:
 		p_shaderManager->POV3D3rdPerson.use();
 	}
 
-	// Draws the 2D scene from a 3rd person perspective.
-	void draw2D3rdPerson()
-	{
-		glViewport(0, 0, WindowSize.x, WindowSize.y);
-		drawTilesSetup();
-
-		const float INITIAL_OPACITY = 0.5f;
-		bool previousSides[4] = { 0, 0, 0, 0 };
-
-		// Draw the povTile itself to start:
-		std::vector<glm::vec2> croppedDrawTileTexCoords = {
-			p_tileManager->povTile.node->texCoords[(p_tileManager->povTile.initialVertIndex + p_tileManager->povTile.sideInfosOffset * 0) % 4],
-			p_tileManager->povTile.node->texCoords[(p_tileManager->povTile.initialVertIndex + p_tileManager->povTile.sideInfosOffset * 1) % 4],
-			p_tileManager->povTile.node->texCoords[(p_tileManager->povTile.initialVertIndex + p_tileManager->povTile.sideInfosOffset * 2) % 4],
-			p_tileManager->povTile.node->texCoords[(p_tileManager->povTile.initialVertIndex + p_tileManager->povTile.sideInfosOffset * 3) % 4],
-		};
-		std::vector<glm::vec2> povTileDrawVerts = {
-			glm::vec2(1, 1),glm::vec2(1, 0),glm::vec2(0, 0),glm::vec2(0, 1)
-		};
-		drawTile(TileManager::TileManager::INITIAL_DRAW_TILE_VERTS, croppedDrawTileTexCoords, glm::vec4(p_tileManager->povTile.node->color, INITIAL_OPACITY));
-
-		// Start the recursive call to draw each tile connected to the eye tile edges:
-		for (int drawTileSideIndex = 0; drawTileSideIndex < 4; drawTileSideIndex++) {
-			glm::vec2 newFrustum[3] = {
-				glm::normalize(TileManager::TileManager::INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex) % 4]
-							   - glm::vec2(p_camera->viewPlanePos)),
-				glm::vec2(0, 0),
-				glm::normalize(TileManager::TileManager::INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4]
-							   - glm::vec2(p_camera->viewPlanePos)),
-			};
-
-			// After a draw tile moves in a direction, it should never need to move back 
-			// in that direction again, thus we can make sure it doesnt with this bool array:
-			bool newPreviousSides[4]{};
-			newPreviousSides[(drawTileSideIndex + 2) % 4] = true;
-
-			int newSideOffset, newInitialSideIndex, newInitialTexIndex;
-			int sideIndex = (p_tileManager->povTile.initialSideIndex + p_tileManager->povTile.sideInfosOffset * drawTileSideIndex) % 4;
-
-			// The next draw tile can be either mirrored or unmirrored.  Mirrored tiles are 
-			// wound the opposite way and thus have an opposite side index offset.  Unmirrored 
-			// tiles have the same winding, so no adjustment is necessary.  As the side index 
-			// is in the domain of [0,3], we can also just wrap around from 3 -> 0 with % 4.
-			if (p_tileManager->povTile.node->is1stDegreeNeighborMirrored(sideIndex)) {
-				newSideOffset = (p_tileManager->povTile.sideInfosOffset + 2) % 4;
-			}
-			else { // Current connection is unmirrored:
-				newSideOffset = p_tileManager->povTile.sideInfosOffset;
-			}
-			newInitialSideIndex = (p_tileManager->povTile.node->get1stDegreeNeighborConnectedSideIndex(LocalDirection(sideIndex))
-								   + TileManager::VERT_INFO_OFFSETS[drawTileSideIndex] * newSideOffset) % 4;
-			newInitialTexIndex = newInitialSideIndex;
-			if (newSideOffset == 3) {
-				// then the next tile will be wound counterclockwise, and it's initial side 
-				// index will key into the *top right* tex coord instead of the top left.  
-				// Because the winding is counterclockwise, we can adjust the initial tex 
-				// coord by incrementing it once, going from the top right to the top left!
-				newInitialTexIndex = (newInitialTexIndex + 1) % 4;
-			}
-			std::vector<glm::vec2> newTileVerts
-				= createNewDrawTileVerts(TileManager::INITIAL_DRAW_TILE_VERTS, TileManager::DRAW_TILE_OFFSETS[drawTileSideIndex]);
-
-			// Tiles that change angle will change opacity or 'tint' so that it 
-			// can be noticed with traversing 3D space from this perspective:
-			float newTileOpacity;
-			// We want a smooth transition from one tile opacity to another, so
-			// it should fade as you get closer to the next draw tile's edge:
-			float edgeDist = vechelp::distToLineSeg((glm::vec2)p_camera->viewPlanePos,
-										   TileManager::INITIAL_DRAW_TILE_VERTS[drawTileSideIndex],
-										   TileManager::INITIAL_DRAW_TILE_VERTS[(drawTileSideIndex + 1) % 4],
-										   nullptr);
-			newTileOpacity = INITIAL_OPACITY;
-			if (p_tileManager->povTile.node->neighbors[sideIndex]->type != p_tileManager->povTile.node->type) {
-				newTileOpacity -= TileManager::DRAW_TILE_OPACITY_DECRIMENT_STEP;
-			}
-			if (edgeDist < 0.5f && p_tileManager->povTile.node->neighbors[sideIndex]->type != p_tileManager->povTile.node->type) {
-				newTileOpacity += (-((edgeDist * 2) - 1)) * 0.1f;
-			}
-
-			// Finally!  We can actually go onto drawing the next tile:
-			drawTiles(p_tileManager->povTile.node->neighbors[sideIndex], newTileVerts,
-					  newInitialSideIndex, newInitialTexIndex, newSideOffset,
-					  newFrustum, newPreviousSides, newTileOpacity);
-			//break;
-		}
-
-
-		/*auto end = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::milliseconds::period>(end - start).count();
-		TOTAL_TIME += time;*/
-		//std::cout << TOTAL_TIME << std::endl;
-
-		drawTilesCleanup();
-	}
-
 	void drawPlayerPos()
 	{
 		drawTilesSetup();
@@ -305,72 +210,75 @@ public:
 
 		glm::mat4 xMirror(1);
 		xMirror[0][0] = -1;
-		tempMat = xMirror * tempMat * p_tileManager->tileRotationAdjFor3DView;
+		//tempMat = xMirror * tempMat * p_tileManager->tileRotationAdjFor3DView;
+		tempMat = glm::mat4(1);
 		GLuint transfMatrixID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inTransfMatrix");
 		glUniformMatrix4fv(transfMatrixID, 1, GL_FALSE, glm::value_ptr(tempMat));
 
 		GLuint playerPosInfoID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPosInfo");
 		glUniformMatrix4fv(playerPosInfoID, 1, GL_FALSE, glm::value_ptr(packedPlayerPosInfo()));
 
-		glm::vec3 playerPos = p_tileManager->getPovTilePos();
+		glm::vec3 playerPos = p_camera->viewPlanePos;
 		playerPos = glm::vec3(tempMat * glm::vec4(playerPos, 1));
 		GLuint playerPosID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPos");
 		glUniform3f(playerPosID, playerPos.x, playerPos.y, playerPos.z);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, p_tileManager->texID);
+		glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
 
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-		for (Tile* t : p_tileManager->tiles) {
-			draw3DTile(t);
+		for (int i = 0; i < p_nodeNetwork->numTileInfos(); i++) {
+			draw3DTile(p_nodeNetwork->getTileInfo(i));
 		}
 
 		drawTilesCleanup();
 	}
 
-	void draw3DTile(Tile* node)
+	void draw3DTile(TileInfo* info)
 	{
+		const glm::vec3* offsets = tnav::getNodePositionOffsets(info->type);
+		glm::vec3 center = p_nodeNetwork->getNode(info->nodeIndex)->getPosition();
+
 		// prepare the tile:
 		verts.clear();
 		indices.clear();
 		for (int i = 0; i < 4; i++) {
 			// pos:
-			verts.push_back((GLfloat)node->getVertPos(i).x);
-			verts.push_back((GLfloat)node->getVertPos(i).y);
-			verts.push_back((GLfloat)node->getVertPos(i).z);
+			glm::vec3 pos = center + offsets[i + 4];
+			verts.push_back((GLfloat)pos.x);
+			verts.push_back((GLfloat)pos.y);
+			verts.push_back((GLfloat)pos.z);
 			// normal:
 			verts.push_back(0.0f);
 			verts.push_back(0.0f);
 			verts.push_back(1.0f);
 			// color:
-			verts.push_back((GLfloat)node->color.r);
-			verts.push_back((GLfloat)node->color.g);
-			verts.push_back((GLfloat)node->color.b);
+			verts.push_back((GLfloat)info->color.r);
+			verts.push_back((GLfloat)info->color.g);
+			verts.push_back((GLfloat)info->color.b);
 			// texture coord:
-			verts.push_back(node->texCoords[i].x);
-			verts.push_back(node->texCoords[i].y);
+			verts.push_back(info->textureCoordinates[i].x);
+			verts.push_back(info->textureCoordinates[i].y);
 			// tile index:
-			verts.push_back((GLfloat)node->index);
+			verts.push_back((GLfloat)info->index);
 		}
 
-		if (node->type == TileType::TILE_TYPE_XYB ||
-			node->type == TileType::TILE_TYPE_XZB ||
-			node->type == TileType::TILE_TYPE_YZB) {
+		if (tnav::isFront(info->type)) {
+			indices.push_back(3);
+			indices.push_back(1);
 			indices.push_back(0);
-			indices.push_back(1);
 			indices.push_back(3);
-			indices.push_back(1);
 			indices.push_back(2);
-			indices.push_back(3);
+			indices.push_back(1);
 		}
 		else {
-			indices.push_back(3);
-			indices.push_back(1);
 			indices.push_back(0);
-			indices.push_back(3);
-			indices.push_back(2);
 			indices.push_back(1);
+			indices.push_back(3);
+			indices.push_back(1);
+			indices.push_back(2);
+			indices.push_back(3);
 		}
 
 		GLuint alphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inAlpha");
@@ -381,7 +289,7 @@ public:
 
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, p_tileManager->texID);
+		glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
@@ -494,7 +402,7 @@ public:
 	}
 	// Draw an individual tile to the screen.  It is assumed that all the 
 	// cropping and placement has been done before this function is called:
-	void drawTile(std::vector<glm::vec2> tileVerts, std::vector<glm::vec2> tileTexCoords, glm::vec4 tileColor)
+	void drawTile(std::vector<glm::vec2> tileVerts, std::vector<glm::vec2> tileTexCoords, glm::vec4 color)
 	{
 		// prepare the tile:
 		verts.clear();
@@ -510,9 +418,9 @@ public:
 			verts.push_back(0.0f);
 			verts.push_back(1.0f);
 			// color:
-			verts.push_back(tileColor.r);
-			verts.push_back(tileColor.g);
-			verts.push_back(tileColor.b);
+			verts.push_back(color.r);
+			verts.push_back(color.g);
+			verts.push_back(color.b);
 			// texture coord:
 			verts.push_back(tileTexCoords[i].x);
 			verts.push_back(tileTexCoords[i].y);
@@ -527,7 +435,7 @@ public:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		GLuint alphaID = glGetUniformLocation(p_shaderManager->simpleShader.ID, "inAlpha");
-		glUniform1f(alphaID, tileColor.a);
+		glUniform1f(alphaID, color.a);
 
 		GLuint colorAlphaID = glGetUniformLocation(p_shaderManager->simpleShader.ID, "inColorAlpha");
 		glUniform1f(colorAlphaID, 0.5f);

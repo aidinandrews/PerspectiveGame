@@ -22,40 +22,7 @@ private:
 public:
 	PositionNode()
 	{
-		index = -1;
-		tileInfoIndex = -1;
-		mappingID = MAP_ID_ERROR;
-		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
-		for (int i = 0; i < 8; i++) {
-			neighborIndices[i] = -1;
-			neighborMapIndices[i] = -1;
-		}
-	}
-
-	PositionNode(int index, int tileInfoIndex, MappingID id, glm::vec3 position,
-				 int neighborIndex0, int neighborMapIndex0, int neighborIndex1, int neighborMapIndex1,
-				 int neighborIndex2, int neighborMapIndex2, int neighborIndex3, int neighborMapIndex3,
-				 int neighborIndex01, int neighborMapIndex01, int neighborIndex12, int neighborMapIndex12,
-				 int neighborIndex23, int neighborMapIndex23, int neighborIndex30, int neighborMapIndex30)
-		: index(index), tileInfoIndex(tileInfoIndex), mappingID(id), position(position)
-	{
-		neighborIndices[0] = neighborIndex0;
-		neighborIndices[1] = neighborIndex1;
-		neighborIndices[2] = neighborIndex2;
-		neighborIndices[3] = neighborIndex3;
-		neighborIndices[4] = neighborIndex01;
-		neighborIndices[5] = neighborIndex12;
-		neighborIndices[6] = neighborIndex23;
-		neighborIndices[7] = neighborIndex30;
-
-		neighborMapIndices[0] = neighborMapIndex0;
-		neighborMapIndices[1] = neighborMapIndex1;
-		neighborMapIndices[2] = neighborMapIndex2;
-		neighborMapIndices[3] = neighborMapIndex3;
-		neighborMapIndices[4] = neighborMapIndex01;
-		neighborMapIndices[5] = neighborMapIndex12;
-		neighborMapIndices[6] = neighborMapIndex23;
-		neighborMapIndices[7] = neighborMapIndex30;
+		wipe();
 	}
 
 	glm::vec3 getPosition() { return position; }
@@ -65,7 +32,7 @@ public:
 	void setNeighborIndex(int index, LocalDirection toNeighbor) { neighborIndices[toNeighbor] = index; }
 
 	int getNeighborMap(LocalDirection toNeighbor) { return neighborMapIndices[toNeighbor]; }
-	void setNeighborMapID(int index, LocalDirection toNeighbor) { neighborMapIndices[toNeighbor] = index; }
+	void setNeighborMap(int index, LocalDirection toNeighbor) { neighborMapIndices[toNeighbor] = index; }
 
 	int getIndex() { return index; }
 	void setIndex(int index) { this->index = index; }
@@ -80,16 +47,30 @@ public:
 	{
 		return tnav::map(neighborMapIndices[toNeighbor], alignment);
 	}
+
+	void wipe()
+	{
+		index = -1;
+		tileInfoIndex = -1;
+		mappingID = MAP_ID_ERROR;
+		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+		for (auto d : tnav::DIRECTION_SET) {
+			neighborIndices[d] = -1;
+			neighborMapIndices[d] = -1;
+		}
+	}
 };
 
 struct TileInfo {
 	TileType type;
 	int index;
 	int nodeIndex;
-	glm::vec3 tileColor;
+	glm::vec3 color;
 	glm::vec2 textureCoordinates[4];
+	int siblingIndex;
 
-	TileInfo(TileType type, int index, int nodeIndex, glm::vec3 tileColor) : type(type), index(index), nodeIndex(nodeIndex), tileColor(tileColor)
+	TileInfo(TileType type, int index, int siblingIndex, int nodeIndex, glm::vec3 color) : 
+		type(type), index(index), siblingIndex(siblingIndex), nodeIndex(nodeIndex), color(color)
 	{
 		textureCoordinates[0] = glm::vec2(1, 1);
 		textureCoordinates[1] = glm::vec2(1, 0);
@@ -97,12 +78,22 @@ struct TileInfo {
 		textureCoordinates[3] = glm::vec2(0, 1);
 	}
 
-	TileInfo() : type(TILE_TYPE_ERROR), index(-1), nodeIndex(-1), tileColor(glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX))
+	TileInfo()
 	{
+		wipe();
 		textureCoordinates[0] = glm::vec2(1, 1);
 		textureCoordinates[1] = glm::vec2(1, 0);
 		textureCoordinates[2] = glm::vec2(0, 0);
 		textureCoordinates[3] = glm::vec2(0, 1);
+	}
+
+	void wipe()
+	{
+		index = -1;
+		siblingIndex = -1;
+		nodeIndex = -1;
+		type = TILE_TYPE_ERROR;
+		color = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	}
 };
 
@@ -138,7 +129,7 @@ struct alignas(32) GPU_TileInfoNode {
 		for (int i = 0; i < 4; i++) {
 			texCoords[i] = info.textureCoordinates[i];
 		}
-		color = glm::vec4(info.tileColor, 1.0f);
+		color = glm::vec4(info.color, 1.0f);
 		nodeIndex = info.nodeIndex;
 	}
 };

@@ -118,7 +118,7 @@ struct App {
 
 		p_basisManager = new BasisManager(p_tileManager, p_forceManager, p_entityManager);
 
-		p_currentSelection = new CurrentSelection(&inputManager, p_tileManager, p_entityManager, p_buttonManager, 
+		p_currentSelection = new CurrentSelection(&inputManager, p_entityManager, p_buttonManager, 
 												  &camera, p_basisManager, p_nodeNetwork, p_pov);
 
 		#ifdef USE_GUI_WINDOW
@@ -224,10 +224,10 @@ struct App {
 			updateGlobalVariables(window.window);
 			inputManager.update();
 			p_buttonManager->updateButtons();
+			camera.update();
+			
 			p_currentSelection->update();
 			updateWorld();
-			
-			camera.update();
 			//p_tileManager->updateVisualInfos();
 
 			updateGui();

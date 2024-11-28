@@ -31,7 +31,7 @@ struct CurrentSelection {
 	};
 
 	InputManager* p_inputManager;
-	TileManager* p_tileManager;
+	//TileManager* p_tileManager;
 	EntityManager* p_entityManager;
 	ButtonManager* p_buttonManager;
 	BasisManager* p_basisManager;
@@ -63,8 +63,8 @@ struct CurrentSelection {
 
 	bool leftClick = false;
 
-	CurrentSelection(InputManager* im, TileManager* tm, EntityManager* em, ButtonManager* bm, Camera* (cam),
-					 BasisManager* bam, PositionNodeNetwork* nn, POV* pov) : p_inputManager(im), p_tileManager(tm),
+	CurrentSelection(InputManager* im, EntityManager* em, ButtonManager* bm, Camera* (cam),
+					 BasisManager* bam, PositionNodeNetwork* nn, POV* pov) : p_inputManager(im),
 		p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam), p_nodeNetwork(nn), p_pov(pov)
 	{
 		addTileParentPOV = new POV(p_nodeNetwork, p_camera);
@@ -194,7 +194,7 @@ struct CurrentSelection {
 
 		glm::vec3 color = tnav::getNormal(newTileType);
 		if (color.x < 0 || color.y < 0 || color.z < 0) { color *= -0.8; }
-		heldTileInfo = TileInfo(newTileType, -1, -1, color);
+		heldTileInfo = TileInfo(newTileType,-1, -1, -1, color);
 	}
 
 	void tryEditTiles()
@@ -202,9 +202,11 @@ struct CurrentSelection {
 		using namespace tnav;
 
 		if (p_inputManager->leftClicked()) {
-			p_nodeNetwork->addTile(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
+			p_nodeNetwork->createTile(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
 		}
 		else if (p_inputManager->rightClicked()) {
+			if (hoveredTile != p_pov->getNode())
+				p_nodeNetwork->deleteTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex()));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
 		}
 	}

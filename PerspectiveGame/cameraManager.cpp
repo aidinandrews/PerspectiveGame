@@ -12,6 +12,7 @@ void Camera::update() {
 	if (allowPosChange) { updatePos(); }
 
 	getProjectionMatrix();
+	updateWindowFrustum();
 }
 
 void Camera::updateZoom() {

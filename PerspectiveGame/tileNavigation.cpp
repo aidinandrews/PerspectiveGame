@@ -485,7 +485,7 @@ int tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDire
 	checkOrthogonal(connectedCurrentTileEdgeIndex);
 	checkOrthogonal(connectedNeighborEdgeIndex);
 #endif
-	return NEIGHBOR_ALIGNMENT_MAP_INDICES[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
+	return (MappingID)NEIGHBOR_ALIGNMENT_MAP_INDICES[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
 }
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
@@ -500,12 +500,12 @@ const int COMBINE_MAP_INDICES[8][8] = {
 	{ 7, 4, 5, 6, 1, 2, 3, 0 }
 };
 
-const int tnav:: combineMaps(int firstMappingIndex, int secondMappingIndex)
+const int tnav::combineMaps(int firstMappingIndex, int secondMappingIndex)
 {
-	return COMBINE_MAP_INDICES[firstMappingIndex][secondMappingIndex];
+	return (MappingID)COMBINE_MAP_INDICES[firstMappingIndex][secondMappingIndex];
 }
 
-const int tnav::inverseAlignmentMapIndex(int alignmentMapIndex)
+const int tnav::inverseMapID(int alignmentMapIndex)
 {
 	switch (alignmentMapIndex) {
 	case 0: return 0;
@@ -535,6 +535,16 @@ const SuperTileType tnav::getSuperTileType(TileType type)
 const TileType tnav::getTileType(SuperTileType tileMapType, bool isFront)
 {
 	return TileType(int(tileMapType) * 2 + int(!isFront));
+}
+
+const TileType tnav::getFrontTileType(SuperTileType tileMapType)
+{
+	return TileType(int(tileMapType) * 2);
+}
+
+const TileType tnav::getBackTileType(SuperTileType tileMapType)
+{
+	return TileType(int(tileMapType) * 2 + 1);
 }
 
 const TileType tnav::inverseTileType(TileType type)
@@ -691,13 +701,22 @@ const LocalAlignment tnav::getOtherComponent(LocalAlignment diagonal, LocalAlign
 	}
 }
 
-const glm::vec3 tnav::TO_SIDE_NODE_OFFSETS[3][4] = {
-	{ glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f) },
-	{ glm::vec3(0.0f, 0.0f, 0.5f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.5f, 0.0f, 0.0f) },
-	{ glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 0.5f) }
+const glm::vec3 tnav::TO_NODE_OFFSETS[3][8] = {
+	{ 
+		/* sides:   */ glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f),
+		/* corners: */ glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(-0.5f, 0.5f, 0.0f)
+	},
+	{
+		/* sides:   */ glm::vec3(0.0f, 0.0f, 0.5f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.5f, 0.0f, 0.0f),
+		/* corners: */ glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(-0.5f, 0.0f, 0.5f), glm::vec3(-0.5f, 0.0f, -0.5f), glm::vec3(0.5f, 0.0f, -0.5f)
+	},
+	{
+		/* sides:   */ glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, -0.5f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 0.5f),
+		/* corners: */ glm::vec3(0.0f, 0.5f, 0.5f), glm::vec3(0.0f, 0.5f, -0.5f), glm::vec3(0.0f, -0.5f, -0.5f), glm::vec3(0.0f, -0.5f, 0.5f)
+	},
 };
 
-const glm::vec3* tnav::getToSideNodePositionOffsets(SuperTileType type)
+const glm::vec3* tnav::getNodePositionOffsets(SuperTileType type)
 {
-	return TO_SIDE_NODE_OFFSETS[(int)type];
+	return TO_NODE_OFFSETS[(int)type];
 }

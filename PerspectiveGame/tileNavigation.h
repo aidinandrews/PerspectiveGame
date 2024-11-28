@@ -162,7 +162,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const extern LocalAlignment LOCAL_ALIGNMENT_SET[9];
 	const extern LocalDirection DIRECTION_SET[8];
-	const extern glm::vec3 TO_SIDE_NODE_OFFSETS[3][4];
+	const extern glm::vec3 TO_NODE_OFFSETS[3][8];
 	const extern LocalDirection ORTHOGONAL_DIRECTION_SET[4];
 
 	void checkOrthogonal(LocalAlignment alignment);
@@ -191,7 +191,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const int combineMaps(int alignmentMapIndex0, int alignmentMapIndex1);
 
-	const int inverseAlignmentMapIndex(int alignmentMapIndex);
+	const int inverseMapID(int alignmentMapIndex);
 
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 
@@ -235,6 +235,8 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	// Converts a Tile::Type to a TileSubType.
 	const TileType getTileType(SuperTileType tileType, bool isFront);
+	const TileType getFrontTileType(SuperTileType tileMapType);
+	const TileType getBackTileType(SuperTileType tileMapType);
 
 	// Given four vertices that will make up a tile, returns that potential tile's type.
 	const SuperTileType getSuperTileType(glm::ivec3 tileVert1, glm::ivec3 tileVert2, glm::ivec3 tileVert3);
@@ -246,6 +248,9 @@ namespace tnav { // tnav is short for 'tile navigation'
 	// Returns the 'opposite' TileSubType.  Front gets changed to back.
 	// Ex: TILE_SUB_TYPE_XY_FRONT -> TILE_SUB_TYPE_XY_BACK
 	const TileType inverseTileType(TileType type);
+
+	// returns true if the tile is a 'front' tile and false if it is a 'back' tile.
+	inline const bool isFront(TileType t) { return (int)t % 2 == 1; }
 
 	// Given a tile type and a direciton, will return a pointer to a list of 4 tile types that
 	// describe the possible connectable tile types of any connected tile.
@@ -264,5 +269,13 @@ namespace tnav { // tnav is short for 'tile navigation'
 	const glm::vec3 getNormal(TileType type);
 	const TileType getTileType(glm::vec3 normal);
 
-	const glm::vec3* getToSideNodePositionOffsets(SuperTileType type);
+	// returns a pointer to an array of size 4.
+	// the array is a set of offsets from the center of a tile to each side node's 3D position.
+	// ex: center_node_position + return[side_node_index] = side_node_position
+	const glm::vec3* getNodePositionOffsets(SuperTileType type);
+
+	inline const glm::vec3* getNodePositionOffsets(TileType type)
+	{
+		return getNodePositionOffsets(getSuperTileType(type));
+	}
 }

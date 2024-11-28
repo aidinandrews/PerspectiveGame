@@ -28,6 +28,8 @@ struct Camera {
 	glm::mat4 transfMatrix, viewMatrix, projectionMatrix, modelMatrix;
 	glm::mat4 inverseTransfMatrix;
 
+	std::vector<glm::vec2> windowFrustum;
+
 	bool allowMouseInput;
 	bool allowYawChange;
 	bool allowPitchChange;
@@ -96,4 +98,19 @@ public:
 	glm::mat4 getPerspectiveProjectionMatrix(float windowWidth, float windowHeight);
 	// Returns the XY world coordinates (Z assumed 0) of a screen coordinate.
 	glm::vec2 screenPosToWorldPos(glm::vec2 screenPos);
+
+	void updateWindowFrustum()
+	{
+		windowFrustum.clear();
+		glm::vec2 topLeft(inverseTransfMatrix * glm::vec4(-1, +1, 0, 1));
+		glm::vec2 topRight(inverseTransfMatrix * glm::vec4(+1, +1, 0, 1));
+		glm::vec2 bottomRight(inverseTransfMatrix * glm::vec4(+1, -1, 0, 1));
+		glm::vec2 bottomLeft(inverseTransfMatrix * glm::vec4(-1, -1, 0, 1));
+		glm::vec2 middle = (topLeft + topRight + bottomRight + bottomLeft) / 4.0f;
+		windowFrustum.push_back(topLeft);
+		windowFrustum.push_back(topRight);
+		windowFrustum.push_back(bottomRight);
+		windowFrustum.push_back(bottomLeft);
+	}
+	
 };
