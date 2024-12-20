@@ -17,11 +17,12 @@
 struct POV {
 private:
 	int nodeIndex; // Tile pov resides inside.
+	float ROTATION_SPEED_3D = 5.0f;
 
 public:
 	// Helps orient the scene.  Changed when crossing to different tiles.  In the basis if the current tile.
 	// Identity assumed on init.
-	int mapIndex;
+	MapType mapType;
 	LocalDirection localNorth, localSouth, localEast, localWest;
 
 	PositionNodeNetwork* p_nodeNetwork;
@@ -48,13 +49,13 @@ private:
 	CamInfo currentCamInfo, lastCamInfo;
 
 
-	
+
 
 public:
 	POV(PositionNodeNetwork* nodeNetwork, Camera* camera) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
 		nodeIndex = 0;
-		mapIndex = ALIGNMENT_MAP_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
+		mapType = MAP_TYPE_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
 
 		lastRotationMatrix3D = glm::mat4(1);
 		lastCameraPositionOffset = glm::vec3(0, 0, 0);
@@ -66,22 +67,37 @@ public:
 	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
 	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
 
-	const LocalDirection getNorth() { return tnav::map(mapIndex, LOCAL_DIRECTION_3); }
-	const LocalDirection getSouth() { return tnav::map(mapIndex, LOCAL_DIRECTION_1); }
-	const LocalDirection getEast() { return tnav::map(mapIndex, LOCAL_DIRECTION_0); }
-	const LocalDirection getWest() { return tnav::map(mapIndex, LOCAL_DIRECTION_2); }
+	const LocalDirection getNorth() { return tnav::map(mapType, LOCAL_DIRECTION_3); }
+	const LocalDirection getSouth() { return tnav::map(mapType, LOCAL_DIRECTION_1); }
+	const LocalDirection getEast() { return tnav::map(mapType, LOCAL_DIRECTION_0); }
+	const LocalDirection getWest() { return tnav::map(mapType, LOCAL_DIRECTION_2); }
 
-	void shiftPovEast() { 
-		shiftTile(getEast()); 
-	}
-	void shiftPovWest() { 
-		shiftTile(getWest());
-	}
-	void shiftPovNorth() { 
-		shiftTile(getNorth()); 
-	}
-	void shiftPovSouth() { 
-		shiftTile(getSouth()); 
+	void shiftPovEast() { shiftTile(getEast()); }
+	void shiftPovWest() { shiftTile(getWest()); }
+	void shiftPovNorth() { shiftTile(getNorth()); }
+	void shiftPovSouth() { shiftTile(getSouth()); }
+
+	void shiftTileSimple(LocalDirection d)
+	{
+		using namespace tnav;
+
+		PositionNode* node = getNode();
+		LocalDirection D = d;
+		MapType m1 = node->getNeighborMap(d);
+
+		// Transition to a side node:
+		d = map(node->getNeighborMap(d), d);
+		node = p_nodeNetwork->getNode(node->getNeighborIndex(D));
+
+		// Transistion to the neighbor tile (a center node).
+		MapType m2 = node->getNeighborMap(d);
+		node = p_nodeNetwork->getNode(node->getNeighborIndex(d));
+
+		// Adjust the window space -> tile space mappings:
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
+
+		nodeIndex = node->getIndex();
 	}
 
 	// Will adjust the position, basis, and orientation of 'upward' and 'rightward' to 
@@ -90,33 +106,41 @@ public:
 	{
 		using namespace tnav;
 
-		//lastRotationMatrixWeight = 1.0f;
-		//lastRotationMatrix3D = currentRotation;
-
 		PositionNode* oldNode = getNode();
-		PositionNode* node = oldNode;
+
+		// orthos are the directions to the closest neighbor not in the direction of d.
+		LocalDirection oldOrtho = (d == getNorth() || d == getSouth())
+			? (p_camera->viewPlanePos.x < 0.5f) ? getWest() : getEast()
+			: (p_camera->viewPlanePos.y < 0.5f) ? getSouth() : getNorth();
+		LocalDirection newOrtho = p_nodeNetwork->mapToSecondNeighbor(oldNode, d, oldOrtho);
+
+		PositionNode* newNode = oldNode;
 		LocalDirection D = d;
-		int m1 = node->getNeighborMap(d);
+		MapType m1 = newNode->getNeighborMap(d);
 
 		// Transition to a side node:
-		d = map(node->getNeighborMap(d), d);
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(D));
+		d = map(newNode->getNeighborMap(d), d);
+		newNode = p_nodeNetwork->getNode(newNode->getNeighborIndex(D));
 
 		// Transistion to the neighbor tile (a center node).
-		int m2 = node->getNeighborMap(d);
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(d));
+		MapType m2 = newNode->getNeighborMap(d);
+		newNode = p_nodeNetwork->getNode(newNode->getNeighborIndex(d));
 
 		// Adjust the window space -> tile space mappings:
-		mapIndex = combineMaps(mapIndex, m1);
-		mapIndex = combineMaps(mapIndex, m2);
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
 
-		nodeIndex = node->getIndex();
+		nodeIndex = newNode->getIndex();
 
-		if (p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex())->type !=
-			p_nodeNetwork->getTileInfo(node->getTileInfoIndex())->type) {
-			lastRotationMatrixWeight = 1.0f;
-			lastCamInfo = currentCamInfo;
-		}
+		bool sameType = oldNode->getNodeType() == newNode->getNodeType();
+		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
+		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
+		bool sameConnectedType = ta == tb;
+		if (sameType && sameConnectedType) return;
+
+		// used for 3D transformation matrix lerping:
+		lastRotationMatrixWeight = 1.0f;
+		lastCamInfo = currentCamInfo;
 	}
 
 	// once the pov crosses an edge, it may have to update its rotation matrix to face the tile in
@@ -197,7 +221,7 @@ public:
 		currentCamInfo = getCurrentCamInfo();
 
 		if (lastRotationMatrixWeight > 0) {
-			lastRotationMatrixWeight -= 5.0f * DeltaTime;
+			lastRotationMatrixWeight -= ROTATION_SPEED_3D * DeltaTime;
 
 			float weight = sin(lastRotationMatrixWeight);
 			currentCamInfo = CamInfo(

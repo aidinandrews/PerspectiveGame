@@ -23,7 +23,7 @@
 #include "makeShapes.h"
 #include "portal.h"
 #include "scene.h"
-#include "tileManager.h"
+//#include "tileManager.h"
 #include "forceManager.h"
 #include "currentSelection.h"
 #include "frameBuffer.h"
@@ -45,8 +45,8 @@ struct App {
 	Framebuffer framebuffer;
 	aaTexture* p_wave;
 
-	TileManager* p_tileManager;
-	ForceManager* p_forceManager;
+	//TileManager* p_tileManager;
+	//ForceManager* p_forceManager;
 	EntityManager* p_entityManager;
 	CurrentSelection* p_currentSelection;
 	BasisManager* p_basisManager;
@@ -60,7 +60,7 @@ struct App {
 	{
 		delete p_guiManager;
 		delete p_wave;
-		delete p_tileManager;
+		//delete p_tileManager;
 		delete p_entityManager;
 		delete p_basisManager;
 		delete p_currentSelection;
@@ -104,26 +104,26 @@ struct App {
 
 		p_buttonManager = new ButtonManager(&framebuffer, &shaderManager, window.window, &inputManager);
 
-		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
-		p_tileManager->texID = p_wave->ID;
+		//p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
+		//p_tileManager->texID = p_wave->ID;
 		
 		p_nodeNetwork = new PositionNodeNetwork(&camera);
 		p_nodeNetwork->texID = p_wave->ID;
 
 		p_pov = new POV(p_nodeNetwork, &camera);
 
-		p_forceManager = new ForceManager(p_tileManager);
+		//p_forceManager = new ForceManager(p_tileManager);
 
-		p_entityManager = new EntityManager(p_tileManager);
+		//p_entityManager = new EntityManager(p_tileManager);
 
-		p_basisManager = new BasisManager(p_tileManager, p_forceManager, p_entityManager);
+		//p_basisManager = new BasisManager(p_tileManager, p_forceManager, p_entityManager);
 
 		p_currentSelection = new CurrentSelection(&inputManager, p_entityManager, p_buttonManager, 
 												  &camera, p_basisManager, p_nodeNetwork, p_pov);
 
 		#ifdef USE_GUI_WINDOW
 		p_guiManager = new GuiManager(window.window, imGuiWindow.window, &shaderManager, &inputManager, &camera,
-									  p_tileManager, &framebuffer, p_buttonManager, p_currentSelection, p_entityManager, 
+									  &framebuffer, p_buttonManager, p_currentSelection, p_entityManager, 
 									  p_nodeNetwork, p_pov);
 		#else
 		p_guiManager = new GuiManager(window.window, nullptr, &shaderManager, &inputManager, &camera, p_tileManager, &framebuffer, p_buttonManager);
@@ -145,7 +145,7 @@ struct App {
 
 	void setupWorld()
 	{
-		setupScenarioDirectCollisionFromEdge(p_tileManager, p_entityManager, p_currentSelection);
+		//setupScenarioDirectCollisionFromEdge(p_tileManager, p_entityManager, p_currentSelection);
 	}
 
 	void updateGraphicsAPI()

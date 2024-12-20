@@ -70,17 +70,17 @@ bool TileManager::createTilePair(SuperTileType tileMapType, glm::ivec3 maxPoint,
 	updateCornerSafety(backTile);
 	for (int i = 0; i < 4; i++) {
 		Tile* neighbor1 = foreTile->neighbors[i];
-		int mapIndex = foreTile->neighborAlignmentMaps[i];
-		Tile* neighbor1a = neighbor1->neighbors[tnav::map(mapIndex, LocalDirection((i + 1) % 4))];
-		Tile* neighbor1b = neighbor1->neighbors[tnav::map(mapIndex, LocalDirection((i + 3) % 4))];
+		int mapType = foreTile->neighborAlignmentMaps[i];
+		Tile* neighbor1a = neighbor1->neighbors[tnav::map(mapType, LocalDirection((i + 1) % 4))];
+		Tile* neighbor1b = neighbor1->neighbors[tnav::map(mapType, LocalDirection((i + 3) % 4))];
 		updateCornerSafety(neighbor1);
 		updateCornerSafety(neighbor1a);
 		updateCornerSafety(neighbor1b);
 
 		neighbor1 = backTile->neighbors[i];
-		mapIndex = backTile->neighborAlignmentMaps[i];
-		neighbor1a = neighbor1->neighbors[tnav::map(mapIndex, LocalDirection((i + 1) % 4))];
-		neighbor1b = neighbor1->neighbors[tnav::map(mapIndex, LocalDirection((i + 3) % 4))];
+		mapType = backTile->neighborAlignmentMaps[i];
+		neighbor1a = neighbor1->neighbors[tnav::map(mapType, LocalDirection((i + 1) % 4))];
+		neighbor1b = neighbor1->neighbors[tnav::map(mapType, LocalDirection((i + 3) % 4))];
 		updateCornerSafety(neighbor1);
 		updateCornerSafety(neighbor1a);
 		updateCornerSafety(neighbor1b);

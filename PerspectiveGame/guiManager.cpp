@@ -132,7 +132,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldBasisIndex = 2;
 		ImGui::ListBox("Held Basis", &heldBasisIndex, basisLabels, IM_ARRAYSIZE(basisLabels), 4);
-		p_currentSelection->heldBasis.type = BasisType(heldBasisIndex);
+		//p_currentSelection->heldBasis.type = BasisType(heldBasisIndex);
 
 		const char* entityLabels[] = { 
 			"NONE",
@@ -140,7 +140,7 @@ void GuiManager::renderImGuiDebugWindows() {
 		};
 		static int heldEntityIndex = 5;
 		ImGui::ListBox("Held Entity", &heldEntityIndex, entityLabels, IM_ARRAYSIZE(entityLabels), 7);
-		p_currentSelection->heldEntity->type = EntityType(heldEntityIndex);
+		//p_currentSelection->heldEntity->type = EntityType(heldEntityIndex);
 		ImGui::ColorEdit3("Preview Tile Color", (float *)&p_currentSelection->heldTileColor); // Edit 3 floats representing a color
 
 		// Buttons return true when clicked (most widgets return true when edited/activated)
@@ -368,7 +368,7 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 	glUniform1f(glGetUniformLocation(programID, "deltaTime"), TimeSinceProgramStart);
 	glUniform1f(glGetUniformLocation(programID, "updateProgress"), updateProgress);
 	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->getNode()->getIndex());
-	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapIndex);
+	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapType);
 	
 	//glm::vec2 relativePos[5]; // player position in current tile and neighbors:
 	//int relativePosTileIndices[5];

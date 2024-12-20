@@ -126,9 +126,6 @@
     <ClInclude Include="textureManager.h">
       <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
-    <ClInclude Include="tileManager.h">
-      <Filter>Source Files\Game\Managers</Filter>
-    </ClInclude>
     <ClInclude Include="vertexManager.h">
       <Filter>Source Files\Game\Managers</Filter>
     </ClInclude>
@@ -159,9 +156,6 @@
     <ClInclude Include="object.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
-    <ClInclude Include="player.h">
-      <Filter>Source Files\Game\World</Filter>
-    </ClInclude>
     <ClInclude Include="pov.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
@@ -173,9 +167,6 @@
     </ClInclude>
     <ClInclude Include="scene.h">
       <Filter>Source Files\Game\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="tile.h">
-      <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="scenarioSetup.h">
       <Filter>Source Files\Tests</Filter>
@@ -254,9 +245,6 @@
     <ClCompile Include="textureManager.cpp">
       <Filter>Source Files\Game\Managers</Filter>
     </ClCompile>
-    <ClCompile Include="tileManager.cpp">
-      <Filter>Source Files\Game\Managers</Filter>
-    </ClCompile>
     <ClCompile Include="vertexManager.cpp">
       <Filter>Source Files\Game\Managers</Filter>
     </ClCompile>
@@ -280,9 +268,6 @@
     </ClCompile>
     <ClCompile Include="scene.cpp">
       <Filter>Source Files\Game\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="tile.cpp">
-      <Filter>Source Files\Game\World</Filter>
     </ClCompile>
     <ClCompile Include="tileNavigation.cpp">
       <Filter>Source Files\Game\World</Filter>

@@ -43,19 +43,49 @@ enum TileRelation {
 	TILE_RELATION_FLIPPED,
 };
 
-// Along with the Tile::Type (XY, XZ, YZ), each tile has a direction (FRONT/BACK). This lets us know how we 
-// should be looking at the tile, as each tile has a 'sibling' that faces the opposite direction.
-enum TileType {
-	TILE_TYPE_XYF, TILE_TYPE_XYB,
-	TILE_TYPE_XZF, TILE_TYPE_XZB,
-	TILE_TYPE_YZF, TILE_TYPE_YZB,
-	TILE_TYPE_ERROR
+enum OrientationType {
+	ORIENTATION_TYPE_0 = 0, 
+	ORIENTATION_TYPE_1 = 1, 
+	ORIENTATION_TYPE_2 = 2, 
+	ORIENTATION_TYPE_3 = 3, 
+	ORIENTATION_TYPE_4 = 4, 
+	ORIENTATION_TYPE_5 = 5, 
+	ORIENTATION_TYPE_ERROR,
 };
 
-// This enum list mirrors the TileType enum but is used in nodes to map from one basis to another.
-enum MappingID {
-	MAP_ID_0, MAP_ID_1, MAP_ID_2, MAP_ID_3, MAP_ID_4, MAP_ID_5,MAP_ID_ERROR
+using TileType = OrientationType;
+#define TILE_TYPE_XYF ORIENTATION_TYPE_0
+#define TILE_TYPE_XYB ORIENTATION_TYPE_1
+#define TILE_TYPE_XZF ORIENTATION_TYPE_2
+#define TILE_TYPE_XZB ORIENTATION_TYPE_3
+#define TILE_TYPE_YZF ORIENTATION_TYPE_4
+#define TILE_TYPE_YZB ORIENTATION_TYPE_5
+#define TILE_TYPE_ERROR ORIENTATION_TYPE_ERROR
+#define TILE_TYPE_DEFAULT TILE_TYPE_XYF
+
+using NodeType = OrientationType;
+#define NODE_TYPE_XYF ORIENTATION_TYPE_0
+#define NODE_TYPE_XYB ORIENTATION_TYPE_1
+#define NODE_TYPE_XZF ORIENTATION_TYPE_2
+#define NODE_TYPE_XZB ORIENTATION_TYPE_3
+#define NODE_TYPE_YZF ORIENTATION_TYPE_4
+#define NODE_TYPE_YZB ORIENTATION_TYPE_5
+#define NODE_TYPE_ERROR ORIENTATION_TYPE_ERROR
+#define NODE_TYPE_DEFAULT NODE_TYPE_XYF
+
+enum MapType {
+	MAP_TYPE_0 = 0,
+	MAP_TYPE_1 = 1,
+	MAP_TYPE_2 = 2,
+	MAP_TYPE_3 = 3,
+	MAP_TYPE_4 = 4,
+	MAP_TYPE_5 = 5,
+	MAP_TYPE_6 = 6,
+	MAP_TYPE_7 = 7,
+	MAP_TYPE_ERROR,
 };
+#define MAP_TYPE_IDENTITY MAP_TYPE_0
+
 
 enum BasisType {
 	BASIS_TYPE_NONE,
@@ -184,14 +214,13 @@ namespace tnav { // tnav is short for 'tile navigation'
 	
 	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
 	
-#define ALIGNMENT_MAP_IDENTITY 0
-	const LocalAlignment map(int mapIndex, LocalAlignment currentAlignment);
+	const LocalAlignment map(MapType mapType, LocalAlignment currentAlignment);
 
-	int getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
+	const MapType getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
-	const int combineMaps(int alignmentMapIndex0, int alignmentMapIndex1);
+	const MapType combineMaps(MapType map1, MapType map2);
 
-	const int inverseMapID(int alignmentMapIndex);
+	const MapType inverseMapType(MapType mapType);
 
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 

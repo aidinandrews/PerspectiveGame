@@ -3,7 +3,8 @@
 #include <iostream>
 
 #include "inputManager.h"
-#include "tileManager.h"
+//#include "tileManager.h"
+#include "entity.h"
 #include "entityManager.h"
 #include "basisManager.h"
 #include "buttonManager.h"
@@ -47,7 +48,7 @@ struct CurrentSelection {
 	TileInfo heldTileInfo;
 	glm::vec3 heldTilePos;
 
-	Tile::Basis heldBasis;
+	//Tile::Basis heldBasis;
 	Entity* heldEntity;
 	LocalDirection heldEntityDirection;
 
@@ -79,9 +80,9 @@ struct CurrentSelection {
 		heldTileColor = glm::vec3(1, 0, 0);
 
 		canEditEntities = true;
-		heldEntity = new Entity(-1, -1, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, LOCAL_ORIENTATION_0, glm::vec4(0, 0, 0, 0));
+		//heldEntity = new Entity(-1, -1, ENTITY_TYPE_OMNI, LOCAL_DIRECTION_0, LOCAL_ORIENTATION_0, glm::vec4(0, 0, 0, 0));
 		canEditBases = false;
-		heldBasis.type = BASIS_TYPE_FORCE_SINK;
+		//heldBasis.type = BASIS_TYPE_FORCE_SINK;
 	}
 
 	~CurrentSelection()
@@ -93,7 +94,7 @@ struct CurrentSelection {
 	void addQueuedEntities()
 	{
 		for (QueuedEntity e : queuedEntities) {
-			p_entityManager->createEntity(e.tileIndex, e.type, e.direction, e.orientation);
+			//p_entityManager->createEntity(e.tileIndex, e.type, e.direction, e.orientation);
 		}
 		queuedEntities.clear();
 	}
@@ -150,7 +151,7 @@ struct CurrentSelection {
 			}
 
 			*addTileParentPOV = targetPOV; // keeps the last pov for later
-			targetPOV.shiftTile(addTileParentAddDirection);
+			targetPOV.shiftTileSimple(addTileParentAddDirection);
 		}
 		hoveredTile = targetPOV.getNode();
 	}
@@ -158,7 +159,7 @@ struct CurrentSelection {
 	void findPreviewTile()
 	{
 		PositionNode* node = addTileParentPOV->getNode();
-		TileType addParentTileType = (TileType)node->getMappingID();
+		TileType addParentTileType = (TileType)node->getNodeType();
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
 		glm::vec3 sideNodePos = node->getPosition();
 		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());
@@ -245,11 +246,11 @@ struct CurrentSelection {
 
 		if (p_inputManager->keys[ROTATE_KEY].click) {
 			if (canEditBases) {
-				heldBasis.localOrientation = LocalDirection((heldBasis.localOrientation + 1) % 4);
+				//heldBasis.localOrientation = LocalDirection((heldBasis.localOrientation + 1) % 4);
 			}
 			if (canEditEntities) {
-				heldEntity->setDirection(0, LocalDirection((heldEntity->getDirection(0) + 1) % 8));
-				tnav::println(heldEntity->getDirection(0));
+				//heldEntity->setDirection(0, LocalDirection((heldEntity->getDirection(0) + 1) % 8));
+				//tnav::println(heldEntity->getDirection(0));
 			}
 			if (canEditTiles) {
 				// NOTE: IMGUI IS HANDLING THIS RN!

@@ -61,7 +61,7 @@ public:
 		lastFrameCursorPos = glm::vec2(CursorPixelPos);
 		viewVec = glm::vec3(0.0f, 0.0f, 1.0f);
 		cursorPlanePos = glm::vec2(0.0f, 0.0f);
-		viewPlanePos = glm::vec3(0.0f, 0.0f, 0.0f);
+		viewPlanePos = glm::vec3(0.5f, 0.5f, 0.0f);
 		viewPlanePosStore = glm::vec3(0.0f, 0.0f, 0.0f);
 		viewPlanePosAdj = glm::vec3(0.0f, 0.0f, 0.0f);
 		pitch = 0.0f;

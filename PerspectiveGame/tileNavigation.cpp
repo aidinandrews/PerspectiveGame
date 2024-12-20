@@ -463,59 +463,62 @@ const LocalAlignment ALIGNMENT_TRANSLATION_MAPS[8][10] = {
 // Given an index to a local alignment to local alignment map and an alignment, will convert that
 // alignment to its mapped alignment and return it.  Map indices should be stored inside tiles as
 // current tile alignments -> neighbor tile alignments maps as well as other places.
-const LocalAlignment tnav::map(int mapIndex, LocalAlignment currentAlignment)
+const LocalAlignment tnav::map(MapType mapType, LocalAlignment currentAlignment)
 {
 #ifdef RUNNING_DEBUG
-	if (mapIndex > 7) std::cout << "INVALID ALIGNMENT TRANSLATION MAP INDEX" << std::endl;
+	if (mapType > 7) std::cout << "INVALID ALIGNMENT TRANSLATION MAP INDEX" << std::endl;
 #endif
-	return ALIGNMENT_TRANSLATION_MAPS[mapIndex][currentAlignment];
+	return ALIGNMENT_TRANSLATION_MAPS[mapType][currentAlignment];
 }
 
 // NEIGHBOR_ALIGNMENT_MAP_INDICES[currentTileEdgeIndex][connectedNeighborEdgeIndex]
-const int NEIGHBOR_ALIGNMENT_MAP_INDICES[4][4] = {
-	{ 6, 7, 0, 1 }, { 7, 4, 3, 0 }, { 0, 1, 6, 7 }, { 3, 0, 7, 4 }
+const MapType NEIGHBOR_ALIGNMENT_MAP_TYPE[4][4] = {
+	{ MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_0, MAP_TYPE_1 },
+	{ MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_3, MAP_TYPE_0 },
+	{ MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_6, MAP_TYPE_7 },
+	{ MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_7, MAP_TYPE_4 }
 };
 
 // I have no idea why you dont have to account for the different starting tile types.  
 // They all come out to the same map indices somehow!  
 // 6x size decreas maybe due to the layout of edge indices on different tile types being a nice pattern?
-int tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
+const MapType tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
 {
 #ifdef RUNNING_DEBUG
 	checkOrthogonal(connectedCurrentTileEdgeIndex);
 	checkOrthogonal(connectedNeighborEdgeIndex);
 #endif
-	return (MappingID)NEIGHBOR_ALIGNMENT_MAP_INDICES[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
+	return NEIGHBOR_ALIGNMENT_MAP_TYPE[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
 }
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
-const int COMBINE_MAP_INDICES[8][8] = {
-	{ 0, 1, 2, 3, 4, 5, 6, 7 },
-	{ 1, 2, 3, 0, 7, 4, 5, 6 },
-	{ 2, 3, 0, 1, 6, 7, 4, 5 },
-	{ 3, 0, 1, 2, 5, 6, 7, 4 },
-	{ 4, 5, 6, 7, 0, 1, 2, 3 },
-	{ 5, 6, 7, 4, 3, 0, 1, 2 },
-	{ 6, 7, 4, 5, 2, 3, 0, 1 },
-	{ 7, 4, 5, 6, 1, 2, 3, 0 }
+const MapType COMBINE_MAP_INDICES[8][8] = {
+	{ MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7 },
+	{ MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6 },
+	{ MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5 },
+	{ MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4 },
+	{ MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3 },
+	{ MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2 },
+	{ MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1 },
+	{ MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0 }
 };
 
-const int tnav::combineMaps(int firstMappingIndex, int secondMappingIndex)
+const MapType tnav::combineMaps(MapType map1, MapType map2)
 {
-	return (MappingID)COMBINE_MAP_INDICES[firstMappingIndex][secondMappingIndex];
+	return COMBINE_MAP_INDICES[map1][map2];
 }
 
-const int tnav::inverseMapID(int alignmentMapIndex)
+const MapType tnav::inverseMapType(MapType map)
 {
-	switch (alignmentMapIndex) {
-	case 0: return 0;
-	case 1: return 3;
-	case 2: return 2;
-	case 3: return 1;
-	case 4: return 4;
-	case 5: return 5;
-	case 6: return 6;
-	case 7: return 7;
+	switch (map) {
+	case 0: return MAP_TYPE_0;
+	case 1: return MAP_TYPE_3;
+	case 2: return MAP_TYPE_2;
+	case 3: return MAP_TYPE_1;
+	case 4: return MAP_TYPE_4;
+	case 5: return MAP_TYPE_5;
+	case 6: return MAP_TYPE_6;
+	case 7: return MAP_TYPE_7;
 	default: throw std::runtime_error("INVALID ALIGNMENT MAP INDEX IN GIVEN TO inverseAlignmentMapIndex()");
 	}
 }

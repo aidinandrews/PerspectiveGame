@@ -428,7 +428,6 @@ pause
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
     <ClInclude Include="object.h" />
-    <ClInclude Include="player.h" />
     <ClInclude Include="playground.h" />
     <ClInclude Include="positionNode.h" />
     <ClInclude Include="positionNodeNetwork.h" />
@@ -437,10 +436,8 @@ pause
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaderManager.h" />
     <ClInclude Include="textureManager.h" />
-    <ClInclude Include="tile.h" />
     <ClInclude Include="tile3dViewCamera.h" />
     <ClInclude Include="tileGPUInfo.h" />
-    <ClInclude Include="tileManager.h" />
     <ClInclude Include="tileNavigation.h" />
     <ClInclude Include="vectorHelperFunctions.h" />
     <ClInclude Include="vertexManager.h" />
@@ -470,8 +467,6 @@ pause
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="stb_image_impl.cpp" />
     <ClCompile Include="textureManager.cpp" />
-    <ClCompile Include="tile.cpp" />
-    <ClCompile Include="tileManager.cpp" />
     <ClCompile Include="tileNavigation.cpp" />
     <ClCompile Include="vectorHelperFunctions.cpp" />
     <ClCompile Include="vertexManager.cpp" />

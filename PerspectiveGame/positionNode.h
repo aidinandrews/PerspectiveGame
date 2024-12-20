@@ -14,10 +14,10 @@ struct PositionNode {
 private:
 	int index;
 	int tileInfoIndex; // -1 if the node is not a central node.
-	MappingID mappingID; // indicates the mapping needed to go from this node to others
+	NodeType nodeType; // indicates the mapping needed to go from this node to others
 	glm::vec3 position;
 	int neighborIndices[8];
-	int neighborMapIndices[8];
+	MapType neighborMaps[8];
 
 public:
 	PositionNode()
@@ -31,8 +31,8 @@ public:
 	int getNeighborIndex(LocalDirection toNeighbor) { return neighborIndices[toNeighbor]; }
 	void setNeighborIndex(int index, LocalDirection toNeighbor) { neighborIndices[toNeighbor] = index; }
 
-	int getNeighborMap(LocalDirection toNeighbor) { return neighborMapIndices[toNeighbor]; }
-	void setNeighborMap(int index, LocalDirection toNeighbor) { neighborMapIndices[toNeighbor] = index; }
+	MapType getNeighborMap(LocalDirection toNeighbor) { return neighborMaps[toNeighbor]; }
+	void setNeighborMap(MapType mapType, LocalDirection toNeighbor) { neighborMaps[toNeighbor] = mapType; }
 
 	int getIndex() { return index; }
 	void setIndex(int index) { this->index = index; }
@@ -40,23 +40,23 @@ public:
 	int getTileInfoIndex() { return tileInfoIndex; }
 	void setTileInfoIndex(int index) { tileInfoIndex = index; }
 
-	MappingID getMappingID() { return mappingID; }
-	void setMappingID(MappingID id) { mappingID = id; }
+	NodeType getNodeType() { return nodeType; }
+	void setNodeType(NodeType id) { nodeType = id; }
 
 	LocalAlignment mapToNeighbor(LocalAlignment alignment, LocalDirection toNeighbor)
 	{
-		return tnav::map(neighborMapIndices[toNeighbor], alignment);
+		return tnav::map(neighborMaps[toNeighbor], alignment);
 	}
 
 	void wipe()
 	{
 		index = -1;
 		tileInfoIndex = -1;
-		mappingID = MAP_ID_ERROR;
+		nodeType = NODE_TYPE_ERROR;
 		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		for (auto d : tnav::DIRECTION_SET) {
 			neighborIndices[d] = -1;
-			neighborMapIndices[d] = -1;
+			neighborMaps[d] = MAP_TYPE_ERROR;
 		}
 	}
 };
@@ -99,7 +99,7 @@ struct TileInfo {
 
 struct alignas(32) GPU_PositionNodeInfo {
 	alignas(32) int neighborIndices[8];
-	alignas(32) int neighborMapIndices[8];
+	alignas(32) int neighborMaps[8];
 
 	alignas(4) int index;
 	alignas(4) int tileInfoIndex;
@@ -112,7 +112,7 @@ struct alignas(32) GPU_PositionNodeInfo {
 
 		for (LocalDirection d : tnav::DIRECTION_SET) {
 			neighborIndices[d] = node.getNeighborIndex(d);
-			neighborMapIndices[d] = node.getNeighborMap(d);
+			neighborMaps[d] = node.getNeighborMap(d);
 		}
 	}
 };
