@@ -390,7 +390,7 @@ bool tnav::isOrthogonal(LocalDirection direction) { return direction < 4; }
 
 bool tnav::isDiagonal(LocalDirection direction) { return 3 < direction && direction < 8; }
 
-LocalDirection tnav::oppositeAlignment(LocalAlignment alignment)
+LocalDirection tnav::inverse(LocalAlignment alignment)
 {
 	int diagonalOffset = (alignment > 3) * 4;
 	return LocalDirection((alignment + 2) % 4 + diagonalOffset);
@@ -482,13 +482,13 @@ const MapType NEIGHBOR_ALIGNMENT_MAP_TYPE[4][4] = {
 // I have no idea why you dont have to account for the different starting tile types.  
 // They all come out to the same map indices somehow!  
 // 6x size decreas maybe due to the layout of edge indices on different tile types being a nice pattern?
-const MapType tnav::getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex)
+const MapType tnav::getNeighborMap(LocalDirection currentToNeighbor, LocalDirection neighborToCurrent)
 {
 #ifdef RUNNING_DEBUG
 	checkOrthogonal(connectedCurrentTileEdgeIndex);
 	checkOrthogonal(connectedNeighborEdgeIndex);
 #endif
-	return NEIGHBOR_ALIGNMENT_MAP_TYPE[connectedCurrentTileEdgeIndex][connectedNeighborEdgeIndex];
+	return NEIGHBOR_ALIGNMENT_MAP_TYPE[currentToNeighbor][neighborToCurrent];
 }
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
@@ -508,7 +508,7 @@ const MapType tnav::combineMaps(MapType map1, MapType map2)
 	return COMBINE_MAP_INDICES[map1][map2];
 }
 
-const MapType tnav::inverseMapType(MapType map)
+const MapType tnav::inverse(MapType map)
 {
 	switch (map) {
 	case 0: return MAP_TYPE_0;

@@ -13,6 +13,7 @@
 #include "positionNodeNetwork.h"
 #include "vectorHelperFunctions.h"
 #include "globalVariables.h"
+#include "buttonManager.h"
 
 struct POV {
 private:
@@ -27,16 +28,13 @@ public:
 
 	PositionNodeNetwork* p_nodeNetwork;
 	Camera* p_camera;
+	Button* p_button;
 
-	TileType oldTileType;
-	glm::mat4 currentRotation; // tells how many rotations arount the x, y, and z axes
 	glm::mat4 finalRotation;
 	// For the 3D view to interpolate between viewing angles when transitioning between tiles:
 	//glm::mat4 rotationMatrix3D;
-	glm::mat4 lastRotationMatrix3D;
 	glm::vec3 lastCamPos, lastCamTarget, lastCamUp;
 
-	glm::vec3 lastCameraPositionOffset;
 	float lastRotationMatrixWeight; // How much to interpolate between last and current rotation matrices.
 	glm::mat4 rotationMatrix2D; // for the 2D view, needs to 'snap' between rotations on tile transition.
 
@@ -52,16 +50,14 @@ private:
 
 
 public:
-	POV(PositionNodeNetwork* nodeNetwork, Camera* camera) : p_nodeNetwork(nodeNetwork), p_camera(camera)
+	POV(PositionNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
+		p_button = button;
 		nodeIndex = 0;
 		mapType = MAP_TYPE_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
 
-		lastRotationMatrix3D = glm::mat4(1);
-		lastCameraPositionOffset = glm::vec3(0, 0, 0);
 		lastRotationMatrixWeight = 0.0f;
 		rotationMatrix2D = glm::mat4(1);
-		currentRotation = glm::mat4(1);
 	}
 
 	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
@@ -132,13 +128,12 @@ public:
 
 		nodeIndex = newNode->getIndex();
 
+		// used for 3D transformation matrix lerping:
 		bool sameType = oldNode->getNodeType() == newNode->getNodeType();
 		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
 		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
-		bool sameConnectedType = ta == tb;
-		if (sameType && sameConnectedType) return;
+		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.
 
-		// used for 3D transformation matrix lerping:
 		lastRotationMatrixWeight = 1.0f;
 		lastCamInfo = currentCamInfo;
 	}
@@ -188,23 +183,19 @@ public:
 	void updatePosition()
 	{
 		if (p_camera->viewPlanePos.x > 1.0f) {
-			lastCameraPositionOffset = p_camera->viewPlanePos - glm::vec3(1, 0, 0);
 			p_camera->viewPlanePos.x -= 1.0f;
 			shiftTile(getEast());
 		}
 		else if (p_camera->viewPlanePos.x < 0.0f) {
-			lastCameraPositionOffset = p_camera->viewPlanePos + glm::vec3(1, 0, 0);
 			p_camera->viewPlanePos.x += 1.0f;
 			shiftTile(getWest());
 		}
 
 		if (p_camera->viewPlanePos.y > 1.0f) {
-			lastCameraPositionOffset = p_camera->viewPlanePos - glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y -= 1.0f;
 			shiftTile(getNorth());
 		}
 		else if (p_camera->viewPlanePos.y < 0.0f) {
-			lastCameraPositionOffset = p_camera->viewPlanePos + glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y += 1.0f;
 			shiftTile(getSouth());
 		}
@@ -232,13 +223,14 @@ public:
 		}
 
 		glm::mat4 vieMatrix = glm::lookAt(currentCamInfo.pos, currentCamInfo.target, currentCamInfo.up);
-		finalRotation = getCurrentProjectionMatrix(1.0f) * vieMatrix;
+		finalRotation = getCurrentProjectionMatrix() * vieMatrix;
 	}
 
-	glm::mat4 getCurrentProjectionMatrix(float aspectRatio)
+	glm::mat4 getCurrentProjectionMatrix()
 	{
 		constexpr float fov = glm::radians(45.0f); // Field of view in radians 
 		float nearPlane = 0.5f, farPlane = 100.0f;
+		float aspectRatio = (float)p_button->pixelWidth() / (float)p_button->pixelHeight();
 		return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 	}
 

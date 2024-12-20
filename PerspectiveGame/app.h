@@ -110,7 +110,7 @@ struct App {
 		p_nodeNetwork = new PositionNodeNetwork(&camera);
 		p_nodeNetwork->texID = p_wave->ID;
 
-		p_pov = new POV(p_nodeNetwork, &camera);
+		p_pov = new POV(p_nodeNetwork, &camera, &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex]);
 
 		//p_forceManager = new ForceManager(p_tileManager);
 

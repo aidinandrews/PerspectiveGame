@@ -116,7 +116,7 @@ void TileManager::removeConnectedSuperPositions(Tile* node, Tile* sibling, std::
 		// We only need to check 2 of the neighbors as it is impossible 
 		// for an overlapping meta node to exist in the corners here:
 		if (lastDirCornersChecked == false) {
-			LocalDirection neighborDirection = node->mapAlignmentToNeighbor(dir, tnav::oppositeAlignment(dir));
+			LocalDirection neighborDirection = node->mapAlignmentToNeighbor(dir, tnav::inverse(dir));
 			//p_superPositionNetwork->remove(neighbor->superPositions[neighborDirection + 4], affectedSuperPositions);
 			//p_superPositionNetwork->remove(neighbor->superPositions[((neighborDirection + 3) % 4) + 4], affectedSuperPositions);
 			lastDirCornersChecked = true;

@@ -68,7 +68,8 @@ struct CurrentSelection {
 					 BasisManager* bam, PositionNodeNetwork* nn, POV* pov) : p_inputManager(im),
 		p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam), p_nodeNetwork(nn), p_pov(pov)
 	{
-		addTileParentPOV = new POV(p_nodeNetwork, p_camera);
+		Button* b = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
+		addTileParentPOV = new POV(p_nodeNetwork, p_camera, b);
 		hoveredTile = nullptr;
 		hoveredTileConnectionIndex = 0;
 
@@ -191,7 +192,7 @@ struct CurrentSelection {
 		using namespace tnav;
 
 		if (p_inputManager->leftClicked()) {
-			p_nodeNetwork->createTile(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
+			p_nodeNetwork->createTilePair(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
 		}
 		else if (p_inputManager->rightClicked()) {
 			if (hoveredTile != p_pov->getNode())

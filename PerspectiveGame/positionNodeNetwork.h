@@ -38,7 +38,7 @@ public: // Rendering:
 public:
 	PositionNodeNetwork(Camera* c) : p_camera(c)
 	{
-		createTile(glm::vec3(0, 0, 0), TILE_TYPE_XY);
+		createTilePair(glm::vec3(0, 0, 0), TILE_TYPE_XY);
 
 		// Rendering:
 		glGenBuffers(1, &positionNodeInfosBufferID);
@@ -145,7 +145,7 @@ public:
 			for (auto d : tnav::DIRECTION_SET) { // disconnect neighbor nodes:
 				if (node->getNeighborIndex(d) == -1)
 					continue;
-				LocalDirection D = tnav::map(node->getNeighborMap(d), tnav::oppositeAlignment(d));
+				LocalDirection D = tnav::map(node->getNeighborMap(d), tnav::inverse(d));
 				PositionNode* neighbor = getNode(node->getNeighborIndex(d));
 				neighbor->setNeighborIndex(-1, D);
 				neighbor->setNeighborMap(MAP_TYPE_ERROR, D);
@@ -307,8 +307,8 @@ public:
 				backCenterNode->setNeighborIndex(newSideNode->getIndex(), d);
 				backCenterNode->setNeighborMap(tnav::getNeighborMap(d, d), d);
 
-				newSideNode->setNeighborIndex(frontCenterNode->getIndex(), tnav::oppositeAlignment(d));
-				newSideNode->setNeighborMap(MAP_TYPE_IDENTITY, tnav::oppositeAlignment(d));
+				newSideNode->setNeighborIndex(frontCenterNode->getIndex(), tnav::inverse(d));
+				newSideNode->setNeighborMap(MAP_TYPE_IDENTITY, tnav::inverse(d));
 				newSideNode->setNeighborIndex(backCenterNode->getIndex(), d);
 				newSideNode->setNeighborMap(tnav::getNeighborMap(d, d), d);
 				continue;
@@ -338,9 +338,9 @@ public:
 
 				PositionNode* linkedSideNode = getNode(linkedTileSideNode->getNeighborIndex(linkedTileDir));
 				LocalDirection connectedSideOut = tnav::map(linkedTileSideNode->getNeighborMap(linkedTileDir), linkedTileDir);
-				LocalDirection currentNeighborOut = tnav::map(linkedSideNode->getNeighborMap(connectedSideOut), tnav::oppositeAlignment(connectedSideOut));
+				LocalDirection currentNeighborOut = tnav::map(linkedSideNode->getNeighborMap(connectedSideOut), tnav::inverse(connectedSideOut));
 
-				LocalDirection oppD = tnav::oppositeAlignment(d);
+				LocalDirection oppD = tnav::inverse(d);
 
 				// we need to connect this side node to the new tile pair:
 				if (newConnectionPrio1 < newConnectionPrio2) {
@@ -394,7 +394,7 @@ public:
 	}
 
 	// returns a pointer to the center node of the newly created tile or nullptr if the tile could not be made.
-	TileInfo* createTile(glm::vec3 pos, SuperTileType type)
+	TileInfo* createTilePair(glm::vec3 pos, SuperTileType type)
 	{
 		// check if there is already a tile where we are trying to add one:
 		// increment by 2s since we always add/remove 2 tiles at a time (front and back).
@@ -430,48 +430,53 @@ public:
 
 		if (t == nullptr) return;
 
-		TileInfo* sibT = getTileInfo(t->siblingIndex);
+		TileInfo* siblingTile = getTileInfo(t->siblingIndex);
 		int centerNodeIndex = (t->nodeIndex);
-		int sibCenterNodeIndex = (sibT->nodeIndex);
+		int sibCenterNodeIndex = (siblingTile->nodeIndex);
 
 		// reconnect edges:
 		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			TileInfo* neighborTile = getTileInfo(t, d);
-			if (neighborTile == sibT) {
+			TileInfo
+				* neighborTile1 = getTileInfo(t, d),
+				* neighborTile2 = getTileInfo(t->siblingIndex, d);
+			if (neighborTile1 == siblingTile) {
 				// edges that dont connect to anything can be simply removed, 
 				// as no reconnection is necessary:
 				removeNode(getNode(centerNodeIndex)->getNeighborIndex(d), false);
 				continue;
 			}
 
-			PositionNode* centerNode1 = getNode(centerNodeIndex);
-			PositionNode* sideNode1 = getNode(centerNode1->getNeighborIndex(d));
-			PositionNode* neighborCenterNode1 = getNode(neighborTile->nodeIndex);
+			PositionNode
+				* centerNode1 = getNode(centerNodeIndex),
+				* sideNode1 = getNode(centerNode1->getNeighborIndex(d)),
+				* neighborCenterNode1 = getNode(neighborTile1->nodeIndex),
+				* centerNode2 = getNode(sibCenterNodeIndex),
+				* sideNode2 = getNode(centerNode2->getNeighborIndex(d)),
+				* neighborCenterNode2 = getNode(neighborTile2->nodeIndex),
+				* newNode = getNode(addNode());
 			
-			PositionNode* centerNode2 = getNode(sibCenterNodeIndex);
-			PositionNode* sideNode2 = getNode(centerNode2->getNeighborIndex(d));
-			PositionNode* neighborCenterNode2 = getNode(getTileInfo(neighborTile->siblingIndex)->nodeIndex);
+			LocalDirection 
+				n1ToNew = mapToSecondNeighbor(centerNode1, d, inverse(d)),
+				n2ToNew = mapToSecondNeighbor(centerNode2, d, inverse(d)),
+				newToN1 = inverse(n1ToNew),
+				newToN2 = n1ToNew;
+			
+			MapType 
+				newToN2Map = getNeighborMap(newToN2, n2ToNew),
+				n2ToNewMap = inverse(newToN2Map);
 			
 			// While we could edit the existing nodes, its conceptually simpler to just make a fresh one:
-			PositionNode* newNode = getNode(addNode());
-
 			newNode->setPosition(sideNode1->getPosition());
-			newNode->setNodeType(centerNode1->getNodeType()); // makes sure the transition from center node type -> new side node type is possible
-			LocalDirection D = map(centerNode1->getNeighborMap(d), d);
-			D = map(sideNode1->getNeighborMap(D), D);
-			newNode->setNeighborIndex(neighborCenterNode1->getIndex(), D);
-			newNode->setNeighborMap(MAP_TYPE_IDENTITY, D);
-			LocalDirection D1 = map(centerNode2->getNeighborMap(d), d);
-			D1 = map(sideNode2->getNeighborMap(D1), D1);
-			MapType m = getNeighborMap(oppositeAlignment(D), oppositeAlignment(D1));
-			newNode->setNeighborIndex(neighborCenterNode2->getIndex(), oppositeAlignment(D));
-			newNode->setNeighborMap(m, oppositeAlignment(D));
-
-			// neigh or sibl should already connect to newNode, but just for completeness, reconnect both:
-			neighborCenterNode1->setNeighborIndex(newNode->getIndex(), oppositeAlignment(D));
-			neighborCenterNode1->setNeighborMap(MAP_TYPE_IDENTITY, oppositeAlignment(D));
-			neighborCenterNode2->setNeighborIndex(newNode->getIndex(), oppositeAlignment(D1));
-			neighborCenterNode2->setNeighborMap(inverseMapType(m), oppositeAlignment(D1));
+			newNode->setNodeType(neighborCenterNode1->getNodeType()); // makes sure the transition from center node type -> new side node type is possible
+			
+			neighborCenterNode1->setNeighborIndex(newNode->getIndex(), n1ToNew);
+			neighborCenterNode1->setNeighborMap(MAP_TYPE_IDENTITY, n1ToNew);
+			newNode->setNeighborIndex(neighborCenterNode2->getIndex(), newToN2);
+			newNode->setNeighborMap(newToN2Map, newToN2);
+			neighborCenterNode2->setNeighborIndex(newNode->getIndex(), n2ToNew);
+			neighborCenterNode2->setNeighborMap(n2ToNewMap, n2ToNew);
+			newNode->setNeighborIndex(neighborCenterNode1->getIndex(), newToN1);
+			newNode->setNeighborMap(MAP_TYPE_IDENTITY, newToN1);			
 
 			removeNode(sideNode1->getIndex(), false);
 			removeNode(sideNode2->getIndex(), false);
@@ -479,7 +484,6 @@ public:
 		
 		removeTileInfo(getNode(centerNodeIndex)->getTileInfoIndex());
 		removeTileInfo(getNode(sibCenterNodeIndex)->getTileInfoIndex());
-
 		removeNode(centerNodeIndex, false);
 		removeNode(sibCenterNodeIndex, false);
 

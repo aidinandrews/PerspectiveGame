@@ -206,7 +206,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 	//#define directionToDirectionMap alignmentToAlignmentMap
 	//#define orientationToOrientationMap alignmentToAlignmentMap
 	
-	LocalDirection oppositeAlignment(LocalDirection direction);
+	LocalDirection inverse(LocalDirection direction);
 	
 	const LocalAlignment* getAlignmentComponents(LocalAlignment alignment);
 	
@@ -220,7 +220,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const MapType combineMaps(MapType map1, MapType map2);
 
-	const MapType inverseMapType(MapType mapType);
+	const MapType inverse(MapType mapType);
 
 	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
 
