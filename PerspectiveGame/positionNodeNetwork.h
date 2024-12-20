@@ -10,6 +10,7 @@
 
 #include "tileNavigation.h"
 #include "positionNode.h"
+#include "cameraManager.h"
 
 struct PositionNodeNetwork {
 private:
@@ -18,6 +19,8 @@ private:
 
 	std::vector<TileInfo> tileInfos;
 	std::vector<int> freeTileInfoIndices;
+
+	Camera* p_camera;
 
 public: // Rendering:
 	GLuint texID;
@@ -33,8 +36,7 @@ public: // Rendering:
 	int currentNodeIndex = 4;
 
 public:
-
-	PositionNodeNetwork()
+	PositionNodeNetwork(Camera* c) : p_camera(c)
 	{
 		createTile(glm::vec3(0, 0, 0), TILE_TYPE_XY);
 
@@ -433,22 +435,22 @@ public:
 			newNode.setIndex(side->getIndex());
 			newNode.setPosition(side->getPosition());
 			newNode.setMappingID(neig->getMappingID());
-			LocalDirection D = tnav::map(curr->getNeighborMap(d), d);
-			D = tnav::map(side->getNeighborMap(D), D);
+			LocalDirection D = map(curr->getNeighborMap(d), d);
+			D = map(side->getNeighborMap(D), D);
 			newNode.setNeighborIndex(neig->getIndex(), D);
 			newNode.setNeighborMap(0, D);
-			LocalDirection D1 = tnav::map(sCur->getNeighborMap(d), d);
-			D1 = tnav::map(Ssid->getNeighborMap(D1), D1);
-			int m = tnav::getNeighborMap(tnav::oppositeAlignment(D), tnav::oppositeAlignment(D1));
-			newNode.setNeighborIndex(sibl->getIndex(), tnav::oppositeAlignment(D));
-			newNode.setNeighborMap(m, tnav::oppositeAlignment(D));
+			LocalDirection D1 = map(sCur->getNeighborMap(d), d);
+			D1 = map(Ssid->getNeighborMap(D1), D1);
+			int m = getNeighborMap(oppositeAlignment(D), oppositeAlignment(D1));
+			newNode.setNeighborIndex(sibl->getIndex(), oppositeAlignment(D));
+			newNode.setNeighborMap(m, oppositeAlignment(D));
 			(*side) = newNode; // arbitrary, one has to go, the other stays.
 
 			// neigh or sibl should already connect to newNode, but just for completeness, reconnect both:
-			neig->setNeighborIndex(newNode.getIndex(), tnav::oppositeAlignment(D));
-			neig->setNeighborMap(0, tnav::oppositeAlignment(D));
-			sibl->setNeighborIndex(newNode.getIndex(), tnav::oppositeAlignment(D1));
-			sibl->setNeighborMap(tnav::inverseMapID(m), tnav::oppositeAlignment(D1));
+			neig->setNeighborIndex(newNode.getIndex(), oppositeAlignment(D));
+			neig->setNeighborMap(0, oppositeAlignment(D));
+			sibl->setNeighborIndex(newNode.getIndex(), oppositeAlignment(D1));
+			sibl->setNeighborMap(inverseMapID(m), oppositeAlignment(D1));
 
 			removeNode(Ssid->getIndex(), false);
 		}
@@ -459,5 +461,7 @@ public:
 		// TODO: add/remove corner nodes based on new geometry:
 	}
 
-
+	glm::mat4 get3dTransf()
+	{
+	}
 };

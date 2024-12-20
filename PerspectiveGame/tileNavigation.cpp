@@ -718,5 +718,36 @@ const glm::vec3 tnav::TO_NODE_OFFSETS[3][8] = {
 
 const glm::vec3* tnav::getNodePositionOffsets(SuperTileType type)
 {
-	return TO_NODE_OFFSETS[(int)type];
+	return TO_NODE_OFFSETS[type];
+}
+
+// returns the unit vector going from a corner node to the 'next' corner node in a tile.
+// ex: [XYF][0] would return <0, -1, 0> as node 0 could be <1, 1, 0> and node 1 could be <1, -1, 0>.
+// TILE_EDGE_VECS[tileType][*Orthogonal* LocalDirection]
+const glm::vec3 TILE_EDGE_VECS[6][4] = {
+	{ glm::vec3(0, -1, 0), glm::vec3(-1, 0, 0), glm::vec3(0, 1, 0), glm::vec3(1, 0, 0) },
+	{ glm::vec3(0, -1, 0), glm::vec3(-1, 0, 0), glm::vec3(0, 1, 0), glm::vec3(1, 0, 0) },
+	{ glm::vec3(-1, 0, 0), glm::vec3(0, 0, -1), glm::vec3(1, 0, 0), glm::vec3(0, 0, 1) },
+	{ glm::vec3(-1, 0, 0), glm::vec3(0, 0, -1), glm::vec3(1, 0, 0), glm::vec3(0, 0, 1) },
+	{ glm::vec3(0, 0, -1), glm::vec3(0, -1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 1, 0) },
+	{ glm::vec3(0, 0, -1), glm::vec3(0, -1, 0), glm::vec3(0, 0, 1), glm::vec3(0, 1, 0) }
+};
+
+const glm::vec3 tnav::getTileEdgeVec(TileType type, LocalDirection orthoDir)
+{
+	return TILE_EDGE_VECS[type][orthoDir];
+}
+
+const glm::vec3 TILE_CENTER_TO_SIDE[6][4] = {
+	{ glm::vec3(1, 0, 0),glm::vec3(0, -1, 0),glm::vec3(-1, 0, 0),glm::vec3(0, 1, 0) },
+	{ glm::vec3(1, 0, 0),glm::vec3(0, -1, 0),glm::vec3(-1, 0, 0),glm::vec3(0, 1, 0) },
+	{ glm::vec3(0, 0, 1),glm::vec3(-1, 0, 0),glm::vec3(0, 0, -1),glm::vec3(1, 0, 0) },
+	{ glm::vec3(0, 0, 1),glm::vec3(-1, 0, 0),glm::vec3(0, 0, -1),glm::vec3(1, 0, 0) },
+	{ glm::vec3(0, 1, 0),glm::vec3(0, 0, -1),glm::vec3(0, -1, 0),glm::vec3(0, 0, 1) },
+	{ glm::vec3(0, 1, 0),glm::vec3(0, 0, -1),glm::vec3(0, -1, 0),glm::vec3(0, 0, 1) },
+};
+
+const glm::vec3 tnav::getCenterToEdgeVec(TileType type, LocalDirection orthoDir)
+{
+	return TILE_CENTER_TO_SIDE[type][orthoDir];
 }

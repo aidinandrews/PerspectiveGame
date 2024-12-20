@@ -19,9 +19,7 @@ uniform float inAlpha;
 uniform float inColorAlpha;
 
 void main() {
-   vec4 pos = inTransfMatrix * vec4(inPos, 1); 
-   pos.y *= -1; // OpenGL expects inversed y.
-   gl_Position = pos;
+   gl_Position = inTransfMatrix * vec4(inPos, 1);;
    fragGlPos = gl_Position;
    fragWorldPos = inPos;
 

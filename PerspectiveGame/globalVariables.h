@@ -31,10 +31,10 @@ extern float FrameTime;
 extern int CurrentFrame;
 extern int CurrentTick;
 
-extern float leftEdit;
-extern float rightEdit;
-extern float topEdit;
-extern float bottomEdit;
+extern float guiEdit1;
+extern float guiEdit2;
+extern float guiEdit4;
+extern float guiEdit3;
 
 extern bool CanEditSubWindows;
 

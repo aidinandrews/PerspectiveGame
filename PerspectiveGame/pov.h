@@ -12,6 +12,7 @@
 #include "tileNavigation.h"
 #include "positionNodeNetwork.h"
 #include "vectorHelperFunctions.h"
+#include "globalVariables.h"
 
 struct POV {
 private:
@@ -26,20 +27,74 @@ public:
 	PositionNodeNetwork* p_nodeNetwork;
 	Camera* p_camera;
 
+	TileType oldTileType;
+	glm::mat4 currentRotation; // tells how many rotations arount the x, y, and z axes
+	glm::mat4 finalRotation;
 	// For the 3D view to interpolate between viewing angles when transitioning between tiles:
-	glm::mat4 rotationMatrix3D, lastRotationMatrix3D;
+	//glm::mat4 rotationMatrix3D;
+	glm::mat4 lastRotationMatrix3D;
+	glm::vec3 lastCamPos, lastCamTarget, lastCamUp;
+
 	glm::vec3 lastCameraPositionOffset;
 	float lastRotationMatrixWeight; // How much to interpolate between last and current rotation matrices.
 	glm::mat4 rotationMatrix2D; // for the 2D view, needs to 'snap' between rotations on tile transition.
 
 private:
+	struct CamInfo {
+		glm::vec3 pos, target, up;
+		CamInfo(glm::vec3 pos, glm::vec3 target, glm::vec3 up) : pos(pos), target(target), up(up) {}
+		CamInfo() {}
+	};
+	CamInfo currentCamInfo, lastCamInfo;
+
+
+	
+
+public:
+	POV(PositionNodeNetwork* nodeNetwork, Camera* camera) : p_nodeNetwork(nodeNetwork), p_camera(camera)
+	{
+		nodeIndex = 0;
+		mapIndex = ALIGNMENT_MAP_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
+
+		lastRotationMatrix3D = glm::mat4(1);
+		lastCameraPositionOffset = glm::vec3(0, 0, 0);
+		lastRotationMatrixWeight = 0.0f;
+		rotationMatrix2D = glm::mat4(1);
+		currentRotation = glm::mat4(1);
+	}
+
+	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
+	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
+
+	const LocalDirection getNorth() { return tnav::map(mapIndex, LOCAL_DIRECTION_3); }
+	const LocalDirection getSouth() { return tnav::map(mapIndex, LOCAL_DIRECTION_1); }
+	const LocalDirection getEast() { return tnav::map(mapIndex, LOCAL_DIRECTION_0); }
+	const LocalDirection getWest() { return tnav::map(mapIndex, LOCAL_DIRECTION_2); }
+
+	void shiftPovEast() { 
+		shiftTile(getEast()); 
+	}
+	void shiftPovWest() { 
+		shiftTile(getWest());
+	}
+	void shiftPovNorth() { 
+		shiftTile(getNorth()); 
+	}
+	void shiftPovSouth() { 
+		shiftTile(getSouth()); 
+	}
+
 	// Will adjust the position, basis, and orientation of 'upward' and 'rightward' to 
 	// the tile neighbor in the given direction.
 	void shiftTile(LocalDirection d)
 	{
 		using namespace tnav;
 
-		PositionNode* node = p_nodeNetwork->getNode(nodeIndex);
+		//lastRotationMatrixWeight = 1.0f;
+		//lastRotationMatrix3D = currentRotation;
+
+		PositionNode* oldNode = getNode();
+		PositionNode* node = oldNode;
 		LocalDirection D = d;
 		int m1 = node->getNeighborMap(d);
 
@@ -56,71 +111,147 @@ private:
 		mapIndex = combineMaps(mapIndex, m2);
 
 		nodeIndex = node->getIndex();
+
+		if (p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex())->type !=
+			p_nodeNetwork->getTileInfo(node->getTileInfoIndex())->type) {
+			lastRotationMatrixWeight = 1.0f;
+			lastCamInfo = currentCamInfo;
+		}
 	}
 
-public:
-	POV(PositionNodeNetwork* nodeNetwork, Camera* camera) : p_nodeNetwork(nodeNetwork), p_camera(camera)
+	// once the pov crosses an edge, it may have to update its rotation matrix to face the tile in
+	// 3D space.  This function makes sure that currentRotation always does this.
+	glm::mat4 rotMatAdjustment3D(TileInfo* tile, LocalDirection dir, float angleAmount)
 	{
-		nodeIndex = 0;
-		mapIndex = ALIGNMENT_MAP_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
+		TileType oldTileType = tile->type;
+		TileType newTileType = p_nodeNetwork->getTileInfo(getTile(), dir)->type;
+		if (angleAmount == 0 || oldTileType == newTileType) return glm::mat4(1); // No rotation is change necessary if the types are the same.
 
-		rotationMatrix3D = glm::mat4(1);
-		lastRotationMatrix3D = glm::mat4(1);
-		lastCameraPositionOffset = glm::vec3(0, 0, 0);
-		lastRotationMatrixWeight = 0.0f;
-		rotationMatrix2D = glm::mat4(1);
+		float angle;
+		glm::vec3 axisOfRotation;
+		if (dir == getNorth()) {
+			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getEast())
+				- tnav::getCenterToEdgeVec(oldTileType, getWest());
+		}
+		else if (dir == getSouth()) {
+			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getWest())
+				- tnav::getCenterToEdgeVec(oldTileType, getEast());
+		}
+		else if (dir == getEast()) {
+			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getSouth())
+				- tnav::getCenterToEdgeVec(oldTileType, getNorth());
+		}
+		else { // dir is getWest()
+			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getNorth())
+				- tnav::getCenterToEdgeVec(oldTileType, getSouth());
+		}
+
+		glm::vec3 toEdge = tnav::getCenterToEdgeVec(oldTileType, dir);
+
+		if (tnav::getNormal(newTileType) == -toEdge) {
+			angle = -(float)M_PI / 2.0f;
+		}
+		else if (tnav::getNormal(newTileType) == toEdge) {
+			angle = (float)M_PI / 2.0f;
+		}
+		else {
+			angle = (float)M_PI;
+		}
+
+		return glm::rotate(glm::mat4(1), angleAmount * angle, axisOfRotation);
 	}
-
-	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
-	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
-
-	LocalDirection getNorth() { return tnav::map(mapIndex, LOCAL_DIRECTION_3); }
-	LocalDirection getSouth() { return tnav::map(mapIndex, LOCAL_DIRECTION_1); }
-	LocalDirection getEast() { return tnav::map(mapIndex, LOCAL_DIRECTION_0); }
-	LocalDirection getWest() { return tnav::map(mapIndex, LOCAL_DIRECTION_2); }
-
-	void shiftPovEast() { shiftTile(getEast()); }
-	void shiftPovWest() { shiftTile(getWest()); }
-	void shiftPovNorth() { shiftTile(getNorth()); }
-	void shiftPovSouth() { shiftTile(getSouth()); }
 
 	void updatePosition()
 	{
 		if (p_camera->viewPlanePos.x > 1.0f) {
-			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos - glm::vec3(1, 0, 0);
 			p_camera->viewPlanePos.x -= 1.0f;
-			shiftPovEast();
+			shiftTile(getEast());
 		}
 		else if (p_camera->viewPlanePos.x < 0.0f) {
-			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos + glm::vec3(1, 0, 0);
 			p_camera->viewPlanePos.x += 1.0f;
-			shiftPovWest();
+			shiftTile(getWest());
 		}
 
 		if (p_camera->viewPlanePos.y > 1.0f) {
-			lastRotationMatrix3D = rotationMatrix3D;
-			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos - glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y -= 1.0f;
-			shiftPovNorth();
+			shiftTile(getNorth());
 		}
 		else if (p_camera->viewPlanePos.y < 0.0f) {
-			lastRotationMatrix3D = rotationMatrix3D;
-			lastRotationMatrixWeight = 1.0f;
 			lastCameraPositionOffset = p_camera->viewPlanePos + glm::vec3(0, 1, 0);
 			p_camera->viewPlanePos.y += 1.0f;
-			shiftPovSouth();
+			shiftTile(getSouth());
 		}
-
-		// After moving the camera around, we must make sure the new position 
-		// is properly recorded in all the tranforms needed for drawing!
-		p_camera->getProjectionMatrix();
 	}
 
 	void update()
 	{
 		updatePosition();
+		update3dTransfMatrix();
+	}
+
+	void update3dTransfMatrix()
+	{
+		currentCamInfo = getCurrentCamInfo();
+
+		if (lastRotationMatrixWeight > 0) {
+			lastRotationMatrixWeight -= 5.0f * DeltaTime;
+
+			float weight = sin(lastRotationMatrixWeight);
+			currentCamInfo = CamInfo(
+				glm::mix(currentCamInfo.pos, lastCamInfo.pos, weight),
+				glm::mix(currentCamInfo.target, lastCamInfo.target, weight),
+				glm::mix(currentCamInfo.up, lastCamInfo.up, weight));
+
+		}
+
+		glm::mat4 vieMatrix = glm::lookAt(currentCamInfo.pos, currentCamInfo.target, currentCamInfo.up);
+		finalRotation = getCurrentProjectionMatrix(1.0f) * vieMatrix;
+	}
+
+	glm::mat4 getCurrentProjectionMatrix(float aspectRatio)
+	{
+		constexpr float fov = glm::radians(45.0f); // Field of view in radians 
+		float nearPlane = 0.5f, farPlane = 100.0f;
+		return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+	}
+
+	CamInfo getCurrentCamInfo()
+	{
+		glm::vec3 screenTilePos = ((2.0f * p_camera->viewPlanePos) - 1.0f) * 0.5f;
+		glm::vec3 pos3D = getNode()->getPosition();
+		pos3D += tnav::getCenterToEdgeVec(getTile()->type, getEast()) * screenTilePos.x;
+		pos3D += tnav::getCenterToEdgeVec(getTile()->type, getNorth()) * screenTilePos.y;
+
+		glm::mat4 rotAdj(1);
+		float adj = (!tnav::isFront(getTile()->type)) ? 1.0f : 1.0f;
+		if (p_camera->viewPlanePos.x > 0.5f) {
+			float a = (p_camera->viewPlanePos.x - 0.5f) * 2;
+			rotAdj = rotMatAdjustment3D(getTile(), getEast(), adj * a / 2.0f);
+		}
+		else {
+			float a = -2.0f * (p_camera->viewPlanePos.x - 0.5f);
+			rotAdj = rotMatAdjustment3D(getTile(), getWest(), adj * a / 2.0f);
+		}
+
+		if (p_camera->viewPlanePos.y > 0.5f) {
+			float a = (p_camera->viewPlanePos.y - 0.5f) * 2;
+			rotAdj = rotMatAdjustment3D(getTile(), getNorth(), adj * a / 2.0f) * rotAdj;
+		}
+		else {
+			float a = -2.0f * (p_camera->viewPlanePos.y - 0.5f);
+			rotAdj = rotMatAdjustment3D(getTile(), getSouth(), adj * a / 2.0f) * rotAdj;
+		}
+
+		glm::vec3 cameraTarget = pos3D;
+		float zoom = (float)pow(2, p_camera->zoom);
+		glm::vec3 cameraPosition = glm::vec4(zoom * tnav::getNormal(getTile()->type), 1) * rotAdj ;
+		cameraPosition += cameraTarget;
+		glm::vec3 cameraUp = glm::vec4(tnav::getCenterToEdgeVec(getTile()->type, getNorth()), 1) * rotAdj;
+		//glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, cameraUp);
+
+		return CamInfo(cameraPosition, cameraTarget, cameraUp);
 	}
 };

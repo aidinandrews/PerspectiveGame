@@ -278,4 +278,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 	{
 		return getNodePositionOffsets(getSuperTileType(type));
 	}
+
+	const glm::vec3 getTileEdgeVec(TileType type, LocalDirection orthoDir);
+	const glm::vec3 getCenterToEdgeVec(TileType type, LocalDirection orthoDir);
 }

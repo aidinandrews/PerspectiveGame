@@ -198,6 +198,9 @@
     <ClInclude Include="playground.h">
       <Filter>Source Files\Meta</Filter>
     </ClInclude>
+    <ClInclude Include="tile3dViewCamera.h">
+      <Filter>Source Files\Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Libraries\include\ImGui\imgui.cpp">

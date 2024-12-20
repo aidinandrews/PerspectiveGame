@@ -107,7 +107,7 @@ struct App {
 		p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
 		p_tileManager->texID = p_wave->ID;
 		
-		p_nodeNetwork = new PositionNodeNetwork();
+		p_nodeNetwork = new PositionNodeNetwork(&camera);
 		p_nodeNetwork->texID = p_wave->ID;
 
 		p_pov = new POV(p_nodeNetwork, &camera);

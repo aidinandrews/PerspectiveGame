@@ -105,7 +105,7 @@ public:
 	void renderImGuiDebugWindows();
 
 	void renderTargetButtonMovementElements();
-	void draw2d3rdPersonCpuCropping();
+	//void draw2d3rdPersonCpuCropping();
 	void draw2d3rdPersonGpuRaycasting();
 	void draw2d3rdPersonViaNodeNetwork();
 	void draw2d3rdPerson();
@@ -125,9 +125,6 @@ public:
 	void drawColoredTriFromPixelSpace(glm::ivec2 A, glm::ivec2 B, glm::ivec2 C, glm::vec3 color);
 	// Assumes screen space:
 	void drawColoredTri(glm::vec2 corners[3], glm::vec3 color);
-
-
-	// MOVED TILE MANAGER FUNCTIONS:
 
 	// True if B is 'inside' or 'between' A and C.
 	bool vecInsideVecs(glm::vec2 A, glm::vec2 B, glm::vec2 C)
@@ -155,21 +152,7 @@ public:
 		return false;
 	}
 	
-	void drawTilesSetup()
-	{
-		glDisable(GL_CULL_FACE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_STENCIL_TEST);
-		glDisable(GL_BLEND);
-
-		glBindVertexArray(p_framebuffer->VAO);
-		glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
-
-		setVertAttribVec3PosVec3NormVec3ColorVec2TextCoord1Index();
-		p_shaderManager->POV3D3rdPerson.use();
-	}
+	void drawTilesSetup();
 
 	void drawPlayerPos()
 	{
@@ -196,104 +179,9 @@ public:
 		drawTile(v, t, glm::vec4(1, 1, 1, 1));
 	}
 
-	void draw3Dview()
-	{
-		drawTilesSetup();
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glPolygonMode(GL_FRONT, GL_FILL);
-		glEnable(GL_CULL_FACE);
+	void draw3Dview();
 
-		Button* button = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
-		glm::mat4 tempMat = p_camera->getPerspectiveProjectionMatrix((float)button->pixelWidth(),
-														   (float)button->pixelHeight());
-
-		glm::mat4 xMirror(1);
-		xMirror[0][0] = -1;
-		//tempMat = xMirror * tempMat * p_tileManager->tileRotationAdjFor3DView;
-		tempMat = glm::mat4(1);
-		GLuint transfMatrixID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inTransfMatrix");
-		glUniformMatrix4fv(transfMatrixID, 1, GL_FALSE, glm::value_ptr(tempMat));
-
-		GLuint playerPosInfoID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPosInfo");
-		glUniformMatrix4fv(playerPosInfoID, 1, GL_FALSE, glm::value_ptr(packedPlayerPosInfo()));
-
-		glm::vec3 playerPos = p_camera->viewPlanePos;
-		playerPos = glm::vec3(tempMat * glm::vec4(playerPos, 1));
-		GLuint playerPosID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPos");
-		glUniform3f(playerPosID, playerPos.x, playerPos.y, playerPos.z);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
-
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-		for (int i = 0; i < p_nodeNetwork->numTileInfos(); i++) {
-			draw3DTile(p_nodeNetwork->getTileInfo(i));
-		}
-
-		drawTilesCleanup();
-	}
-
-	void draw3DTile(TileInfo* info)
-	{
-		const glm::vec3* offsets = tnav::getNodePositionOffsets(info->type);
-		glm::vec3 center = p_nodeNetwork->getNode(info->nodeIndex)->getPosition();
-
-		// prepare the tile:
-		verts.clear();
-		indices.clear();
-		for (int i = 0; i < 4; i++) {
-			// pos:
-			glm::vec3 pos = center + offsets[i + 4];
-			verts.push_back((GLfloat)pos.x);
-			verts.push_back((GLfloat)pos.y);
-			verts.push_back((GLfloat)pos.z);
-			// normal:
-			verts.push_back(0.0f);
-			verts.push_back(0.0f);
-			verts.push_back(1.0f);
-			// color:
-			verts.push_back((GLfloat)info->color.r);
-			verts.push_back((GLfloat)info->color.g);
-			verts.push_back((GLfloat)info->color.b);
-			// texture coord:
-			verts.push_back(info->textureCoordinates[i].x);
-			verts.push_back(info->textureCoordinates[i].y);
-			// tile index:
-			verts.push_back((GLfloat)info->index);
-		}
-
-		if (tnav::isFront(info->type)) {
-			indices.push_back(3);
-			indices.push_back(1);
-			indices.push_back(0);
-			indices.push_back(3);
-			indices.push_back(2);
-			indices.push_back(1);
-		}
-		else {
-			indices.push_back(0);
-			indices.push_back(1);
-			indices.push_back(3);
-			indices.push_back(1);
-			indices.push_back(2);
-			indices.push_back(3);
-		}
-
-		GLuint alphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inAlpha");
-		glUniform1f(alphaID, 1.0f);
-
-		GLuint colorAlphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inColorAlpha");
-		glUniform1f(colorAlphaID, 0.5f);
-
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
-		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-	}
+	void draw3DTile(TileInfo* info);
 
 	// tileVerts is assumed to be a vector of 4 vec2s in 
 	// top left, top right, bottom right, bottom left order.

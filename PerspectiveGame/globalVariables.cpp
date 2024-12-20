@@ -20,7 +20,7 @@ float FrameTime = 0;
 int CurrentFrame = 0;
 int CurrentTick = 0;
 
-float leftEdit = -1, rightEdit = 1, topEdit = 1, bottomEdit = -1;
+float guiEdit1 = -1, guiEdit2 = 1, guiEdit4 = 1, guiEdit3 = -1;
 
 bool CanEditSubWindows = false;
 

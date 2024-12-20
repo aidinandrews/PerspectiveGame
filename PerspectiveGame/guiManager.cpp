@@ -7,10 +7,10 @@ void GuiManager::imGuiSetup() {
 	show_another_window = false;
 	clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	f = 0.0f;
-	leftEdit = 0.0f;
-	rightEdit = 0.0f;
-	topEdit = 0.0f;
-	bottomEdit = 0.0f;
+	guiEdit1 = 0.0f;
+	guiEdit2 = 0.0f;
+	guiEdit4 = 0.0f;
+	guiEdit3 = 0.0f;
 
 	// Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -105,15 +105,15 @@ void GuiManager::renderImGuiDebugWindows() {
 		ImGui::Checkbox("Another Window", &show_another_window);
 
 		if (1) {
-			ImGui::SliderFloat("left", &leftEdit, -100.0f, 100.0f);
-			ImGui::SliderFloat("right", &rightEdit, -3.0f, 3.0f);
-			ImGui::SliderFloat("bottom", &bottomEdit, -3.0f, 3.0f);
-			ImGui::SliderFloat("top", &topEdit, -3.0f, 3.0f);
+			ImGui::SliderFloat("fov", &guiEdit1, 0.0f, 1.0f);
+			ImGui::SliderFloat("right", &guiEdit2, -5.0f, 5.0f);
+			ImGui::SliderFloat("bottom", &guiEdit3, -5.0f, 5.0f);
+			ImGui::SliderFloat("top", &guiEdit4, 0.0f, 100.0f);
 		} else {
-			ImGui::InputFloat("left", &leftEdit, -3.0f, 3.0f);
-			ImGui::InputFloat("right", &rightEdit, -3.0f, 3.0f);
-			ImGui::InputFloat("bottom", &bottomEdit, -3.0f, 3.0f);
-			ImGui::InputFloat("top", &topEdit, -3.0f, 3.0f);
+			ImGui::InputFloat("left", &guiEdit1, -3.0f, 3.0f);
+			ImGui::InputFloat("right", &guiEdit2, -3.0f, 3.0f);
+			ImGui::InputFloat("bottom", &guiEdit3, -3.0f, 3.0f);
+			ImGui::InputFloat("top", &guiEdit4, -3.0f, 3.0f);
 		}
 
 		ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
@@ -333,19 +333,6 @@ void GuiManager::renderTargetButtonMovementElements() {
 	}
 }
 
-void GuiManager::draw2d3rdPersonCpuCropping() {
-	p_tileManager->windowFrustum.clear();
-	glm::vec2 topLeft(glm::inverse(p_camera->transfMatrix) * glm::vec4(-1, +1, 0, 1));
-	glm::vec2 topRight(glm::inverse(p_camera->transfMatrix) * glm::vec4(+1, +1, 0, 1));
-	glm::vec2 bottomRight(glm::inverse(p_camera->transfMatrix) * glm::vec4(+1, -1, 0, 1));
-	glm::vec2 bottomLeft(glm::inverse(p_camera->transfMatrix) * glm::vec4(-1, -1, 0, 1));
-	p_tileManager->windowFrustum.push_back(topLeft);
-	p_tileManager->windowFrustum.push_back(topRight);
-	p_tileManager->windowFrustum.push_back(bottomRight);
-	p_tileManager->windowFrustum.push_back(bottomLeft);
-	draw2D3rdPerson();
-}
-
 void GuiManager::bindSSBOs2d3rdPersonViaNodeNetwork()
 {
 	// Position Node Info Buffer:
@@ -439,131 +426,13 @@ void GuiManager::draw2d3rdPersonViaNodeNetwork()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-
-void GuiManager::bindSSBOs2d3rdPerson() {
-	// Tile buffer:
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, p_tileManager->tileInfosBufferID);
-	glBufferData(GL_SHADER_STORAGE_BUFFER,
-		p_tileManager->tileGpuInfos.size() * sizeof(GPU_TileInfo),
-		nullptr,
-		GL_DYNAMIC_DRAW);
-	GPU_TileInfo* tileData = (GPU_TileInfo*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 
-		sizeof(GPU_TileInfo) * p_tileManager->tileGpuInfos.size(), 
-		GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	for (int i = 0; i < p_tileManager->tileGpuInfos.size(); ++i) {
-		tileData[i] = p_tileManager->tileGpuInfos[i];
-	}
-	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "tileInfosBuffer");
-	GLuint tileInfosBindingPoint = 1;
-	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, tileInfosBlockID, tileInfosBindingPoint);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, tileInfosBindingPoint, p_tileManager->tileInfosBufferID);
-
-	// Entity buffer:
-	glBindBuffer(GL_UNIFORM_BUFFER, p_entityManager->entityGpuBufferID);
-	glBufferData(GL_UNIFORM_BUFFER,
-		p_entityManager->GPU_entityInfos.size() * sizeof(GPU_EntityInfo),
-		p_entityManager->GPU_entityInfos.data(),
-		GL_DYNAMIC_DRAW);
-	GLuint entityInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "entityInfosBuffer");
-	GLuint entityInfosBindingPoint = 2;
-	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, entityInfosBlockID, entityInfosBindingPoint);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityInfosBindingPoint, p_entityManager->entityGpuBufferID);
-
-	// Entity Tile Info Buffer:
-	glBindBuffer(GL_UNIFORM_BUFFER, p_entityManager->entityTileInfoGpuBufferID);
-	glBufferData(GL_UNIFORM_BUFFER,
-				 p_entityManager->GPU_entityTileInfos.size() * sizeof(GPU_EntityTileInfo),
-				 p_entityManager->GPU_entityTileInfos.data(),
-				 GL_DYNAMIC_DRAW);
-	GLuint entityTileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPerson.ID, "entityTileInfosBuffer");
-	GLuint entityTileInfosBindingPoint = 3;
-	glUniformBlockBinding(p_shaderManager->POV2D3rdPerson.ID, entityTileInfosBlockID, entityTileInfosBindingPoint);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, entityTileInfosBindingPoint, p_entityManager->entityTileInfoGpuBufferID);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
-}
-
-void GuiManager::bindUniforms2d3rdPerson(Button* sceneView) {
-	GLuint deltaTimeID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "deltaTime");
-	glUniform1f(deltaTimeID, TimeSinceProgramStart);
-
-	GLuint updateProgressID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "updateProgress");
-	glUniform1f(updateProgressID, float(TimeSinceProgramStart - LastUpdateTime) / UpdateTime);
-
-	GLuint initialTileIndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTileIndex");
-	glUniform1i(initialTileIndexID, p_tileManager->povTile.node->index);
-
-	GLuint initialTileSide0IndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialSideIndex");
-	glUniform1i(initialTileSide0IndexID, p_tileManager->povTile.initialSideIndex);
-
-	GLuint initialTileTexCoord0IndexID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialTexCoordIndex");
-	glUniform1i(initialTileTexCoord0IndexID, p_tileManager->povTile.initialVertIndex);
-
-	GLuint initialTileSideOffsetID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "initialSideOffset");
-	glUniform1i(initialTileSideOffsetID, p_tileManager->povTile.sideInfosOffset);
-
-	glm::vec2 relativePos[5];
-	int relativePosTileIndices[5];
-	p_tileManager->getRelativePovPosGpuInfos(relativePos, relativePosTileIndices);
-	// Pack relative position data into a mat4:
-	glm::mat4 relativePosData = {
-		relativePos[0].x, relativePos[0].y, relativePosTileIndices[0],	relativePos[4].x,
-		relativePos[1].x, relativePos[1].y, relativePosTileIndices[1],	relativePos[4].y,
-		relativePos[2].x, relativePos[2].y, relativePosTileIndices[2],	relativePosTileIndices[4],
-		relativePos[3].x, relativePos[3].y, relativePosTileIndices[3],	0,
-	};
-	GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
-	glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
-
-	glm::mat4 screenSpaceToWorldSpace = glm::inverse(p_camera->getProjectionMatrix((float)sceneView->pixelWidth(),
-																				   (float)sceneView->pixelHeight()));
-	GLuint windowToWorldID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inWindowToWorldSpace");
-	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
-}
-
-void GuiManager::draw2d3rdPersonGpuRaycasting() {
-	// by this time we have updated the camera transformation matrix
-	glDisable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
-
-	glBindVertexArray(p_framebuffer->VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
-	Button *sceneView = &p_buttonManager->buttons[ButtonManager::pov2d3rdPersonViewButtonIndex];
-
-	setVertAttribVec2Pos();
-	p_shaderManager->POV2D3rdPerson.use();
-
-	bindSSBOs2d3rdPerson();
-	bindUniforms2d3rdPerson(sceneView);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, p_tileManager->texID);
-
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-	// full screen quad:
-	std::vector<GLfloat> verts = { -1, 1, 1, 1, 1, -1, -1, -1, };
-	std::vector<GLsizei> indices = { 0, 1, 3, 1, 2, 3, };
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
-	glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
 void GuiManager::draw2d3rdPerson() {
 	setupFramebufferForButtonRender(ButtonManager::pov2d3rdPersonViewButtonIndex, 
 									p_framebuffer->pov2D3rdPersonTextureID);
 
 	switch (renderType2d3rdPerson) {
-	case cpuCropping: draw2d3rdPersonCpuCropping(); break;
-	case gpu2dRayCasting: draw2d3rdPersonGpuRaycasting(); break;
+	//case cpuCropping: draw2d3rdPersonCpuCropping(); break;
+	//case gpu2dRayCasting: draw2d3rdPersonGpuRaycasting(); break;
 	case gpuViaNodeNetwork: draw2d3rdPersonViaNodeNetwork(); break;
 	}
 
@@ -592,6 +461,118 @@ void GuiManager::draw3d3rdPerson() {
 								  p_framebuffer->pov3D3rdPersonTextureID);
 }
 
+void GuiManager::drawTilesSetup()
+{
+	glDisable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_BLEND);
+
+	glBindVertexArray(p_framebuffer->VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, p_framebuffer->VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_framebuffer->EBO);
+
+	setVertAttribVec3PosVec3NormVec3ColorVec2TextCoord1Index();
+	p_shaderManager->POV3D3rdPerson.use();
+}
+
+void GuiManager::draw3Dview()
+{
+	drawTilesSetup();
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glEnable(GL_CULL_FACE);
+
+	Button* button = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
+	float aspectRatio = (float)button->pixelWidth() / (float)button->pixelHeight();
+	GLuint transfMatrixID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inTransfMatrix");
+	glUniformMatrix4fv(transfMatrixID, 1, GL_FALSE, glm::value_ptr(p_pov->finalRotation));
+
+	//GLuint playerPosInfoID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPosInfo");
+	//glUniformMatrix4fv(playerPosInfoID, 1, GL_FALSE, glm::value_ptr(packedPlayerPosInfo()));
+
+	//glm::vec3 playerPos = p_camera->viewPlanePos;
+	//playerPos = glm::vec3(tempMat * glm::vec4(playerPos, 1));
+	//GLuint playerPosID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inPlayerPos");
+	//glUniform3f(playerPosID, playerPos.x, playerPos.y, playerPos.z);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+	for (int i = 0; i < p_nodeNetwork->numTileInfos(); i++) {
+		TileInfo* tile = p_nodeNetwork->getTileInfo(i);
+		if (tile->index == -1) continue;
+		else draw3DTile(tile);
+	}
+
+	drawTilesCleanup();
+}
+
+void GuiManager::draw3DTile(TileInfo* info)
+{
+	const glm::vec3* offsets = tnav::getNodePositionOffsets(info->type);
+	glm::vec3 center = p_nodeNetwork->getNode(info->nodeIndex)->getPosition();
+	glm::vec3 normal = tnav::getNormal(info->type);
+	//vechelp::println(normal);
+
+	// prepare the tile:
+	verts.clear();
+	indices.clear();
+	for (int i = 0; i < 4; i++) {
+		// pos:
+		glm::vec3 pos = center + offsets[i + 4];
+		verts.push_back((GLfloat)pos.x);
+		verts.push_back((GLfloat)pos.y);
+		verts.push_back((GLfloat)pos.z);
+		// normal:
+		verts.push_back(normal.x);
+		verts.push_back(normal.y);
+		verts.push_back(normal.z);
+		// color:
+		verts.push_back((GLfloat)info->color.r);
+		verts.push_back((GLfloat)info->color.g);
+		verts.push_back((GLfloat)info->color.b);
+		// texture coord:
+		verts.push_back(info->textureCoordinates[i].x);
+		verts.push_back(info->textureCoordinates[i].y);
+		// tile index:
+		verts.push_back((GLfloat)info->index);
+	}
+
+	if (tnav::isFront(info->type)) {
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(3);
+		indices.push_back(1);
+		indices.push_back(2);
+		indices.push_back(3);
+	}
+	else {
+		indices.push_back(3);
+		indices.push_back(1);
+		indices.push_back(0);
+		indices.push_back(3);
+		indices.push_back(2);
+		indices.push_back(1);
+	}
+
+	GLuint alphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inAlpha");
+	glUniform1f(alphaID, 1.0f);
+
+	GLuint colorAlphaID = glGetUniformLocation(p_shaderManager->POV3D3rdPerson.ID, "inColorAlpha");
+	glUniform1f(colorAlphaID, 0.5f);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, p_nodeNetwork->texID);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * verts.size(), verts.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+	glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+}
+
 void GuiManager::render() {
 	/*for (Button &b : buttons) {
 		renderButton(b);
@@ -601,6 +582,6 @@ void GuiManager::render() {
 	draw3d3rdPerson();
 
 	if (p_buttonManager->p_targetButton != nullptr) {
-		renderTargetButtonMovementElements();
+		renderTargetButtonMovementElements(); // outlines for buttons and stuff
 	}
 }

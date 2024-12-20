@@ -138,31 +138,19 @@ struct CurrentSelection {
 
 		// Raycast:
 		while (stepCount++ < MAX_STEPS) {
-			if (runningDist.x > totalDist && runningDist.y > totalDist) { break; } // We have arrived!
-			*addTileParentPOV = targetPOV;
-
+			if (runningDist.x > totalDist && runningDist.y > totalDist) break; // We have arrived!
+			
 			if (runningDist.x < runningDist.y) {
 				runningDist.x += stepDist.x;
-				if (goingEast) {
-					addTileParentAddDirection = targetPOV.getEast();
-					targetPOV.shiftPovEast();
-				}
-				else {
-					addTileParentAddDirection = targetPOV.getWest();
-					targetPOV.shiftPovWest();
-				}
+				addTileParentAddDirection = goingEast ? targetPOV.getEast() : targetPOV.getWest();
 			}
 			else { // runningDist.x > runningDist.y
 				runningDist.y += stepDist.y;
-				if (goingNorth) {
-					addTileParentAddDirection = targetPOV.getNorth();
-					targetPOV.shiftPovNorth();
-				}
-				else {
-					addTileParentAddDirection = targetPOV.getSouth();
-					targetPOV.shiftPovSouth();
-				}
+				addTileParentAddDirection = goingNorth ? targetPOV.getNorth() : targetPOV.getSouth();
 			}
+
+			*addTileParentPOV = targetPOV; // keeps the last pov for later
+			targetPOV.shiftTile(addTileParentAddDirection);
 		}
 		hoveredTile = targetPOV.getNode();
 	}

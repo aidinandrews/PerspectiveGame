@@ -438,6 +438,7 @@ pause
     <ClInclude Include="shaderManager.h" />
     <ClInclude Include="textureManager.h" />
     <ClInclude Include="tile.h" />
+    <ClInclude Include="tile3dViewCamera.h" />
     <ClInclude Include="tileGPUInfo.h" />
     <ClInclude Include="tileManager.h" />
     <ClInclude Include="tileNavigation.h" />

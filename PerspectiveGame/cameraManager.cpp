@@ -116,7 +116,7 @@ void Camera::getProjectionMatrix() {
 	translationMatrix = glm::translate(glm::mat4(1), -viewPlanePos);
 	glm::mat4 rotateZ = glm::rotate(glm::mat4(1), yaw, glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1), -pitch, glm::vec3(1.0f, 0.0f, 0.0f));
-	float z = (float)pow(2, zoom);
+	float z = 1.0f / (float)pow(2, zoom);
 	glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(z, z, z));
 	modelMatrix = scale * rotateX * rotateZ * translationMatrix;
 
