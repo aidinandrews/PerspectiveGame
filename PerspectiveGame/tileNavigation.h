@@ -43,13 +43,14 @@ enum TileRelation {
 	TILE_RELATION_FLIPPED,
 };
 
+// designates the plane something lies in and what direction it 'faces'
 enum OrientationType {
-	ORIENTATION_TYPE_0 = 0, 
-	ORIENTATION_TYPE_1 = 1, 
-	ORIENTATION_TYPE_2 = 2, 
-	ORIENTATION_TYPE_3 = 3, 
-	ORIENTATION_TYPE_4 = 4, 
-	ORIENTATION_TYPE_5 = 5, 
+	ORIENTATION_TYPE_0 = 0, // Lies in the XY plan and faces Z+.
+	ORIENTATION_TYPE_1 = 1, // Lies in the XY plan and faces Z-. 
+	ORIENTATION_TYPE_2 = 2, // Lies in the XZ plan and faces Y+. 
+	ORIENTATION_TYPE_3 = 3, // Lies in the XZ plan and faces Y-. 
+	ORIENTATION_TYPE_4 = 4, // Lies in the YZ plan and faces X+. 
+	ORIENTATION_TYPE_5 = 5, // Lies in the YZ plan and faces X-. 
 	ORIENTATION_TYPE_ERROR,
 };
 
@@ -63,15 +64,15 @@ using TileType = OrientationType;
 #define TILE_TYPE_ERROR ORIENTATION_TYPE_ERROR
 #define TILE_TYPE_DEFAULT TILE_TYPE_XYF
 
-using NodeType = OrientationType;
-#define NODE_TYPE_XYF ORIENTATION_TYPE_0
-#define NODE_TYPE_XYB ORIENTATION_TYPE_1
-#define NODE_TYPE_XZF ORIENTATION_TYPE_2
-#define NODE_TYPE_XZB ORIENTATION_TYPE_3
-#define NODE_TYPE_YZF ORIENTATION_TYPE_4
-#define NODE_TYPE_YZB ORIENTATION_TYPE_5
-#define NODE_TYPE_ERROR ORIENTATION_TYPE_ERROR
-#define NODE_TYPE_DEFAULT NODE_TYPE_XYF
+//using NodeType = OrientationType;
+//#define NODE_TYPE_XYF ORIENTATION_TYPE_0
+//#define NODE_TYPE_XYB ORIENTATION_TYPE_1
+//#define NODE_TYPE_XZF ORIENTATION_TYPE_2
+//#define NODE_TYPE_XZB ORIENTATION_TYPE_3
+//#define NODE_TYPE_YZF ORIENTATION_TYPE_4
+//#define NODE_TYPE_YZB ORIENTATION_TYPE_5
+//#define NODE_TYPE_ERROR ORIENTATION_TYPE_ERROR
+//#define NODE_TYPE_DEFAULT NODE_TYPE_XYF
 
 enum MapType {
 	MAP_TYPE_0 = 0,

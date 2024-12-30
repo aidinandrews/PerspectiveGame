@@ -17,7 +17,7 @@
 
 struct POV {
 private:
-	int nodeIndex; // Tile pov resides inside.
+	int centerNodeIndex; // Tile pov resides inside.
 	float ROTATION_SPEED_3D = 5.0f;
 
 public:
@@ -30,6 +30,7 @@ public:
 	Camera* p_camera;
 	Button* p_button;
 
+	float zoom;
 	glm::mat4 finalRotation;
 	// For the 3D view to interpolate between viewing angles when transitioning between tiles:
 	//glm::mat4 rotationMatrix3D;
@@ -53,14 +54,14 @@ public:
 	POV(PositionNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
 		p_button = button;
-		nodeIndex = 0;
+		centerNodeIndex = 0;
 		mapType = MAP_TYPE_IDENTITY; // It is assumed initially that pov resides in an XYF tile.
 
 		lastRotationMatrixWeight = 0.0f;
 		rotationMatrix2D = glm::mat4(1);
 	}
 
-	PositionNode* getNode() { return p_nodeNetwork->getNode(nodeIndex); }
+	CenterNode* getNode() { return static_cast<CenterNode*>(p_nodeNetwork->getNode(centerNodeIndex)); }
 	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
 
 	const LocalDirection getNorth() { return tnav::map(mapType, LOCAL_DIRECTION_3); }
@@ -93,7 +94,7 @@ public:
 		mapType = combineMaps(mapType, m1);
 		mapType = combineMaps(mapType, m2);
 
-		nodeIndex = node->getIndex();
+		centerNodeIndex = node->getIndex();
 	}
 
 	// Will adjust the position, basis, and orientation of 'upward' and 'rightward' to 
@@ -102,7 +103,7 @@ public:
 	{
 		using namespace tnav;
 
-		PositionNode* oldNode = getNode();
+		CenterNode* oldNode = getNode();
 
 		// orthos are the directions to the closest neighbor not in the direction of d.
 		LocalDirection oldOrtho = (d == getNorth() || d == getSouth())
@@ -110,26 +111,26 @@ public:
 			: (p_camera->viewPlanePos.y < 0.5f) ? getSouth() : getNorth();
 		LocalDirection newOrtho = p_nodeNetwork->mapToSecondNeighbor(oldNode, d, oldOrtho);
 
-		PositionNode* newNode = oldNode;
+		CenterNode* newNode = oldNode;
 		LocalDirection D = d;
 		MapType m1 = newNode->getNeighborMap(d);
 
 		// Transition to a side node:
 		d = map(newNode->getNeighborMap(d), d);
-		newNode = p_nodeNetwork->getNode(newNode->getNeighborIndex(D));
+		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(D)));
 
 		// Transistion to the neighbor tile (a center node).
 		MapType m2 = newNode->getNeighborMap(d);
-		newNode = p_nodeNetwork->getNode(newNode->getNeighborIndex(d));
+		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(d)));
 
 		// Adjust the window space -> tile space mappings:
 		mapType = combineMaps(mapType, m1);
 		mapType = combineMaps(mapType, m2);
 
-		nodeIndex = newNode->getIndex();
+		centerNodeIndex = newNode->getIndex();
 
 		// used for 3D transformation matrix lerping:
-		bool sameType = oldNode->getNodeType() == newNode->getNodeType();
+		bool sameType = oldNode->oriType == newNode->oriType;
 		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
 		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
 		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.
@@ -229,7 +230,9 @@ public:
 	glm::mat4 getCurrentProjectionMatrix()
 	{
 		constexpr float fov = glm::radians(45.0f); // Field of view in radians 
-		float nearPlane = 0.5f, farPlane = 100.0f;
+		float farPlane = 100.0f;
+		float zoom = (float)pow(2, p_camera->zoom);
+		float nearPlane = zoom < 1.0f ? 0.1f : zoom - 0.25f;
 		float aspectRatio = (float)p_button->pixelWidth() / (float)p_button->pixelHeight();
 		return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 	}

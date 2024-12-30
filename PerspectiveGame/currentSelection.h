@@ -40,7 +40,7 @@ struct CurrentSelection {
 	PositionNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
-	PositionNode* hoveredTile;
+	CenterNode* hoveredTile;
 	int	hoveredTileConnectionIndex;
 	POV* addTileParentPOV;
 	LocalDirection addTileParentAddDirection;
@@ -160,7 +160,7 @@ struct CurrentSelection {
 	void findPreviewTile()
 	{
 		PositionNode* node = addTileParentPOV->getNode();
-		TileType addParentTileType = (TileType)node->getNodeType();
+		TileType addParentTileType = (TileType)node->oriType;
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
 		glm::vec3 sideNodePos = node->getPosition();
 		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());

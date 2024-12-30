@@ -515,7 +515,7 @@ void GuiManager::draw3Dview()
 void GuiManager::draw3DTile(TileInfo* info)
 {
 	const glm::vec3* offsets = tnav::getNodePositionOffsets(info->type);
-	glm::vec3 center = p_nodeNetwork->getNode(info->nodeIndex)->getPosition();
+	glm::vec3 center = p_nodeNetwork->getNode(info->centerNodeIndex)->getPosition();
 	glm::vec3 normal = tnav::getNormal(info->type);
 	//vechelp::println(normal);
 
