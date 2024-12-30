@@ -346,10 +346,10 @@ public:
 			// reconnect tiles based on heirarchy:
 			for (TileInfo linkedTile : linkedTiles) {
 				LocalDirection linkedTileDir;
-				CenterNode* linkedTileSideNode = static_cast<CenterNode*>(getNode(linkedTile.centerNodeIndex));
+				CenterNode* linkedTileCenterNode = static_cast<CenterNode*>(getNode(linkedTile.centerNodeIndex));
 
 				for (LocalDirection dir : tnav::ORTHOGONAL_DIRECTION_SET) {
-					if (nodes[linkedTileSideNode->getNeighborIndex(dir)]->getPosition() == newSideNode->getPosition()) {
+					if (nodes[linkedTileCenterNode->getNeighborIndex(dir)]->getPosition() == newSideNode->getPosition()) {
 						linkedTileDir = dir;
 						break;
 					}
@@ -365,20 +365,20 @@ public:
 					continue;
 				}
 
-				SideNode* linkedSideNode = static_cast<SideNode*>(getNode(linkedTileSideNode->getNeighborIndex(linkedTileDir)));
-				LocalDirection connectedSideOut = tnav::map(linkedTileSideNode->getNeighborMap(linkedTileDir), linkedTileDir);
-				LocalDirection currentNeighborOut = tnav::map(linkedSideNode->getNeighborMap(connectedSideOut), tnav::inverse(connectedSideOut));
+				SideNode* linkedSideNode = static_cast<SideNode*>(getNode(linkedTileCenterNode->getNeighborIndex(linkedTileDir)));
+				LocalDirection linkedSideNodeOut = tnav::map(linkedTileCenterNode->getNeighborMap(linkedTileDir), linkedTileDir);
+				LocalDirection currentNeighborOut = tnav::map(linkedSideNode->getNeighborMap(linkedSideNodeOut), tnav::inverse(linkedSideNodeOut));
 
 				LocalDirection oppD = tnav::inverse(d);
 
 				// we need to connect this side node to the new tile pair:
 				if (newConnectionPrio1 < newConnectionPrio2) {
 					// connectedSide connects ti to the new front tile in the direction of connectedSideOut
-					linkedSideNode->setNeighborIndex(connectedSideOut, frontCenterNode->getIndex());
-					linkedSideNode->setNeighborMap(connectedSideOut, tnav::getNeighborMap(connectedSideOut, d));
+					linkedSideNode->setNeighborIndex(linkedSideNodeOut, frontCenterNode->getIndex());
+					linkedSideNode->setNeighborMap(linkedSideNodeOut, tnav::getNeighborMap(linkedSideNodeOut, d));
 
 					frontCenterNode->setNeighborIndex(d, linkedSideNode->getIndex());
-					frontCenterNode->setNeighborMap(d, tnav::getNeighborMap(d, connectedSideOut));
+					frontCenterNode->setNeighborMap(d, tnav::getNeighborMap(d, linkedSideNodeOut));
 
 					// n connects the new back tile to currentNeighbor
 					newSideNode->setNeighborIndex(oppD, currentNeighborCenterNode->getIndex()); // n has same mapping as front tile center node.
@@ -399,12 +399,12 @@ public:
 						(d == LOCAL_DIRECTION_0 || d == LOCAL_DIRECTION_2)
 						? SIDE_NODE_TYPE_HORIZONTAL
 						: SIDE_NODE_TYPE_VERTICAL);
-					linkedSideNode->setNeighborIndex(oppD, backTile->centerNodeIndex);
+					linkedSideNode->setNeighborIndex(oppD, backCenterNode->index);
 					linkedSideNode->setNeighborMap(oppD, MAP_TYPE_IDENTITY);
-					linkedSideNode->setNeighborIndex(d, linkedTileSideNode->getIndex());
+					linkedSideNode->setNeighborIndex(d, linkedTileCenterNode->getIndex());
 					linkedSideNode->setNeighborMap(d, tnav::getNeighborMap(d, linkedTileDir));
 
-					linkedTileSideNode->setNeighborMap(linkedTileDir, tnav::getNeighborMap(d, linkedTileDir));
+					linkedTileCenterNode->setNeighborMap(linkedTileDir, tnav::getNeighborMap(linkedTileDir, d));
 
 					backCenterNode->setNeighborIndex(d, linkedSideNode->getIndex());
 					backCenterNode->setNeighborMap(d, MAP_TYPE_IDENTITY);
@@ -416,7 +416,7 @@ public:
 					newSideNode->setNeighborMap(oppD, MAP_TYPE_IDENTITY);
 
 					currentNeighborCenterNode->setNeighborIndex(currentNeighborOut, newSideNode->getIndex());
-					currentNeighborCenterNode->setNeighborMap(currentNeighborOut, tnav::getNeighborMap(d, currentNeighborOut));
+					currentNeighborCenterNode->setNeighborMap(currentNeighborOut, tnav::getNeighborMap(currentNeighborOut, d));
 
 					frontCenterNode->setNeighborIndex(d, newSideNode->getIndex());
 					frontCenterNode->setNeighborMap(d, MAP_TYPE_IDENTITY);
@@ -500,7 +500,11 @@ public:
 			// While we could edit the existing nodes, its conceptually simpler to just make a fresh one:
 			newNode->setPosition(sideNode1->getPosition());
 			newNode->oriType = neighborCenterNode1->oriType; // makes sure the transition from center node type -> new side node type is possible
-			
+			newNode->setSideNodeType(
+				(n1ToNew == LOCAL_DIRECTION_0 || n1ToNew == LOCAL_DIRECTION_2)
+				? SIDE_NODE_TYPE_HORIZONTAL
+				: SIDE_NODE_TYPE_VERTICAL);
+
 			neighborCenterNode1->setNeighborIndex(n1ToNew, newNode->getIndex());
 			neighborCenterNode1->setNeighborMap(n1ToNew, MAP_TYPE_IDENTITY);
 			newNode->setNeighborIndex(newToN2, neighborCenterNode2->getIndex());
