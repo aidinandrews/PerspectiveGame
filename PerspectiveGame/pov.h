@@ -91,8 +91,8 @@ public:
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(d));
 
 		// Adjust the window space -> tile space mappings:
-		mapType = combineMaps(mapType, m1);
-		mapType = combineMaps(mapType, m2);
+		mapType = combine(mapType, m1);
+		mapType = combine(mapType, m2);
 
 		centerNodeIndex = node->getIndex();
 	}
@@ -124,13 +124,13 @@ public:
 		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(d)));
 
 		// Adjust the window space -> tile space mappings:
-		mapType = combineMaps(mapType, m1);
-		mapType = combineMaps(mapType, m2);
+		mapType = combine(mapType, m1);
+		mapType = combine(mapType, m2);
 
 		centerNodeIndex = newNode->getIndex();
 
 		// used for 3D transformation matrix lerping:
-		bool sameType = oldNode->oriType == newNode->oriType;
+		bool sameType = oldNode->orientation == newNode->orientation;
 		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
 		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
 		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.

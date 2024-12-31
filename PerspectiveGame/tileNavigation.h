@@ -195,6 +195,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 	const extern LocalDirection DIRECTION_SET[8];
 	const extern glm::vec3 TO_NODE_OFFSETS[3][8];
 	const extern LocalDirection ORTHOGONAL_DIRECTION_SET[4];
+	const extern LocalDirection DIAGONAL_DIRECTION_SET[4];
 
 	void checkOrthogonal(LocalAlignment alignment);
 	
@@ -213,13 +214,14 @@ namespace tnav { // tnav is short for 'tile navigation'
 	
 	const bool alignmentHasComponent(LocalDirection direction, LocalDirection component);
 	
-	const LocalDirection combineAlignments(LocalAlignment a, LocalAlignment b);
+	const LocalDirection combine(LocalAlignment a, LocalAlignment b);
 	
 	const LocalAlignment map(MapType mapType, LocalAlignment currentAlignment);
 
 	const MapType getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
-	const MapType combineMaps(MapType map1, MapType map2);
+	const MapType combine
+	(MapType map1, MapType map2);
 
 	const MapType inverse(MapType mapType);
 

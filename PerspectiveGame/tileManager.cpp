@@ -450,7 +450,7 @@ bool TileManager::tryConnect(Tile* subject, Tile* other)
 	return false;
 }
 
-void TileManager::deleteTilePair(Tile* node, bool allowDeletePovTile)
+void TileManager::removeTilePair(Tile* node, bool allowDeletePovTile)
 {
 	// Stuff will break if you delete the tile you are on.  Don't do that:
 	if (!allowDeletePovTile && (node == povTile.node || node->sibling == povTile.node)) {

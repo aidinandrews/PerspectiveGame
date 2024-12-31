@@ -28,7 +28,7 @@ private:
 
 public:
 	PositionNodeType type;
-	OrientationType oriType;
+	OrientationType orientation;
 	int index;
 	glm::vec3 position;
 
@@ -76,7 +76,7 @@ public:
 		index = -1;
 		tileInfoIndex = -1;
 		//type = NODE_TYPE_ERROR;
-		oriType = ORIENTATION_TYPE_ERROR;
+		orientation = ORIENTATION_TYPE_ERROR;
 		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
 			neighborIndices[i] = -1;
@@ -176,7 +176,7 @@ public:
 	{
 		index = -1;
 		//type = NODE_TYPE_ERROR;
-		oriType = ORIENTATION_TYPE_ERROR;
+		orientation = ORIENTATION_TYPE_ERROR;
 		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
 			neighborIndices[i] = -1;
@@ -247,7 +247,7 @@ public:
 	void wipe() override
 	{
 		index = -1;
-		oriType = ORIENTATION_TYPE_ERROR;
+		orientation = ORIENTATION_TYPE_ERROR;
 		//type = NODE_TYPE_ERROR;
 		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
@@ -307,6 +307,16 @@ struct alignas(32) GPU_PositionNodeInfo {
 	alignas(4) int index;
 	alignas(4) int tileInfoIndex;
 	alignas(4) int padding[6];
+
+	GPU_PositionNodeInfo()
+	{
+		index = -1;
+		tileInfoIndex = -1;
+		for (int i = 0; i < 8; i++) {
+			neighborIndices[i] = -1;
+			neighborMaps[i] = -1;
+		}
+	}
 
 	GPU_PositionNodeInfo(PositionNode& node)
 	{

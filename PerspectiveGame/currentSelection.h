@@ -160,7 +160,7 @@ struct CurrentSelection {
 	void findPreviewTile()
 	{
 		PositionNode* node = addTileParentPOV->getNode();
-		TileType addParentTileType = (TileType)node->oriType;
+		TileType addParentTileType = (TileType)node->orientation;
 		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
 		glm::vec3 sideNodePos = node->getPosition();
 		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());
@@ -193,11 +193,17 @@ struct CurrentSelection {
 
 		if (p_inputManager->leftClicked()) {
 			p_nodeNetwork->createTilePair(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
+			
+			p_nodeNetwork->printSize();
+			p_nodeNetwork->printCornerNodePositions();
 		}
 		else if (p_inputManager->rightClicked()) {
 			if (hoveredTile != p_pov->getNode())
-				p_nodeNetwork->deleteTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex()));
+				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex()));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
+
+			p_nodeNetwork->printSize();
+			p_nodeNetwork->printCornerNodePositions();
 		}
 	}
 	void tryEditBases()
