@@ -97,9 +97,10 @@ public:
 		m = tnav::combine(m, thirdNeighbor->getNeighborMap(d));
 
 		// Adjust the window space -> tile space mappings:
-		mapType = combine(mapType, m);
-		centerNodeIndex = thirdNeighbor->getNeighborIndex(d);
-		node = p_nodeNetwork->getNode(centerNodeIndex);
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
+
+		centerNodeIndex = node->getIndex();
 	}
 
 	// Will adjust the position, basis, and orientation of 'upward' and 'rightward' to 
@@ -118,10 +119,24 @@ public:
 
 		shiftTileSimple(d);
 
+		// Transition to a side node:
+		d = map(newNode->getNeighborMap(d), d);
+		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(D)));
+
+		// Transistion to the neighbor tile (a center node).
+		MapType m2 = newNode->getNeighborMap(d);
+		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(d)));
+
+		// Adjust the window space -> tile space mappings:
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
+
+		centerNodeIndex = newNode->getIndex();
+
 		// used for 3D transformation matrix lerping:
-		bool sameType = oldNode->basis == getNode()->basis;
-		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(0), oldOrtho)->type;
-		TileType tb = p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex(0), newOrtho)->type;
+		bool sameType = oldNode->oriType == newNode->oriType;
+		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
+		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
 		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.
 
 		lastRotationMatrixWeight = 1.0f;

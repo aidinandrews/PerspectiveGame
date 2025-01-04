@@ -193,17 +193,11 @@ struct CurrentSelection {
 
 		if (p_inputManager->leftClicked()) {
 			p_nodeNetwork->createTilePair(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
-			
-			p_nodeNetwork->printSize();
-			p_nodeNetwork->printCornerNodePositions();
 		}
 		else if (p_inputManager->rightClicked()) {
 			if (hoveredTile != p_pov->getNode())
 				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex(0)));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
-
-			p_nodeNetwork->printSize();
-			p_nodeNetwork->printCornerNodePositions();
 		}
 	}
 	void tryEditBases()

@@ -11,12 +11,9 @@ const LocalDirection tnav::DIRECTION_SET[8] = {
 	LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0
 };
 
+
 const LocalDirection tnav::ORTHOGONAL_DIRECTION_SET[4] = {
 	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3
-};
-
-const LocalDirection tnav::DIAGONAL_DIRECTION_SET[4] = {
-	LOCAL_ALIGNMENT_0_1, LOCAL_ALIGNMENT_1_2, LOCAL_ALIGNMENT_2_3, LOCAL_ALIGNMENT_3_0
 };
 
 void tnav::checkOrthogonal(LocalAlignment alignment)
@@ -88,7 +85,7 @@ const LocalDirection COMBINED_ALIGNMENTS[4][4] = {
 	{ LOCAL_ALIGNMENT_3_0, LOCAL_ALIGNMENT_NONE, LOCAL_ALIGNMENT_2_3, LOCAL_ALIGNMENT_3 }
 };
 
-const LocalAlignment tnav::combine(LocalAlignment a, LocalAlignment b)
+const LocalAlignment tnav::combineAlignments(LocalAlignment a, LocalAlignment b)
 {
 	return COMBINED_ALIGNMENTS[a][b];
 }
@@ -506,7 +503,7 @@ const MapType COMBINE_MAP_INDICES[8][8] = {
 	{ MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY }
 };
 
-const MapType tnav::combine(MapType map1, MapType map2)
+const MapType tnav::combineMaps(MapType map1, MapType map2)
 {
 	return COMBINE_MAP_INDICES[map1][map2];
 }
