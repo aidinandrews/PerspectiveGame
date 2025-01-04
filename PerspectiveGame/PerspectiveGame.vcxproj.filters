@@ -159,10 +159,10 @@
     <ClInclude Include="pov.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
-    <ClInclude Include="positionNode.h">
+    <ClInclude Include="tileNode.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
-    <ClInclude Include="positionNodeNetwork.h">
+    <ClInclude Include="tileNodeNetwork.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="scene.h">
@@ -191,6 +191,9 @@
     </ClInclude>
     <ClInclude Include="tile3dViewCamera.h">
       <Filter>Source Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="nodeNavigation.h">
+      <Filter>Source Files\Game\World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

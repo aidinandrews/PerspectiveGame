@@ -427,10 +427,11 @@ pause
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
+    <ClInclude Include="nodeNavigation.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="playground.h" />
-    <ClInclude Include="positionNode.h" />
-    <ClInclude Include="positionNodeNetwork.h" />
+    <ClInclude Include="tileNode.h" />
+    <ClInclude Include="tileNodeNetwork.h" />
     <ClInclude Include="pov.h" />
     <ClInclude Include="scenarioSetup.h" />
     <ClInclude Include="scene.h" />

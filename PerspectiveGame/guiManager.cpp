@@ -338,7 +338,7 @@ void GuiManager::bindSSBOs2d3rdPersonViaNodeNetwork()
 	// Position Node Info Buffer:
 	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->positionNodeInfosBufferID);
 	glBufferData(GL_UNIFORM_BUFFER,
-				 p_nodeNetwork->gpuPositionNodeInfos.size() * sizeof(GPU_PositionNodeInfo),
+				 p_nodeNetwork->gpuPositionNodeInfos.size() * sizeof(GPU_TileNodeInfo),
 				 p_nodeNetwork->gpuPositionNodeInfos.data(),
 				 GL_DYNAMIC_DRAW);
 	GLuint positionNodeInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "positionNodeInfosBuffer");
@@ -349,7 +349,7 @@ void GuiManager::bindSSBOs2d3rdPersonViaNodeNetwork()
 	// Tile Info Info Buffer:
 	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->tileInfosBufferID);
 	glBufferData(GL_UNIFORM_BUFFER,
-				 p_nodeNetwork->gpuTileInfos.size() * sizeof(GPU_TileInfoNode),
+				 p_nodeNetwork->gpuTileInfos.size() * sizeof(GPU_TileInfo),
 				 p_nodeNetwork->gpuTileInfos.data(),
 				 GL_DYNAMIC_DRAW);
 	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "tileInfosBuffer");
@@ -367,7 +367,7 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 
 	glUniform1f(glGetUniformLocation(programID, "deltaTime"), TimeSinceProgramStart);
 	glUniform1f(glGetUniformLocation(programID, "updateProgress"), updateProgress);
-	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->getNode()->getIndex());
+	glUniform1i(glGetUniformLocation(programID, "initialTileIndex"), p_pov->getNode()->getTileInfoIndex(0));
 	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapType);
 	
 	//glm::vec2 relativePos[5]; // player position in current tile and neighbors:
@@ -383,8 +383,9 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 	//GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
 	//glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
 
-	glm::mat4 screenSpaceToWorldSpace = glm::inverse(
-		p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
+	glm::vec2 screenSizePixels((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight());
+	glm::mat4 screenSpaceToWorldSpace = p_camera->getProjectionMatrix(screenSizePixels.x, screenSizePixels.y);
+	screenSpaceToWorldSpace = glm::inverse(screenSpaceToWorldSpace);
 	GLuint windowToWorldID = glGetUniformLocation(programID, "inWindowToWorldSpace");
 	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
 }
@@ -537,8 +538,8 @@ void GuiManager::draw3DTile(TileInfo* info)
 		verts.push_back((GLfloat)info->color.g);
 		verts.push_back((GLfloat)info->color.b);
 		// texture coord:
-		verts.push_back(info->textureCoordinates[i].x);
-		verts.push_back(info->textureCoordinates[i].y);
+		verts.push_back(info->getTexCoord(i).x);
+		verts.push_back(info->getTexCoord(i).y);
 		// tile index:
 		verts.push_back((GLfloat)info->index);
 	}

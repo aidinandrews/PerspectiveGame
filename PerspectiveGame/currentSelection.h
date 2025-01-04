@@ -9,17 +9,17 @@
 #include "basisManager.h"
 #include "buttonManager.h"
 #include "cameraManager.h"
-#include "positionNodeNetwork.h"
+#include "tileNodeNetwork.h"
 #include "pov.h"
 
 struct QueuedEntity {
 	int tileIndex;
 	EntityType type;
-	LocalOrientation orientation;
+	LocalOrientation basis;
 	LocalDirection direction;
 
-	QueuedEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation orientation) :
-		tileIndex(tileIndex), type(type), orientation(orientation), direction(direction)
+	QueuedEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation basis) :
+		tileIndex(tileIndex), type(type), basis(basis), direction(direction)
 	{}
 };
 
@@ -37,10 +37,10 @@ struct CurrentSelection {
 	ButtonManager* p_buttonManager;
 	BasisManager* p_basisManager;
 	Camera* p_camera;
-	PositionNodeNetwork* p_nodeNetwork;
+	TileNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
-	CenterNode* hoveredTile;
+	TileNode* hoveredTile;
 	int	hoveredTileConnectionIndex;
 	POV* addTileParentPOV;
 	LocalDirection addTileParentAddDirection;
@@ -49,7 +49,7 @@ struct CurrentSelection {
 	glm::vec3 heldTilePos;
 
 	//Tile::Basis heldBasis;
-	Entity* heldEntity;
+	//Entity* heldEntity;
 	LocalDirection heldEntityDirection;
 
 	std::vector<QueuedEntity> queuedEntities;
@@ -65,7 +65,7 @@ struct CurrentSelection {
 	bool leftClick = false;
 
 	CurrentSelection(InputManager* im, EntityManager* em, ButtonManager* bm, Camera* (cam),
-					 BasisManager* bam, PositionNodeNetwork* nn, POV* pov) : p_inputManager(im),
+					 BasisManager* bam, TileNodeNetwork* nn, POV* pov) : p_inputManager(im),
 		p_entityManager(em), p_buttonManager(bm), p_camera(cam), p_basisManager(bam), p_nodeNetwork(nn), p_pov(pov)
 	{
 		Button* b = &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex];
@@ -88,7 +88,7 @@ struct CurrentSelection {
 
 	~CurrentSelection()
 	{
-		delete heldEntity;
+		//delete heldEntity;
 		delete addTileParentPOV;
 	}
 
@@ -159,9 +159,9 @@ struct CurrentSelection {
 
 	void findPreviewTile()
 	{
-		PositionNode* node = addTileParentPOV->getNode();
-		TileType addParentTileType = (TileType)node->orientation;
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(addTileParentAddDirection));
+		TileNode* node = addTileParentPOV->getNode();
+		TileType addParentTileType = (TileType)node->basis;
+		node = p_nodeNetwork->getSecondNeighbor(node, addTileParentAddDirection);
 		glm::vec3 sideNodePos = node->getPosition();
 		glm::vec3 toSideNode = 2.0f * (sideNodePos - addTileParentPOV->getNode()->getPosition());
 
@@ -184,7 +184,7 @@ struct CurrentSelection {
 
 		glm::vec3 color = tnav::getNormal(newTileType);
 		if (color.x < 0 || color.y < 0 || color.z < 0) { color *= -0.8; }
-		heldTileInfo = TileInfo(newTileType,-1, -1, -1, color);
+		heldTileInfo = TileInfo(newTileType, -1, BASIS_TYPE_ERROR, -1, -1, color);
 	}
 
 	void tryEditTiles()
@@ -199,7 +199,7 @@ struct CurrentSelection {
 		}
 		else if (p_inputManager->rightClicked()) {
 			if (hoveredTile != p_pov->getNode())
-				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex()));
+				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTileInfo(hoveredTile->getTileInfoIndex(0)));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
 
 			p_nodeNetwork->printSize();

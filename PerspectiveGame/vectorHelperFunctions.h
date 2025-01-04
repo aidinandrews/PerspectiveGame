@@ -100,7 +100,7 @@ namespace vechelp {
 	bool onSegment(glm::vec2 p, glm::vec2 q, glm::vec2 r);
 
 	// Calculate orientation of triplet (p, q, r)
-	int orientation(glm::ivec2 p, glm::ivec2 q, glm::ivec2 r);
+	int basis(glm::ivec2 p, glm::ivec2 q, glm::ivec2 r);
 
 	// The main function that returns true if line segment 'p1q1' and 'p2q2' intersect. 
 	bool doIntersect(glm::vec2 p1, glm::vec2 q1, glm::vec2 p2, glm::vec2 q2);

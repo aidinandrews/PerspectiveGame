@@ -9,26 +9,23 @@ uniform float     deltaTime;
 uniform float     updateProgress;
 uniform sampler2D inTexture;
 //uniform mat4      inPovRelativePositions;
-uniform int initialNodeIndex;
+uniform int initialTileIndex;
 uniform int initialMapIndex;
 
-struct NodeInfo {
-	int neighborIndices[8];
-	int neighborMapIndices[8];
-	
-	int index;
-	int tileInfoIndex;
-	int padding[6];
-};
 struct TileInfo {
 	vec2 texCoords[4];
 
+	int neighborIndices[4];
+	int neighborMaps[4];
+
+	int entityIndices[4];
 	vec4 color;
-	int nodeIndex;
-	int padding[3];
+
+	int numEntities;
+	int index;
+	int padding[6];
 };
 
-layout (std430, binding = 1) buffer positionNodeInfosBuffer { NodeInfo nodeInfos[]; };
 layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 
 // GLOBAL VARIABLES:
@@ -48,10 +45,9 @@ layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 
 #define MAX_STEPS 500
 
-#define CurrentNode nodeInfos[currentNodeIndex]
-#define CurrentTileInfo tileInfos[CurrentNode.tileInfoIndex]
+#define CurrentTile tileInfos[currentTileIndex]
 
-int currentNodeIndex = initialNodeIndex;
+int currentTileIndex = initialTileIndex;
 int currentMapIndex = initialMapIndex;
 
 vec2 localPixelPosition;
@@ -103,9 +99,9 @@ vec4 tileTexColor() {
 	int s = getLocalSouth(), w = getLocalWest(), n = getLocalNorth();
 	if (currentMapIndex > 3) { s = ++s % 4; w = ++w % 4; n = ++n % 4; }
 
-	vec2 southEastUV = CurrentTileInfo.texCoords[s];
-	vec2 southWestUV = CurrentTileInfo.texCoords[w];
-	vec2 northWestUV = CurrentTileInfo.texCoords[n];
+	vec2 southEastUV = CurrentTile.texCoords[s];
+	vec2 southWestUV = CurrentTile.texCoords[w];
+	vec2 northWestUV = CurrentTile.texCoords[n];
 
 	vec2 xDir = southEastUV - southWestUV;
 	vec2 yDir = northWestUV - southWestUV;
@@ -115,25 +111,17 @@ vec4 tileTexColor() {
 }
 
 void colorPixel() {
-	gl_FragColor = mix(tileTexColor(), CurrentTileInfo.color, 0.5);
+	gl_FragColor = mix(tileTexColor(), CurrentTile.color, 0.5);
 }
 
-// transitions currentNodeIndex and currentMapIndex 1 tile over in the given direction (d).
+// transitions currentTileIndex and currentMapIndex 1 tile over in the given direction (d).
 void shiftCurrentTile(int d) {
 	int D = d;
-	int m = nodeInfos[currentNodeIndex].neighborMapIndices[d];
+	int m = tileInfos[currentTileIndex].neighborMaps[d];
 
-	// Transition to a side node:
-	d = MAP_DIRECTION[nodeInfos[currentNodeIndex].neighborMapIndices[d]][d];
-	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[D];
-
-	// Transistion to the neighbor tile (a center node).
-	int M = nodeInfos[currentNodeIndex].neighborMapIndices[d];
-	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[d];
-
-	// Adjust the window space -> tile space mappings:
+	d = MAP_DIRECTION[tileInfos[currentTileIndex].neighborMaps[d]][d];
+	currentTileIndex = tileInfos[currentTileIndex].neighborIndices[D];
 	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][m];
-	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][M];
 }
 
 bool findTile() {

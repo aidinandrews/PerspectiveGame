@@ -1,7 +1,7 @@
 #include "tile.h"
 #include "building.h"
 
-Tile::Tile(TileType type, glm::ivec3 position) : type(type), position(position)
+Tile::Tile(TileType type, glm::ivec3 pos) : type(type), pos(pos)
 {
 	texCoords[0] = glm::vec2(1, 1);
 	texCoords[1] = glm::vec2(1, 0);
@@ -31,28 +31,28 @@ glm::ivec3 Tile::getVertPos(int index)
 {
 	using namespace tnav;
 
-	if (index == 0) { return position; }
+	if (index == 0) { return pos; }
 
 	switch (getSuperTileType(type)) {
 	case TILE_TYPE_XY:
 		switch (index) {
-		case 1: return position - glm::ivec3(0, 1, 0);
-		case 2: return position - glm::ivec3(1, 1, 0);
-		case 3: return position - glm::ivec3(1, 0, 0);
+		case 1: return pos - glm::ivec3(0, 1, 0);
+		case 2: return pos - glm::ivec3(1, 1, 0);
+		case 3: return pos - glm::ivec3(1, 0, 0);
 		default: throw std::runtime_error("getVertPos() index out of scope!");
 		}
 	case TILE_TYPE_XZ:
 		switch (index) {
-		case 1: return position - glm::ivec3(1, 0, 0);
-		case 2: return position - glm::ivec3(1, 0, 1);
-		case 3: return position - glm::ivec3(0, 0, 1);
+		case 1: return pos - glm::ivec3(1, 0, 0);
+		case 2: return pos - glm::ivec3(1, 0, 1);
+		case 3: return pos - glm::ivec3(0, 0, 1);
 		default: throw std::runtime_error("getVertPos() index out of scope!");
 		}
 	case TILE_TYPE_YZ:
 		switch (index) {
-		case 1: return position - glm::ivec3(0, 0, 1);
-		case 2: return position - glm::ivec3(0, 1, 1);
-		case 3: return position - glm::ivec3(0, 1, 0);
+		case 1: return pos - glm::ivec3(0, 0, 1);
+		case 2: return pos - glm::ivec3(0, 1, 1);
+		case 3: return pos - glm::ivec3(0, 1, 0);
 		default: throw std::runtime_error("getVertPos() index out of scope!");
 		}
 	default: throw std::runtime_error("getVertPos() is switching based on faulty tileSubType values!");
@@ -63,7 +63,7 @@ GPU_TileInfo::GPU_TileInfo(Tile* node)
 {
 	color = glm::vec4(node->color, 1);
 
-	basisType = (int)node->basis.type;
+	basis = (int)node->basis.type;
 	basisOrientation = node->basis.localOrientation;
 
 	getTileType = (int)node->type;

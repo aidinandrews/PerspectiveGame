@@ -5,7 +5,7 @@
 
 struct Player {
 	struct PlayerGpuInfo {
-		alignas(16) int tileIndices[4];
+		alignas(16) int tileInfoIndices[4];
 		// relativePos is relative to the tile such that:
 		// vert[2] -> vert[1] == +x && vert[2] -> vert[3] == +y. 
 		// Note: vert[0] == initialVert().
@@ -28,7 +28,7 @@ struct Player {
 
 		gpuInfo.color = glm::vec4(1, 1, 1, 1);
 
-		gpuInfo.tileIndices[0] = povTileTarget->node->index;
+		gpuInfo.tileInfoIndices[0] = povTileTarget->node->index;
 
 		//float tileX = 
 

@@ -238,7 +238,7 @@ bool vechelp::onSegment(glm::vec2 p, glm::vec2 q, glm::vec2 r)
 }
 
 // Calculate orientation of triplet (p, q, r)
-int vechelp::orientation(glm::ivec2 p, glm::ivec2 q, glm::ivec2 r)
+int vechelp::basis(glm::ivec2 p, glm::ivec2 q, glm::ivec2 r)
 {
 	int val = ((q.y - p.y) * (r.x - q.x)) - ((q.x - p.x) * (r.y - q.y));
 	if (val == 0) return 0;  // collinear 
@@ -252,10 +252,10 @@ bool vechelp::doIntersect(glm::vec2 p1, glm::vec2 q1, glm::vec2 p2, glm::vec2 q2
 	q1 *= 1000;
 	p2 *= 1000;
 	q2 *= 1000;
-	int o1 = orientation((glm::ivec2)p1, (glm::ivec2)q1, (glm::ivec2)p2);
-	int o2 = orientation((glm::ivec2)p1, (glm::ivec2)q1, (glm::ivec2)q2);
-	int o3 = orientation((glm::ivec2)p2, (glm::ivec2)q2, (glm::ivec2)p1);
-	int o4 = orientation((glm::ivec2)p2, (glm::ivec2)q2, (glm::ivec2)q1);
+	int o1 = basis((glm::ivec2)p1, (glm::ivec2)q1, (glm::ivec2)p2);
+	int o2 = basis((glm::ivec2)p1, (glm::ivec2)q1, (glm::ivec2)q2);
+	int o3 = basis((glm::ivec2)p2, (glm::ivec2)q2, (glm::ivec2)p1);
+	int o4 = basis((glm::ivec2)p2, (glm::ivec2)q2, (glm::ivec2)q1);
 
 	// General case 
 	if (o1 != o2 && o3 != o4) { return true; }

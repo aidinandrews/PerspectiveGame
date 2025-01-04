@@ -7,35 +7,6 @@
 #define NO_TILE_INDEX -1
 #define NO_SUB_TILE_INDEX -1
 
-// Each tile has a type corrosponding to what principal/coordinate plane (XY, XA, and YZ) the tile is 
-	// parallel to.  This type means that a tile can be fully described with a type and a point on the 
-	// corrosponding coordinaate plane that corrosponds to one of it's vertices.
-enum SuperTileType {
-	TILE_TYPE_XY = 0,
-	TILE_TYPE_XZ = 1,
-	TILE_TYPE_YZ = 2,
-};
-
-// Inside each tile are four edges.  Each edge will be parallel to an axis of R3 (X, Y, or Z). 
-// Thus, each edge can be described partially by what axis it is parallel to.  
-// An edge type and a vertex corrosponding to its 'tail' are all that is needed to fully descibe an edge. 
-enum TileEdgeType {
-	TILE_EDGE_TYPE_X,
-	TILE_EDGE_TYPE_Y,
-	TILE_EDGE_TYPE_Z,
-};
-
-// Tiles are all square and can differ from each other in location and angle.  
-// They are either parallel with the XY, XZ, or YZ planes, so they can either have a 'dihedral angle' 
-// (internal angle of 90, 180, or 270 degrees).  
-// Both 90 and 270 are interchangeable depending on the perspective between two tiles, 
-// but it can be useful to desribe them as different in certain circumstances.
-//enum TileDihedral {
-//	TILE_DIHEDRAL_90,
-//	TILE_DIHEDRAL_180,
-//	TILE_DIHEDRAL_270,
-//};
-
 enum TileRelation {
 	TILE_RELATION_FLAT,
 	TILE_RELATION_UP,
@@ -43,76 +14,72 @@ enum TileRelation {
 	TILE_RELATION_FLIPPED,
 };
 
-// designates the plane something lies in and what direction it 'faces'
-enum OrientationType {
-	ORIENTATION_TYPE_0 = 0, // Lies in the XY plan and faces Z+.
-	ORIENTATION_TYPE_1 = 1, // Lies in the XY plan and faces Z-. 
-	ORIENTATION_TYPE_2 = 2, // Lies in the XZ plan and faces Y+. 
-	ORIENTATION_TYPE_3 = 3, // Lies in the XZ plan and faces Y-. 
-	ORIENTATION_TYPE_4 = 4, // Lies in the YZ plan and faces X+. 
-	ORIENTATION_TYPE_5 = 5, // Lies in the YZ plan and faces X-. 
-	ORIENTATION_TYPE_ERROR,
+// designates how to translate one direction from one basis to another.
+// can be thought of as the basis or a LocalDirection.
+enum BasisType {
+	BASIS_TYPE_0 = 0, 
+	BASIS_TYPE_1 = 1,  
+	BASIS_TYPE_2 = 2,  
+	BASIS_TYPE_3 = 3,  
+	BASIS_TYPE_4 = 4,  
+	BASIS_TYPE_5 = 5,  
+	BASIS_TYPE_ERROR,
 };
 
-using TileType = OrientationType;
-#define TILE_TYPE_XYF ORIENTATION_TYPE_0
-#define TILE_TYPE_XYB ORIENTATION_TYPE_1
-#define TILE_TYPE_XZF ORIENTATION_TYPE_2
-#define TILE_TYPE_XZB ORIENTATION_TYPE_3
-#define TILE_TYPE_YZF ORIENTATION_TYPE_4
-#define TILE_TYPE_YZB ORIENTATION_TYPE_5
-#define TILE_TYPE_ERROR ORIENTATION_TYPE_ERROR
+// Each tile has a type corrosponding to what principal/coordinate plane (XY, XA, and YZ) the tile is 
+// parallel to.  This type means that a tile can be fully described with a type and a point on the 
+// corrosponding coordinaate plane that corrosponds to one of it's vertices.
+enum SuperTileType {
+	TILE_TYPE_XY = 0,
+	TILE_TYPE_XZ = 1,
+	TILE_TYPE_YZ = 2,
+};
+
+using TileType = BasisType;
+#define TILE_TYPE_XYF BASIS_TYPE_0 // Lies in the XY plan and faces Z+.
+#define TILE_TYPE_XYB BASIS_TYPE_1 // Lies in the XY plan and faces Z-.
+#define TILE_TYPE_XZF BASIS_TYPE_2 // Lies in the XZ plan and faces Y+.
+#define TILE_TYPE_XZB BASIS_TYPE_3 // Lies in the XZ plan and faces Y-.
+#define TILE_TYPE_YZF BASIS_TYPE_4 // Lies in the YZ plan and faces X+.
+#define TILE_TYPE_YZB BASIS_TYPE_5 // Lies in the YZ plan and faces X-.
+#define TILE_TYPE_ERROR BASIS_TYPE_ERROR
 #define TILE_TYPE_DEFAULT TILE_TYPE_XYF
 
-//using NodeType = OrientationType;
-//#define NODE_TYPE_XYF ORIENTATION_TYPE_0
-//#define NODE_TYPE_XYB ORIENTATION_TYPE_1
-//#define NODE_TYPE_XZF ORIENTATION_TYPE_2
-//#define NODE_TYPE_XZB ORIENTATION_TYPE_3
-//#define NODE_TYPE_YZF ORIENTATION_TYPE_4
-//#define NODE_TYPE_YZB ORIENTATION_TYPE_5
-//#define NODE_TYPE_ERROR ORIENTATION_TYPE_ERROR
-//#define NODE_TYPE_DEFAULT NODE_TYPE_XYF
-
 enum MapType {
-	MAP_TYPE_0 = 0,
-	MAP_TYPE_1 = 1,
-	MAP_TYPE_2 = 2,
-	MAP_TYPE_3 = 3,
-	MAP_TYPE_4 = 4,
-	MAP_TYPE_5 = 5,
-	MAP_TYPE_6 = 6,
-	MAP_TYPE_7 = 7,
+	MAP_TYPE_IDENTITY		= 0, // [0, 1, 2, 3] -> [0, 1, 2, 3] (identity)
+	MAP_TYPE_CW_ROT			= 1, // [0, 1, 2, 3] -> [1, 2, 3, 0] (countercockwise rotation)
+	MAP_TYPE_DBL_ROT		= 2, // [0, 1, 2, 3] -> [2, 3, 0, 1] (double rotation)
+	MAP_TYPE_CCW_ROT		= 3, // [0, 1, 2, 3] -> [3, 0, 1, 2] (clockwise rotation)
+	MAP_TYPE_HORI_FLIP		= 4, // [0, 1, 2, 3] -> [0, 3, 2, 1] (horizontal axis flip)
+	MAP_TYPE_MIN_DIAG_FLIP	= 5, // [0, 1, 2, 3] -> [1, 0, 3, 2] (minor diagonal axis flip)
+	MAP_TYPE_VERT_FLIP		= 6, // [0, 1, 2, 3] -> [2, 1, 0, 3] (vertical axis flip)
+	MAP_TYPE_MAJ_DIAG_FLIP	= 7, // [0, 1, 2, 3] -> [3, 2, 1, 0] (major diagonal axis flip)
 	MAP_TYPE_ERROR,
 };
-#define MAP_TYPE_IDENTITY MAP_TYPE_0
 
-
-enum BasisType {
-	BASIS_TYPE_NONE,
-	BASIS_TYPE_PRODUCER,
-	BASIS_TYPE_CONSUMER,
-	BASIS_TYPE_FORCE_SINK,
-	BASIS_TYPE_FORCE_GENERATOR,
-};
+//enum BasisType {
+//	BASIS_TYPE_NONE,
+//	BASIS_TYPE_PRODUCER,
+//	BASIS_TYPE_CONSUMER,
+//	BASIS_TYPE_FORCE_SINK,
+//	BASIS_TYPE_FORCE_GENERATOR,
+//};
 
 enum EntityType {
 	ENTITY_TYPE_NONE,
-	ENTITY_TYPE_OMNI,
+	ENTITY_TYPE_BASIC,
 };
 
-enum CornerBuildingType {
-	CORNER_BUILDING_NONE,
-	CORNER_BUILDING_BELT_MIDDLE_FORWARD,
-	CORNER_BUILDING_BELT_MIDDLE_BACK,
-	CORNER_BUILDING_BELT_END_FORWARD,
-	CORNER_BUILDING_BELT_END_BACK,
-};
-
-// Specifies information about movement for various entities.
+// Given a basis, specifies a direction in that basis, be it in neighbors, direction, ect.
 enum LocalAlignment {
-	LOCAL_ALIGNMENT_0, LOCAL_ALIGNMENT_1, LOCAL_ALIGNMENT_2, LOCAL_ALIGNMENT_3,
-	LOCAL_ALIGNMENT_0_1,LOCAL_ALIGNMENT_1_2,LOCAL_ALIGNMENT_2_3,LOCAL_ALIGNMENT_3_0,
+	LOCAL_ALIGNMENT_0, 
+	LOCAL_ALIGNMENT_1, 
+	LOCAL_ALIGNMENT_2, 
+	LOCAL_ALIGNMENT_3,
+	LOCAL_ALIGNMENT_0_1,
+	LOCAL_ALIGNMENT_1_2,
+	LOCAL_ALIGNMENT_2_3,
+	LOCAL_ALIGNMENT_3_0,
 	LOCAL_ALIGNMENT_NONE, 
 	LOCAL_ALIGNMENT_ERROR
 };
@@ -225,10 +192,10 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const MapType inverse(MapType mapType);
 
-	LocalPosition nextPosition(LocalPosition position, LocalDirection direction);
+	LocalPosition nextPosition(LocalPosition pos, LocalDirection direction);
 
 	// Returns the position after the next position in the given direction.
-	const LocalPosition getNextNextPosition(LocalPosition position, LocalDirection direction);
+	const LocalPosition getNextNextPosition(LocalPosition pos, LocalDirection direction);
 
 	inline void println(LocalDirection d)
 	{
@@ -313,4 +280,9 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const glm::vec3 getTileEdgeVec(TileType type, LocalDirection orthoDir);
 	const glm::vec3 getCenterToEdgeVec(TileType type, LocalDirection orthoDir);
+
+	// given two tiles, finds the priority of the potential connection.
+	// note that there are some tile pairs that are not able to be  connected through
+	// some edges.  This assumes a valid connection between the tiles!
+	const int getConnectionPriority(TileType A, TileType B);
 }

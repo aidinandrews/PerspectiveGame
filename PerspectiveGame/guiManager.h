@@ -33,7 +33,7 @@
 #include "frameBuffer.h"
 #include "currentSelection.h"
 #include "tileNavigation.h"
-#include "positionNodeNetwork.h"
+#include "tileNodeNetwork.h"
 #include "pov.h"
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
@@ -71,7 +71,7 @@ public:
 	EntityManager* p_entityManager;
 	//TileManager* p_tileManager;
 
-	PositionNodeNetwork* p_nodeNetwork;
+	TileNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
 	bool show_demo_window;
@@ -87,7 +87,7 @@ public:
 public:
 	void imGuiSetup();
 	GuiManager(GLFWwindow* w, GLFWwindow* imgw, ShaderManager* sm, InputManager* im, Camera* c,
-						   Framebuffer* fb, ButtonManager* bm, CurrentSelection* cs, EntityManager* em, PositionNodeNetwork* nn, POV* pov)
+						   Framebuffer* fb, ButtonManager* bm, CurrentSelection* cs, EntityManager* em, TileNodeNetwork* nn, POV* pov)
 		: p_window(w), p_imGuiWindow(imgw), p_shaderManager(sm), p_inputManager(im), p_camera(c), p_framebuffer(fb),
 		p_buttonManager(bm), p_currentSelection(cs), p_entityManager(em), p_nodeNetwork(nn), p_pov(pov)
 	{

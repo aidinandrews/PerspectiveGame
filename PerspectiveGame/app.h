@@ -51,7 +51,7 @@ struct App {
 	CurrentSelection* p_currentSelection;
 	BasisManager* p_basisManager;
 	
-	PositionNodeNetwork* p_nodeNetwork;
+	TileNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
 	App() {}
@@ -61,8 +61,8 @@ struct App {
 		delete p_guiManager;
 		delete p_wave;
 		//delete p_tileManager;
-		delete p_entityManager;
-		delete p_basisManager;
+		//delete p_entityManager;
+		//delete p_basisManager;
 		delete p_currentSelection;
 		delete p_nodeNetwork;
 		delete p_pov;
@@ -107,7 +107,7 @@ struct App {
 		//p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
 		//p_tileManager->texID = p_wave->ID;
 		
-		p_nodeNetwork = new PositionNodeNetwork(&camera);
+		p_nodeNetwork = new TileNodeNetwork(&camera);
 		p_nodeNetwork->texID = p_wave->ID;
 
 		p_pov = new POV(p_nodeNetwork, &camera, &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex]);

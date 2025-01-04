@@ -126,9 +126,9 @@ const LocalPosition NEXT_LOCAL_POSITIONS[9][8] = {
 #undef XXX
 };
 
-LocalPosition tnav::nextPosition(LocalPosition position, LocalDirection direction)
+LocalPosition tnav::nextPosition(LocalPosition pos, LocalDirection direction)
 {
-	return NEXT_LOCAL_POSITIONS[position][direction];
+	return NEXT_LOCAL_POSITIONS[pos][direction];
 }
 
 // [local Position][local direction]
@@ -164,9 +164,9 @@ const LocalPosition NEXT_NEXT_LOCAL_POSITIONS[9][8] = {
 #undef XXX
 };
 
-const LocalPosition tnav::getNextNextPosition(LocalPosition position, LocalDirection direction)
+const LocalPosition tnav::getNextNextPosition(LocalPosition pos, LocalDirection direction)
 {
-	return NEXT_NEXT_LOCAL_POSITIONS[position][direction];
+	return NEXT_NEXT_LOCAL_POSITIONS[pos][direction];
 }
 
 /*
@@ -476,10 +476,10 @@ const LocalAlignment tnav::map(MapType mapType, LocalAlignment currentAlignment)
 
 // NEIGHBOR_ALIGNMENT_MAP_INDICES[currentTileEdgeIndex][connectedNeighborEdgeIndex]
 const MapType NEIGHBOR_ALIGNMENT_MAP_TYPE[4][4] = {
-	{ MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_0, MAP_TYPE_1 },
-	{ MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_3, MAP_TYPE_0 },
-	{ MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_6, MAP_TYPE_7 },
-	{ MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_7, MAP_TYPE_4 }
+	{ MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT },
+	{ MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY },
+	{ MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP },
+	{ MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP }
 };
 
 // I have no idea why you dont have to account for the different starting tile types.  
@@ -496,14 +496,14 @@ const MapType tnav::getNeighborMap(LocalDirection currentToNeighbor, LocalDirect
 
 // ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
 const MapType COMBINE_MAP_INDICES[8][8] = {
-	{ MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7 },
-	{ MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6 },
-	{ MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5 },
-	{ MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4 },
-	{ MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3 },
-	{ MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2 },
-	{ MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1 },
-	{ MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0 }
+	{ MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP },
+	{ MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP },
+	{ MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP },
+	{ MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP },
+	{ MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT },
+	{ MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT },
+	{ MAP_TYPE_VERT_FLIP, MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY, MAP_TYPE_CW_ROT },
+	{ MAP_TYPE_MAJ_DIAG_FLIP, MAP_TYPE_HORI_FLIP, MAP_TYPE_MIN_DIAG_FLIP, MAP_TYPE_VERT_FLIP, MAP_TYPE_CW_ROT, MAP_TYPE_DBL_ROT, MAP_TYPE_CCW_ROT, MAP_TYPE_IDENTITY }
 };
 
 const MapType tnav::combine(MapType map1, MapType map2)
@@ -514,14 +514,14 @@ const MapType tnav::combine(MapType map1, MapType map2)
 const MapType tnav::inverse(MapType map)
 {
 	switch (map) {
-	case 0: return MAP_TYPE_0;
-	case 1: return MAP_TYPE_3;
-	case 2: return MAP_TYPE_2;
-	case 3: return MAP_TYPE_1;
-	case 4: return MAP_TYPE_4;
-	case 5: return MAP_TYPE_5;
-	case 6: return MAP_TYPE_6;
-	case 7: return MAP_TYPE_7;
+	case 0: return MAP_TYPE_IDENTITY;
+	case 1: return MAP_TYPE_CCW_ROT;
+	case 2: return MAP_TYPE_DBL_ROT;
+	case 3: return MAP_TYPE_CW_ROT;
+	case 4: return MAP_TYPE_HORI_FLIP;
+	case 5: return MAP_TYPE_MIN_DIAG_FLIP;
+	case 6: return MAP_TYPE_VERT_FLIP;
+	case 7: return MAP_TYPE_MAJ_DIAG_FLIP;
 	default: throw std::runtime_error("INVALID ALIGNMENT MAP INDEX IN GIVEN TO inverseAlignmentMapIndex()");
 	}
 }
@@ -757,3 +757,18 @@ const glm::vec3 tnav::getCenterToEdgeVec(TileType type, LocalDirection orthoDir)
 {
 	return TILE_CENTER_TO_SIDE[type][orthoDir];
 }
+
+const int CONNECTION_PRIORITIES[6][6] = {
+	1, 2, 0, 2, 0, 2,
+	2, 1, 2, 0, 2, 0,
+	0, 2, 1, 2, 0, 2,
+	2, 0, 2, 1, 2, 0,
+	0, 2, 0, 2, 1, 2,
+	2, 0, 2, 0, 2, 1
+};
+
+const int tnav::getConnectionPriority(TileType A, TileType B)
+{
+	return CONNECTION_PRIORITIES[A][B];
+}
+

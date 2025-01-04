@@ -60,7 +60,7 @@ namespace absc {
 		}
 
 		void addselfTo(std::vector<GLfloat>* glVerts, std::vector<GLuint>* glIndices,
-					   glm::vec3 color, glm::vec2 texCoord)
+					   glm::vec3 color, glm::vec2 texCoords)
 		{
 
 			GLuint indexOffset = (GLuint)glVerts->size() / 11;

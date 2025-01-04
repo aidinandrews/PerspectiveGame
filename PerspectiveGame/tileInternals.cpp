@@ -33,7 +33,7 @@ void TileInternals::addMovementInfo(int subTileIndex, LocalDirection direction)
 {
 	movementInfos |= (get4BitDirectionFlag(direction) << (subTileIndex * 4));
 }
-void TileInternals::addMovementInfo(LocalPosition position, LocalDirection direction)
+void TileInternals::addMovementInfo(LocalPosition pos, LocalDirection direction)
 {
 	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
@@ -45,7 +45,7 @@ void TileInternals::removeMovementInfo(int subTileIndex, LocalDirection directio
 {
 	movementInfos &= ~(get4BitDirectionFlag(direction) << (subTileIndex * 4));
 }
-void TileInternals::removeMovementInfo(LocalPosition position, LocalDirection direction)
+void TileInternals::removeMovementInfo(LocalPosition pos, LocalDirection direction)
 {
 	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
@@ -57,7 +57,7 @@ void TileInternals::clearMovementInfo(int subTileIndex)
 {
 	movementInfos &= ~(uint64_t(0b1111) << (subTileIndex * 4));
 }
-void TileInternals::clearMovementInfo(LocalPosition position)
+void TileInternals::clearMovementInfo(LocalPosition pos)
 {
 	/*const int* subTileIndices = tnav::getSurroundingSubTileIndices(position);
 	for (int i = 0; i < 4; i++) {
@@ -70,10 +70,10 @@ void TileInternals::setMovementInfo(int subTileIndex, LocalDirection direction)
 	clearMovementInfo(subTileIndex);
 	addMovementInfo(subTileIndex, direction);
 }
-void TileInternals::setMovementInfo(LocalPosition position, LocalDirection direction)
+void TileInternals::setMovementInfo(LocalPosition pos, LocalDirection direction)
 {
-	clearMovementInfo(position);
-	addMovementInfo(position, direction);
+	clearMovementInfo(pos);
+	addMovementInfo(pos, direction);
 }
 
 bool TileInternals::isObstructed(int subTileIndex)

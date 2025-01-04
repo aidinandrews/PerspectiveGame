@@ -34,7 +34,7 @@ bool TileManager::tileIsUnique(Tile& newTile) {
 		// is impossible for two tiles that share all verices to share those vertices in a 
 		// differing order, so all that is needed to check if the tile is the same is to 
 		// check if they are the same type and have a position in common at the same index!
-		if (t->type == newTile.type && t->position == newTile.position) {
+		if (t->type == newTile.type && t->pos == newTile.pos) {
 			return false;
 		}
 	}
@@ -364,12 +364,12 @@ void TileManager::updateNeighborConnections(Tile* node)
 	// (connectableTiles[][X]).
 
 	TileType possibleTileType;
-	glm::ivec3 subjectTileMaxPoint = node->position;
+	glm::ivec3 subjectTileMaxPoint = node->pos;
 	glm::ivec3 otherTileMaxPoint;
 	glm::ivec3 possibleMaxPoint;
 
 	for (Tile* otherTile : tiles) {
-		otherTileMaxPoint = otherTile->position;
+		otherTileMaxPoint = otherTile->pos;
 
 		for (int sideIndex = 0; sideIndex < 4; sideIndex++) {
 
