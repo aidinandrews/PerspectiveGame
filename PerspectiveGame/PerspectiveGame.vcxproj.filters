@@ -195,6 +195,9 @@
     <ClInclude Include="nodeNavigation.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
+    <ClInclude Include="positionNode.h">
+      <Filter>Source Files\Game\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Libraries\include\ImGui\imgui.cpp">

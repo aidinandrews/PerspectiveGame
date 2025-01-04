@@ -430,6 +430,7 @@ pause
     <ClInclude Include="nodeNavigation.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="playground.h" />
+    <ClInclude Include="positionNode.h" />
     <ClInclude Include="tileNode.h" />
     <ClInclude Include="tileNodeNetwork.h" />
     <ClInclude Include="pov.h" />
