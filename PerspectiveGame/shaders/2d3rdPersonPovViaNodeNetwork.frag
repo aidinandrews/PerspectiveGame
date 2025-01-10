@@ -9,27 +9,24 @@ uniform float     deltaTime;
 uniform float     updateProgress;
 uniform sampler2D inTexture;
 //uniform mat4      inPovRelativePositions;
-uniform int initialNodeIndex;
+uniform int initialTileIndex;
 uniform int initialMapIndex;
 
-struct NodeInfo {
-	int neighborIndices[8];
-	int neighborMapIndices[8];
-	
-	int index;
-	int tileInfoIndex;
-	int padding[6];
-};
-struct TileInfo {
-	vec2 texCoords[4];
+struct Tile {
+	int neighborIndices[4];
+	int maps[4];
 
+	int entityPositions[4];
+	int entityDirections[4];
+
+	vec2 texCoords[4];
+	
 	vec4 color;
-	int nodeIndex;
+	int numEntities;
 	int padding[3];
 };
 
-layout (std430, binding = 1) buffer positionNodeInfosBuffer { NodeInfo nodeInfos[]; };
-layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
+layout (std430, binding = 1) buffer tilesBuffer { Tile tiles[]; };
 
 // GLOBAL VARIABLES:
 
@@ -46,13 +43,47 @@ layout (std430, binding = 2) buffer tileInfosBuffer { TileInfo tileInfos[]; };
 #define LOCAL_DIRECTION_3_0 7
 #define LOCAL_DIRECTION_0_3 7
 
+#define NUM_ORTHO_DIRS 4
+
+#define LOCAL_POSITION_CENTER 8
+
+const int ORTHOGONAL_DIRECTION_SET[4] = { 
+	LOCAL_DIRECTION_0,
+	LOCAL_DIRECTION_1,
+	LOCAL_DIRECTION_2,
+	LOCAL_DIRECTION_3,
+};
+
+const vec2 LOCAL_POS_TO_COORD[9] = {
+	vec2(1.0f, 0.5f),
+	vec2(0.5f, 0.0f),
+	vec2(0.0f, 0.5f),
+	vec2(0.5f, 1.0f),
+	vec2(1.0f, 0.0f),
+	vec2(0.0f, 0.0f),
+	vec2(0.0f, 1.0f),
+	vec2(1.0f, 1.0f),
+	vec2(0.5f, 0.5f), // center
+};
+
+const vec2 LOCAL_DIR_TO_VEC[9] = {
+	vec2(1.0f, 0.0f),
+	vec2(0.0f, -1.0f),
+	vec2(-1.0f, 0.0f),
+	vec2(0.0f, 1.0f),
+	vec2(1.0f, -1.0f),
+	vec2(-1.0f, -1.0f),
+	vec2(-1.0f, 1.0f),
+	vec2(1.0f, 1.0f),
+	vec2(0.0f, 0.0f), // static
+};
+
 #define MAX_STEPS 500
 
-#define CurrentNode nodeInfos[currentNodeIndex]
-#define CurrentTileInfo tileInfos[CurrentNode.tileInfoIndex]
-
-int currentNodeIndex = initialNodeIndex;
+int currentTileIndex = initialTileIndex;
 int currentMapIndex = initialMapIndex;
+
+#define CurrentTile tiles[currentTileIndex]
 
 vec2 localPixelPosition;
 const vec2  povToPixelPos = pixelWorldPos - povWorldPos;
@@ -97,43 +128,69 @@ void getFragDrawTilePos() {
 	localPixelPosition = (pixelWorldPos) - floor(pixelWorldPos);
 }
 
-// Given a local draw tile coordinate, will return the color of the base texture of a tile.
-vec4 tileTexColor() {
+vec2 getPixelPos() {
 	// catch mirrored local directions:
 	int s = getLocalSouth(), w = getLocalWest(), n = getLocalNorth();
 	if (currentMapIndex > 3) { s = ++s % 4; w = ++w % 4; n = ++n % 4; }
 
-	vec2 southEastUV = CurrentTileInfo.texCoords[s];
-	vec2 southWestUV = CurrentTileInfo.texCoords[w];
-	vec2 northWestUV = CurrentTileInfo.texCoords[n];
+	vec2 southEastUV = CurrentTile.texCoords[s];
+	vec2 southWestUV = CurrentTile.texCoords[w];
+	vec2 northWestUV = CurrentTile.texCoords[n];
 
 	vec2 xDir = southEastUV - southWestUV;
 	vec2 yDir = northWestUV - southWestUV;
-	vec2 texCoord = southWestUV + (localPixelPosition.x * xDir) + (localPixelPosition.y * yDir);
-	
-	return texture(inTexture, texCoord);
+	return southWestUV + (localPixelPosition.x * xDir) + (localPixelPosition.y * yDir);
+}
+
+bool colorPixelInsideEntity(vec2 pixelPos) {
+	for (int i = 0; i < CurrentTile.numEntities; i++) {
+		vec2 entityPos = LOCAL_POS_TO_COORD[CurrentTile.entityPositions[i]];
+		vec2 dir = LOCAL_DIR_TO_VEC[CurrentTile.entityDirections[i]] / 2.0f;
+		vec2 offset = dir * updateProgress;
+		entityPos += offset;
+
+		if (abs(entityPos.x - pixelPos.x) < 0.5f && 
+			abs(entityPos.y - pixelPos.y) < 0.5f) {
+			gl_FragColor = vec4(0, 1, 0, 1);
+			return true;
+		}
+	}
+
+	for (int dir = LOCAL_DIRECTION_0; dir < NUM_ORTHO_DIRS; dir++) {
+		int ni = CurrentTile.neighborIndices[dir];
+		int mappedDir = MAP_DIRECTION[CurrentTile.maps[dir]][(dir + 2) % 4];
+		#define neighborTile tiles[ni]
+
+		if (neighborTile.numEntities != 1 || // only center-positioned tiles can spill over to neighbors
+			neighborTile.entityPositions[0] != LOCAL_POSITION_CENTER ||
+			neighborTile.entityDirections[0] != mappedDir) 
+				continue; 
+
+		vec2 entityPos = LOCAL_POS_TO_COORD[dir] + (LOCAL_DIR_TO_VEC[dir] / 2.0f);
+		entityPos -= (LOCAL_DIR_TO_VEC[dir] / 2.0f) * updateProgress;
+
+		if (abs(entityPos.x - pixelPos.x) < 0.5f && 
+			abs(entityPos.y - pixelPos.y) < 0.5f) {
+			gl_FragColor = vec4(0, 1, 0, 1);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void colorPixel() {
-	gl_FragColor = mix(tileTexColor(), CurrentTileInfo.color, 0.5);
+	vec2 pixelPos = getPixelPos();
+
+	if (!colorPixelInsideEntity(pixelPos)) {
+		gl_FragColor = mix(texture(inTexture, pixelPos), CurrentTile.color, 0.5);
+	}
 }
 
-// transitions currentNodeIndex and currentMapIndex 1 tile over in the given direction (d).
+// transitions currentTileIndex and currentMapIndex 1 tile over in the given direction (d).
 void shiftCurrentTile(int d) {
-	int D = d;
-	int m = nodeInfos[currentNodeIndex].neighborMapIndices[d];
-
-	// Transition to a side node:
-	d = MAP_DIRECTION[nodeInfos[currentNodeIndex].neighborMapIndices[d]][d];
-	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[D];
-
-	// Transistion to the neighbor tile (a center node).
-	int M = nodeInfos[currentNodeIndex].neighborMapIndices[d];
-	currentNodeIndex = nodeInfos[currentNodeIndex].neighborIndices[d];
-
-	// Adjust the window space -> tile space mappings:
-	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][m];
-	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][M];
+	currentMapIndex = COMBINE_MAP_INDICES[currentMapIndex][CurrentTile.maps[d]];
+	currentTileIndex = CurrentTile.neighborIndices[d];
 }
 
 bool findTile() {
