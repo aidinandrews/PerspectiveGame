@@ -333,47 +333,41 @@ void GuiManager::renderTargetButtonMovementElements() {
 	}
 }
 
-void unbindShaderStorageBuffer()
-{
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
 void GuiManager::bindSSBOs2d3rdPersonViaNodeNetwork()
 {
-	// Tile Buffer:
-	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->tilesBufferID);
+	// Position Node Info Buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->positionNodeInfosBufferID);
 	glBufferData(GL_UNIFORM_BUFFER,
-				 p_nodeNetwork->gpuTiles.size() * sizeof(GPU_Tile),
-				 p_nodeNetwork->gpuTiles.data(),
+				 p_nodeNetwork->gpuPositionNodeInfos.size() * sizeof(GPU_PositionNodeInfo),
+				 p_nodeNetwork->gpuPositionNodeInfos.data(),
 				 GL_DYNAMIC_DRAW);
-	GLuint tilesBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "tileBuffer");
-	GLuint tilesBindingPoint = 1;
-	glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, tilesBlockID, tilesBindingPoint);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, tilesBindingPoint, p_nodeNetwork->tilesBufferID);
+	GLuint positionNodeInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "positionNodeInfosBuffer");
+	GLuint positionNodeInfosBindingPoint = 1;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, positionNodeInfosBlockID, positionNodeInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, positionNodeInfosBindingPoint, p_nodeNetwork->positionNodeInfosBufferID);
 
-	// Entity Buffer:
-	//glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->positionNodeInfosBufferID);
-	//glBufferData(GL_UNIFORM_BUFFER,
-	//			 p_nodeNetwork->gpuPositionNodeInfos.size() * sizeof(GPU_TileNodeInfo),
-	//			 p_nodeNetwork->gpuPositionNodeInfos.data(),
-	//			 GL_DYNAMIC_DRAW);
-	//GLuint positionNodeInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "positionNodeInfosBuffer");
-	//GLuint positionNodeInfosBindingPoint = 2;
-	//glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, positionNodeInfosBlockID, positionNodeInfosBindingPoint);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, positionNodeInfosBindingPoint, p_nodeNetwork->positionNodeInfosBufferID);
+	// Tile Info Info Buffer:
+	glBindBuffer(GL_UNIFORM_BUFFER, p_nodeNetwork->tileInfosBufferID);
+	glBufferData(GL_UNIFORM_BUFFER,
+				 p_nodeNetwork->gpuTileInfos.size() * sizeof(GPU_TileInfoNode),
+				 p_nodeNetwork->gpuTileInfos.data(),
+				 GL_DYNAMIC_DRAW);
+	GLuint tileInfosBlockID = glGetUniformBlockIndex(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, "tileInfosBuffer");
+	GLuint tileInfosBindingPoint = 2;
+	glUniformBlockBinding(p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID, tileInfosBlockID, tileInfosBindingPoint);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, tileInfosBindingPoint, p_nodeNetwork->tileInfosBufferID);
 
-	unbindShaderStorageBuffer();
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind.
 }
 
 void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 {
-	//updateTimeSinceProgramStart();
 	float updateProgress = float(TimeSinceProgramStart - LastUpdateTime) / UpdateTime;
 	GLuint programID = p_shaderManager->POV2D3rdPersonViaNodeNetwork.ID;
 
 	glUniform1f(glGetUniformLocation(programID, "deltaTime"), TimeSinceProgramStart);
 	glUniform1f(glGetUniformLocation(programID, "updateProgress"), updateProgress);
-	glUniform1i(glGetUniformLocation(programID, "initialTileIndex"), p_pov->getNode()->getTileIndex());
+	glUniform1i(glGetUniformLocation(programID, "initialNodeIndex"), p_pov->getNode()->getIndex());
 	glUniform1i(glGetUniformLocation(programID, "initialMapIndex"), p_pov->mapType);
 	
 	//glm::vec2 relativePos[5]; // player position in current tile and neighbors:
@@ -389,8 +383,9 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 	//GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
 	//glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
 
-	glm::mat4 screenSpaceToWorldSpace = glm::inverse(
-		p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
+	glm::vec2 screenSizePixels((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight());
+	glm::mat4 screenSpaceToWorldSpace = p_camera->getProjectionMatrix(screenSizePixels.x, screenSizePixels.y);
+	screenSpaceToWorldSpace = glm::inverse(screenSpaceToWorldSpace);
 	GLuint windowToWorldID = glGetUniformLocation(programID, "inWindowToWorldSpace");
 	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
 }
@@ -510,7 +505,7 @@ void GuiManager::draw3Dview()
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 	for (int i = 0; i < p_nodeNetwork->numTileInfos(); i++) {
-		Tile* tile = p_nodeNetwork->getTile(i);
+		TileInfo* tile = p_nodeNetwork->getTileInfo(i);
 		if (tile->index == -1) continue;
 		else draw3DTile(tile);
 	}
@@ -518,7 +513,7 @@ void GuiManager::draw3Dview()
 	drawTilesCleanup();
 }
 
-void GuiManager::draw3DTile(Tile* info)
+void GuiManager::draw3DTile(TileInfo* info)
 {
 	const glm::vec3* offsets = tnav::getNodePositionOffsets(info->type);
 	glm::vec3 center = p_nodeNetwork->getNode(info->centerNodeIndex)->getPosition();
@@ -543,8 +538,8 @@ void GuiManager::draw3DTile(Tile* info)
 		verts.push_back((GLfloat)info->color.g);
 		verts.push_back((GLfloat)info->color.b);
 		// texture coord:
-		verts.push_back(info->textureCoordinates[i].x);
-		verts.push_back(info->textureCoordinates[i].y);
+		verts.push_back(info->getTexCoord(i).x);
+		verts.push_back(info->getTexCoord(i).y);
 		// tile index:
 		verts.push_back((GLfloat)info->index);
 	}

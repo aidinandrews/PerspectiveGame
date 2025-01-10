@@ -409,12 +409,11 @@ pause
     <ClInclude Include="..\Libraries\include\ImGui\imstb_truetype.h" />
     <ClInclude Include="app.h" />
     <ClInclude Include="basisManager.h" />
-    <ClInclude Include="building.h" />
+    <ClInclude Include="Building.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="buttonManager.h" />
     <ClInclude Include="calcFunctions.h" />
     <ClInclude Include="cameraManager.h" />
-    <ClInclude Include="collisionSolver.h" />
     <ClInclude Include="currentSelection.h" />
     <ClInclude Include="dependancyHeaders.h" />
     <ClInclude Include="entity.h" />
@@ -428,11 +427,11 @@ pause
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
+    <ClInclude Include="nodeNavigation.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="playground.h" />
-    <ClInclude Include="tile.h" />
-    <ClInclude Include="tileNode.h" />
-    <ClInclude Include="tileNodeNetwork.h" />
+    <ClInclude Include="positionNode.h" />
+    <ClInclude Include="positionNodeNetwork.h" />
     <ClInclude Include="pov.h" />
     <ClInclude Include="scenarioSetup.h" />
     <ClInclude Include="scene.h" />
@@ -469,7 +468,6 @@ pause
     <ClCompile Include="shaderManager.cpp" />
     <ClCompile Include="stb_image_impl.cpp" />
     <ClCompile Include="textureManager.cpp" />
-    <ClCompile Include="tile.cpp" />
     <ClCompile Include="tileNavigation.cpp" />
     <ClCompile Include="vectorHelperFunctions.cpp" />
     <ClCompile Include="vertexManager.cpp" />
@@ -484,6 +482,9 @@ pause
     <None Include="files\PerspectiveGame.vcxproj.user" />
     <None Include="helperFunctions.glsl" />
     <None Include="imgui.ini" />
+    <None Include="shaders\2d3rdPersonPovHeader.frag" />
+    <None Include="shaders\2d3rdPersonPov.vert" />
+    <None Include="shaders\2d3rdPersonPovBody.frag" />
     <None Include="shaders\2d3rdPersonPovViaNodeNetwork.frag" />
     <None Include="shaders\2d3rdPersonPovViaNodeNetwork.vert" />
     <None Include="shaders\3D3rdPersonPOV.frag" />

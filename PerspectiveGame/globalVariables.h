@@ -43,12 +43,6 @@ extern int TICKS_IN_SCENARIO;
 extern int CURRENT_SCENARIO_ID;
 extern int NUM_OF_SCENARIOS;
 
-inline void updateTimeSinceProgramStart()
-{
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	TimeSinceProgramStart = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - ProgramStart).count();
-}
-
 inline void updateGlobalVariables(GLFWwindow* window) {
 	glfwGetWindowSize(window, &WindowSize.x, &WindowSize.y);
 	glfwGetWindowPos(window, &WindowPos.x, &WindowPos.y);
@@ -60,7 +54,7 @@ inline void updateGlobalVariables(GLFWwindow* window) {
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	DeltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - FrameStart).count();
-	updateTimeSinceProgramStart();
+	TimeSinceProgramStart = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - ProgramStart).count();
 	if (DeltaTime < 16.0f / 1000.0f) {
 		/*Sleep(16.0f - DeltaTime / 1000.0f);
 		DeltaTime = 16.0f / 1000.0f;
