@@ -1,67 +1,119 @@
-//#pragma once
-//#include <iostream>
-//#include <vector>
-//
-//#include"tileNavigation.h"
-//#include"tileManager.h"
-//
-//struct ForceManager {
-//private:
-//	// When a force block is placed down, it creates a ForcePropagator, which will propagate the force it creates into the tiles
-//	// the block is facing toward.  This propogation spreads at 1 tile/tick, as to be visible and maniputate-able by the player.
-//	struct ForcePropagator {
-//		int tileIndex; // tile currently on.
-//		LocalDirection heading;
-//
-//		ForcePropagator(int index, LocalDirection head) : tileIndex(index), heading(head) {
-//		}
-//	};
-//
-//	// When a force block is destroyed or a line of force is impeded, the force propogated from that source needs to be destroyed
-//	// as well.  The force eater travels along the line of force at 1 tile/tick and 'eats' the force in each tile, if it is headed
-//	// in the same direction as the initially impeded force.
-//	struct ForceEater {
-//		int tileIndex;
-//		LocalDirection heading;
-//
-//		ForceEater(int index, LocalDirection head) : tileIndex(index), heading(head) {}
-//	};
-//
-//private:
-//	TileManager* p_tileManager;
-//
-//	std::vector<ForcePropagator> forcePropagators;
-//	std::vector<ForceEater> forceEaters;
-//
-//public:
-//	ForceManager(TileManager* tm) : p_tileManager(tm) {
-//
-//	}
-//
-//	// Spawns a force propogator that will extend a line of force at a rate of 1 tile/tick 
-//	// in a single direction until stopped.
-//	void createForcePropogator(int tileIndex, LocalDirection direction) {
-//		forcePropagators.push_back(ForcePropagator(tileIndex, direction));
-//	}
-//
-//	void createForceEater(int tileIndex, LocalDirection direction) {
-//		forceEaters.push_back(ForceManager::ForceEater(tileIndex, direction));
-//	}
-//
-//	// Spawns a force eater that will consume a line of force at a rate of 1 tile/tick.
-//	void removeForce();
-//
-//	void update() {
-//		propagateForces();
-//		removeForces();
-//	}
-//
-//private:
-//	// Loops through the force propagators and extends their lines of force by 1 tile.
-//	// if the line of foce hits a force sink or other line of force, it will kill the propogator.
-//	void propagateForces();
-//
-//	// Loops through the force eaters and removes force from the tile they reside in before moving on.
-//	// If there is no longer any force (in the same direction) to eat, the eater will be terminated.
-//	void removeForces();
-//};
+#pragma once
+#include<iostream>
+#include<vector>
+#include<array>
+
+#include"tileNavigation.h"
+
+struct ForceManager
+{
+	// * both vectors here miror the node vector in TileNodeNetwork
+	std::vector<bool> forceList; // Sets of 4 bools represent force components in local bases of TileNodes.
+	std::vector<int> freeForceListIndices;
+	
+	std::vector<int> nodeIndices; // Indices to the tile nodes associated with the forceList.
+
+	// Given an index to a component in the force list, will return that component's node index.
+	int getNodeIndex(int forceListComponentIndex)
+	{
+		int index = forceListComponentIndex;
+		index -= index % 4; // go to the initial index of the component list
+		index /= 4; // there are 4x more bools in the forceList than nodes in the node list.
+		return index;
+	}
+
+	LocalDirection getForce(int index)
+	{
+		uint_fast8_t forceFlags = 0;
+		forceFlags |= (forceList[index + 0] << 0);
+		forceFlags |= (forceList[index + 1] << 1);
+		forceFlags |= (forceList[index + 2] << 2);
+		forceFlags |= (forceList[index + 3] << 3);
+
+		switch (forceFlags) {
+		case 0b0000: return LOCAL_DIRECTION_STATIC;
+		case 0b0001: return LOCAL_DIRECTION_0;
+		case 0b0010: return LOCAL_DIRECTION_1;
+		case 0b0100: return LOCAL_DIRECTION_2;
+		case 0b1000: return LOCAL_DIRECTION_3;
+		case 0b0011: return LOCAL_DIRECTION_0_1;
+		case 0b0110: return LOCAL_DIRECTION_1_2;
+		case 0b1100: return LOCAL_DIRECTION_2_3;
+		case 0b1001: return LOCAL_DIRECTION_3_0;
+		default: return LOCAL_DIRECTION_ERROR;
+		}
+	}
+
+	void setForce(int index, LocalDirection forceDir)
+	{
+		static const std::array<std::array<int, 4>, 9> forces = {{ 
+			{{ 1, 0, 0, 0 }}, // LOCAL_DIRECTION_0 
+			{{ 0, 1, 0, 0 }}, // LOCAL_DIRECTION_1 
+			{{ 0, 0, 1, 0 }}, // LOCAL_DIRECTION_2 
+			{{ 0, 0, 0, 1 }}, // LOCAL_DIRECTION_3
+			{{ 1, 1, 0, 0 }}, // LOCAL_DIRECTION_0_1 
+			{{ 0, 1, 1, 0 }}, // LOCAL_DIRECTION_1_2
+			{{ 0, 0, 1, 1 }}, // LOCAL_DIRECTION_2_3 
+			{{ 1, 0, 0, 1 }}, // LOCAL_DIRECTION_3_0 
+			{{ 0, 0, 0, 0 }}, // LOCAL_DIRECTION_STATIC 
+		}};
+		std::copy(forces[forceDir].begin(), forces[forceDir].end(), forceList.begin() + index);
+	}
+
+	void alterForce(int forceIndex, MapType map)
+	{
+		LocalDirection d = getForce(forceIndex);
+		if (d == LOCAL_DIRECTION_STATIC) return;
+		setForce(forceIndex, tnav::map(map, d));
+	}
+
+	int addForce(LocalDirection d, int nodeIndex)
+	{
+		const static std::array<std::array<int, 4>, 9> forces = {{
+			{{1, 0, 0, 0}}, // LOCAL_DIRECTION_0 
+			{{0, 1, 0, 0}}, // LOCAL_DIRECTION_1 
+			{{0, 0, 1, 0}}, // LOCAL_DIRECTION_2 
+			{{0, 0, 0, 1}}, // LOCAL_DIRECTION_3 
+			{{1, 1, 0, 0}}, // LOCAL_DIRECTION_0_1 
+			{{0, 1, 1, 0}}, // LOCAL_DIRECTION_1_2 
+			{{0, 0, 1, 1}}, // LOCAL_DIRECTION_2_3 
+			{{1, 0, 0, 1}}, // LOCAL_DIRECTION_3_0 
+			{{0, 0, 0, 0}}  // LOCAL_DIRECTION_STATIC 
+		}}; 
+			
+		if (freeForceListIndices.size() == 0) {
+			forceList.insert(forceList.end(), forces[d].begin(), forces[d].end());
+			nodeIndices.push_back(nodeIndex);
+
+			return (int)forceList.size() - 4;
+		}
+		else {
+			int i = freeForceListIndices.back();
+			freeForceListIndices.pop_back();
+
+			for (int j = 0; j < 4; j++) {
+				forceList[i + j] = forces[d][j];
+			}
+
+			nodeIndices[(i - (i % 4)) / 4] = nodeIndex;
+
+			return i;
+		}
+	}
+
+	void removeForce(int forceIndex)
+	{
+		if (forceIndex == forceList.size() - 1) {
+			forceList.pop_back();
+			nodeIndices.pop_back();
+		}
+		else {
+			freeForceListIndices.push_back(forceIndex);
+			forceList[forceIndex + 0] = 0;
+			forceList[forceIndex + 1] = 0;
+			forceList[forceIndex + 2] = 0;
+			forceList[forceIndex + 3] = 0;
+			nodeIndices[(forceIndex - (forceIndex % 4)) / 4] = -1;
+		}
+	}
+};

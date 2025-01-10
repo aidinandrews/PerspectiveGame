@@ -2,38 +2,39 @@
 
 #include <iostream>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include "tileNavigation.h"
 
-enum PositionNodeType {
+enum TileNodeType {
 	NODE_TYPE_CENTER,
 	NODE_TYPE_SIDE,
 	NODE_TYPE_CORNER,
+	NODE_TYPE_DEGENERATE,
 	NODE_TYPE_ERROR,
 };
 
-enum SidePositionNodeType {
+enum SideTileNodeType {
 	SIDE_NODE_TYPE_HORIZONTAL, 
 	SIDE_NODE_TYPE_VERTICAL,
 	SIDE_NODE_TYPE_ERROR,
 };
 
-class PositionNode {
+class TileNode {
 private:
 
 public:
-	PositionNodeType type;
+	TileNodeType type;
 	OrientationType orientation;
 	int index;
+	int forceListIndex;
 	glm::vec3 position;
 
-	PositionNode(PositionNodeType t) : type(t) {}
-	virtual ~PositionNode() = default;
+	TileNode(TileNodeType t) : type(t) {
+		index = -1;
+		forceListIndex = -1;
+		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+		orientation = ORIENTATION_TYPE_ERROR;
+	}
+	virtual ~TileNode() = default;
 
 	glm::vec3 getPosition() { return position; }
 	void setPosition(glm::vec3 pos) { position = pos; }
@@ -52,7 +53,7 @@ public:
 	void setIndex(int i) { index = i; }
 };
 
-class CenterNode : public PositionNode {
+class CenterNode : public TileNode {
 private:
 	static const int NUM_NEIGHBORS = 8;
 	int neighborIndices[NUM_NEIGHBORS];
@@ -60,7 +61,10 @@ private:
 	int tileInfoIndex;
 
 public:
-	CenterNode() : PositionNode(NODE_TYPE_CENTER)
+	bool hasEntity;
+
+public:
+	CenterNode() : TileNode(NODE_TYPE_CENTER)
 	{
 		wipe();
 	}
@@ -82,6 +86,7 @@ public:
 			neighborIndices[i] = -1;
 			neighborMaps[i] = MAP_TYPE_ERROR;
 		}
+		hasEntity = false;
 	}
 
 	LocalAlignment mapToNeighbor(LocalAlignment alignment, LocalDirection toNeighbor) override
@@ -89,18 +94,16 @@ public:
 		return tnav::map(neighborMaps[toNeighbor], alignment);
 	}
 
-	int getTileInfoIndex() { return tileInfoIndex; }
+	int getTileIndex() { return tileInfoIndex; }
 	void setTileInfoIndex(int i) { tileInfoIndex = i; }
 };
 
-
-
-class SideNode : public PositionNode {
+class SideNode : public TileNode {
 private:
 	static const int NUM_NEIGHBORS = 2;
 	int neighborIndices[NUM_NEIGHBORS];
 	MapType neighborMaps[NUM_NEIGHBORS];
-	SidePositionNodeType sideNodeType;
+	SideTileNodeType sideNodeType;
 
 public:
 
@@ -129,8 +132,8 @@ private:
 	}
 
 public:
-	SideNode(SidePositionNodeType sideNodeType) 
-		: PositionNode(NODE_TYPE_SIDE)
+	SideNode(SideTileNodeType sideNodeType) 
+		: TileNode(NODE_TYPE_SIDE)
 		, sideNodeType(sideNodeType)
 	{
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
@@ -139,8 +142,8 @@ public:
 		}
 	}
 
-	SidePositionNodeType getSideNodeType() { return sideNodeType; }
-	void setSideNodeType(SidePositionNodeType type) { sideNodeType = type; }
+	SideTileNodeType getSideNodeType() { return sideNodeType; }
+	void setSideNodeType(SideTileNodeType type) { sideNodeType = type; }
 
 	int getNeighborIndex(LocalDirection dir) override
 	{
@@ -150,6 +153,30 @@ public:
 	int getNeighborIndexDirect(int i)
 	{
 		return neighborIndices[i];
+	}
+
+	MapType getNeighborMapDirect(int i)
+	{
+		return neighborMaps[i];
+	}
+
+	LocalDirection getLocalDirDirect(int i)
+	{
+		switch (sideNodeType) {
+		case SIDE_NODE_TYPE_HORIZONTAL:
+			switch (i) {
+			case 0: return LOCAL_DIRECTION_0;
+			case 1: return LOCAL_DIRECTION_2;
+			default: return LOCAL_DIRECTION_ERROR;
+			}
+		case SIDE_NODE_TYPE_VERTICAL:
+			switch (i) {
+			case 0: return LOCAL_DIRECTION_1;
+			case 1: return LOCAL_DIRECTION_3;
+			default: return LOCAL_DIRECTION_ERROR;
+			}
+		default: return LOCAL_DIRECTION_ERROR;
+		}
 	}
 
 	void setNeighborIndex(LocalDirection dir, int neighborIndex) override
@@ -185,7 +212,80 @@ public:
 	}
 };
 
-class CornerNode : public PositionNode {
+// No basis for this node, entities cannot exist whithin it.
+class DegenerateCornerNode : public TileNode
+{
+public:
+	// list of indices to the ForceList who CANNOT both be true, as the resulting force would face a degenerate tile.
+	// used to invert the force, as the two given indices can determine the two indices not given.
+	std::vector<int> componentPairIndices;
+	int numDegenComponents;
+
+public:
+	DegenerateCornerNode() : TileNode(NODE_TYPE_DEGENERATE)
+	{
+		// it is assumed that a new degenerate node is connected to only 2 tiles, who must be siblings.
+		//componentPairIndices = new int[4];
+		componentPairIndices.resize(4);
+		numDegenComponents = 4;
+	}
+
+	// Unneeded virtual functions:
+	int getNeighborIndex(LocalDirection dir) { return -1; }
+	void setNeighborIndex(LocalDirection dir, int neighborIndex) {}
+	MapType getNeighborMap(LocalDirection dir) { return MAP_TYPE_ERROR; }
+	void setNeighborMap(LocalDirection dir, MapType type) {}
+	LocalAlignment mapToNeighbor(LocalAlignment alignment, LocalDirection toNeighbor) { return LOCAL_ALIGNMENT_ERROR; }
+	void wipe() {}
+
+	void addDegenPair(int componentIndexA1, int componentIndexA2)
+	{
+		/*int* newList = new int[numDegenComponents + 2];
+		for (int i = 0; i < numDegenComponents; i++) newList[i] = componentPairIndices[i];
+		newList[numDegenComponents + 0] = componentIndexA;
+		newList[numDegenComponents + 1] = componentIndexB;
+		numDegenComponents += 2;
+		delete[] componentPairIndices;
+		componentPairIndices = newList;*/
+		componentPairIndices.push_back(componentIndexA1);
+		componentPairIndices.push_back(componentIndexA2);
+		numDegenComponents += 2;
+
+	}
+
+	// returns false if the node has no pairs to remove/the given pair is not in the list.
+	bool removeDegenPair(int componentIndexA, int componentIndexB)
+	{
+		if (numDegenComponents == 0) return false;
+
+		/*int* newList = new int[numDegenComponents - 2];
+		int added = 0;
+		for (int i = 0; i < numDegenComponents; i++) {
+			if (componentPairIndices[i] != componentIndexA &&
+				componentPairIndices[i] != componentIndexB) {
+				if (added == numDegenComponents - 2) return false;
+
+				newList[i] = componentPairIndices[i];
+				added++;
+			}
+		}
+		numDegenComponents -= 2;
+		delete[] componentPairIndices;
+		componentPairIndices = newList;*/
+
+		for (int i = 0; i < numDegenComponents; i++) {
+			if (componentPairIndices[i] == componentIndexA ||
+				componentPairIndices[i] == componentIndexB) {
+				componentPairIndices.erase(componentPairIndices.begin() + i--);
+			}
+		}
+		numDegenComponents -= 2;
+
+		return true;
+	}
+};
+
+class CornerNode : public TileNode {
 private:
 	static const int NUM_NEIGHBORS = 4;
 	int neighborIndices[NUM_NEIGHBORS];
@@ -211,7 +311,7 @@ private:
 	}
 
 public:
-	CornerNode() : PositionNode(NODE_TYPE_CORNER)
+	CornerNode() : TileNode(NODE_TYPE_CORNER)
 	{
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
 			neighborIndices[i] = -1;
@@ -257,50 +357,7 @@ public:
 	}
 };
 
-
-
-
-
-
-
-
-struct TileInfo {
-	TileType type;
-	int index;
-	int centerNodeIndex;
-	glm::vec3 color;
-	glm::vec2 textureCoordinates[4];
-	int siblingIndex;
-
-	TileInfo(TileType type, int index, int siblingIndex, int centerNodeIndex, glm::vec3 color) : 
-		type(type), index(index), siblingIndex(siblingIndex), centerNodeIndex(centerNodeIndex), color(color)
-	{
-		textureCoordinates[0] = glm::vec2(1, 1);
-		textureCoordinates[1] = glm::vec2(1, 0);
-		textureCoordinates[2] = glm::vec2(0, 0);
-		textureCoordinates[3] = glm::vec2(0, 1);
-	}
-
-	TileInfo()
-	{
-		wipe();
-		textureCoordinates[0] = glm::vec2(1, 1);
-		textureCoordinates[1] = glm::vec2(1, 0);
-		textureCoordinates[2] = glm::vec2(0, 0);
-		textureCoordinates[3] = glm::vec2(0, 1);
-	}
-
-	void wipe()
-	{
-		index = -1;
-		siblingIndex = -1;
-		centerNodeIndex = -1;
-		type = TILE_TYPE_ERROR;
-		color = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-};
-
-struct alignas(32) GPU_PositionNodeInfo {
+struct alignas(32) GPU_TileNodeInfo {
 	alignas(32) int neighborIndices[8];
 	alignas(32) int neighborMaps[8];
 
@@ -308,7 +365,7 @@ struct alignas(32) GPU_PositionNodeInfo {
 	alignas(4) int tileInfoIndex;
 	alignas(4) int padding[6];
 
-	GPU_PositionNodeInfo()
+	GPU_TileNodeInfo()
 	{
 		index = -1;
 		tileInfoIndex = -1;
@@ -318,7 +375,7 @@ struct alignas(32) GPU_PositionNodeInfo {
 		}
 	}
 
-	GPU_PositionNodeInfo(PositionNode& node)
+	GPU_TileNodeInfo(TileNode& node)
 	{
 		index = node.getIndex();
 
@@ -327,7 +384,7 @@ struct alignas(32) GPU_PositionNodeInfo {
 
 		switch (node.type) {
 		case NODE_TYPE_CENTER:
-			tileInfoIndex = dynamic_cast<CenterNode&>(node).getTileInfoIndex();
+			tileInfoIndex = dynamic_cast<CenterNode&>(node).getTileIndex();
 
 			for (LocalDirection d : tnav::DIRECTION_SET) {
 				neighborIndices[d] = node.getNeighborIndex(d);
@@ -381,22 +438,5 @@ struct alignas(32) GPU_PositionNodeInfo {
 			neighborMaps[LOCAL_DIRECTION_3_0] = cornerNode->getNeighborMap(LOCAL_DIRECTION_3_0);
 			break;
 		}
-	}
-};
-
-struct alignas(32) GPU_TileInfoNode {
-	alignas(32) glm::vec2 texCoords[4];
-
-	alignas(16) glm::vec4 color;
-	alignas(4) int centerNodeIndex;
-	alignas(4) int padding[3];
-
-	GPU_TileInfoNode(TileInfo& info)
-	{
-		for (int i = 0; i < 4; i++) {
-			texCoords[i] = info.textureCoordinates[i];
-		}
-		color = glm::vec4(info.color, 1.0f);
-		centerNodeIndex = info.centerNodeIndex;
 	}
 };

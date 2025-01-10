@@ -10,7 +10,7 @@
 
 #include "cameraManager.h"
 #include "tileNavigation.h"
-#include "positionNodeNetwork.h"
+#include "tileNodeNetwork.h"
 #include "vectorHelperFunctions.h"
 #include "globalVariables.h"
 #include "buttonManager.h"
@@ -26,7 +26,7 @@ public:
 	MapType mapType;
 	LocalDirection localNorth, localSouth, localEast, localWest;
 
-	PositionNodeNetwork* p_nodeNetwork;
+	TileNodeNetwork* p_nodeNetwork;
 	Camera* p_camera;
 	Button* p_button;
 
@@ -51,7 +51,7 @@ private:
 
 
 public:
-	POV(PositionNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
+	POV(TileNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
 		p_button = button;
 		centerNodeIndex = 0;
@@ -62,7 +62,7 @@ public:
 	}
 
 	CenterNode* getNode() { return static_cast<CenterNode*>(p_nodeNetwork->getNode(centerNodeIndex)); }
-	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
+	Tile* getTile() { return p_nodeNetwork->getTile(getNode()->getTileIndex()); }
 
 	const LocalDirection getNorth() { return tnav::map(mapType, LOCAL_DIRECTION_3); }
 	const LocalDirection getSouth() { return tnav::map(mapType, LOCAL_DIRECTION_1); }
@@ -78,7 +78,7 @@ public:
 	{
 		using namespace tnav;
 
-		PositionNode* node = getNode();
+		TileNode* node = getNode();
 		LocalDirection D = d;
 		MapType m1 = node->getNeighborMap(d);
 
@@ -131,8 +131,8 @@ public:
 
 		// used for 3D transformation matrix lerping:
 		bool sameType = oldNode->orientation == newNode->orientation;
-		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
-		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
+		TileType ta = p_nodeNetwork->getTile(oldNode->getTileIndex(), oldOrtho)->type;
+		TileType tb = p_nodeNetwork->getTile(newNode->getTileIndex(), newOrtho)->type;
 		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.
 
 		lastRotationMatrixWeight = 1.0f;
@@ -141,32 +141,32 @@ public:
 
 	// once the pov crosses an edge, it may have to update its rotation matrix to face the tile in
 	// 3D space.  This function makes sure that currentRotation always does this.
-	glm::mat4 rotMatAdjustment3D(TileInfo* tile, LocalDirection dir, float angleAmount)
+	glm::mat4 rotMatAdjustment3D(Tile* tile, LocalDirection dir, float angleAmount)
 	{
 		TileType oldTileType = tile->type;
-		TileType newTileType = p_nodeNetwork->getTileInfo(getTile(), dir)->type;
+		TileType newTileType = p_nodeNetwork->getTile(getTile(), dir)->type;
 		if (angleAmount == 0 || oldTileType == newTileType) return glm::mat4(1); // No rotation is change necessary if the types are the same.
 
 		float angle;
 		glm::vec3 axisOfRotation;
 		if (dir == getNorth()) {
-			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getEast())
-				- tnav::getCenterToEdgeVec(oldTileType, getWest());
+			axisOfRotation = tnav::getCenterToNeighborVec(oldTileType, getEast())
+				- tnav::getCenterToNeighborVec(oldTileType, getWest());
 		}
 		else if (dir == getSouth()) {
-			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getWest())
-				- tnav::getCenterToEdgeVec(oldTileType, getEast());
+			axisOfRotation = tnav::getCenterToNeighborVec(oldTileType, getWest())
+				- tnav::getCenterToNeighborVec(oldTileType, getEast());
 		}
 		else if (dir == getEast()) {
-			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getSouth())
-				- tnav::getCenterToEdgeVec(oldTileType, getNorth());
+			axisOfRotation = tnav::getCenterToNeighborVec(oldTileType, getSouth())
+				- tnav::getCenterToNeighborVec(oldTileType, getNorth());
 		}
 		else { // dir is getWest()
-			axisOfRotation = tnav::getCenterToEdgeVec(oldTileType, getNorth())
-				- tnav::getCenterToEdgeVec(oldTileType, getSouth());
+			axisOfRotation = tnav::getCenterToNeighborVec(oldTileType, getNorth())
+				- tnav::getCenterToNeighborVec(oldTileType, getSouth());
 		}
 
-		glm::vec3 toEdge = tnav::getCenterToEdgeVec(oldTileType, dir);
+		glm::vec3 toEdge = tnav::getCenterToNeighborVec(oldTileType, dir);
 
 		if (tnav::getNormal(newTileType) == -toEdge) {
 			angle = -(float)M_PI / 2.0f;
@@ -241,8 +241,8 @@ public:
 	{
 		glm::vec3 screenTilePos = ((2.0f * p_camera->viewPlanePos) - 1.0f) * 0.5f;
 		glm::vec3 pos3D = getNode()->getPosition();
-		pos3D += tnav::getCenterToEdgeVec(getTile()->type, getEast()) * screenTilePos.x;
-		pos3D += tnav::getCenterToEdgeVec(getTile()->type, getNorth()) * screenTilePos.y;
+		pos3D += tnav::getCenterToNeighborVec(getTile()->type, getEast()) * screenTilePos.x;
+		pos3D += tnav::getCenterToNeighborVec(getTile()->type, getNorth()) * screenTilePos.y;
 
 		glm::mat4 rotAdj(1);
 		float adj = (!tnav::isFront(getTile()->type)) ? 1.0f : 1.0f;
@@ -268,7 +268,7 @@ public:
 		float zoom = (float)pow(2, p_camera->zoom);
 		glm::vec3 cameraPosition = glm::vec4(zoom * tnav::getNormal(getTile()->type), 1) * rotAdj ;
 		cameraPosition += cameraTarget;
-		glm::vec3 cameraUp = glm::vec4(tnav::getCenterToEdgeVec(getTile()->type, getNorth()), 1) * rotAdj;
+		glm::vec3 cameraUp = glm::vec4(tnav::getCenterToNeighborVec(getTile()->type, getNorth()), 1) * rotAdj;
 		//glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, cameraUp);
 
 		return CamInfo(cameraPosition, cameraTarget, cameraUp);

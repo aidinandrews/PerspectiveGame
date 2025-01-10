@@ -28,6 +28,7 @@
 #include "currentSelection.h"
 #include "frameBuffer.h"
 #include "scenarioSetup.h"
+#include "forceManager.h"
 #include "pov.h"
 
 struct App {
@@ -45,13 +46,12 @@ struct App {
 	Framebuffer framebuffer;
 	aaTexture* p_wave;
 
-	//TileManager* p_tileManager;
-	//ForceManager* p_forceManager;
 	EntityManager* p_entityManager;
+	ForceManager forceManager;
 	CurrentSelection* p_currentSelection;
 	BasisManager* p_basisManager;
 	
-	PositionNodeNetwork* p_nodeNetwork;
+	TileNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
 	App() {}
@@ -62,7 +62,7 @@ struct App {
 		delete p_wave;
 		//delete p_tileManager;
 		delete p_entityManager;
-		delete p_basisManager;
+		//delete p_basisManager;
 		delete p_currentSelection;
 		delete p_nodeNetwork;
 		delete p_pov;
@@ -107,16 +107,14 @@ struct App {
 		//p_tileManager = new TileManager(&camera, &shaderManager, window.window, &framebuffer, p_buttonManager, &inputManager, nullptr);
 		//p_tileManager->texID = p_wave->ID;
 		
-		p_nodeNetwork = new PositionNodeNetwork(&camera);
+		p_nodeNetwork = new TileNodeNetwork(&camera, &forceManager);
 		p_nodeNetwork->texID = p_wave->ID;
 
 		p_pov = new POV(p_nodeNetwork, &camera, &p_buttonManager->buttons[ButtonManager::pov3d3rdPersonViewButtonIndex]);
 
 		//p_forceManager = new ForceManager(p_tileManager);
 
-		//p_entityManager = new EntityManager(p_tileManager);
-
-		//p_basisManager = new BasisManager(p_tileManager, p_forceManager, p_entityManager);
+		p_entityManager = new EntityManager(p_nodeNetwork, &forceManager);
 
 		p_currentSelection = new CurrentSelection(&inputManager, p_entityManager, p_buttonManager, 
 												  &camera, p_basisManager, p_nodeNetwork, p_pov);
@@ -146,6 +144,7 @@ struct App {
 	void setupWorld()
 	{
 		//setupScenarioDirectCollisionFromEdge(p_tileManager, p_entityManager, p_currentSelection);
+		p_entityManager->createEntity(static_cast<CenterNode*>(p_nodeNetwork->getNode(0)), LOCAL_DIRECTION_3);
 	}
 
 	void updateGraphicsAPI()
@@ -163,7 +162,6 @@ struct App {
 		p_currentSelection->tryEditWorld();
 
 		if ((TimeSinceProgramStart - LastUpdateTime) > UpdateTime) {
-			LastUpdateTime = TimeSinceProgramStart;
 
 			if (CurrentTick % 4 == 0) {
 				//p_currentSelection->tryEditWorld();
@@ -172,16 +170,19 @@ struct App {
 				//p_basisManager->update();
 			}
 
-			//p_entityManager->update();
+			p_entityManager->moveEntities();
 			//p_tileManager->updateTileGpuInfos();
 			//p_entityManager->updateGpuInfos();
 
+			LastUpdateTime = TimeSinceProgramStart;
 			CurrentTick++;
 
 			#ifdef RUNNING_TEST_SCENARIOS
 			TICKS_IN_SCENARIO++;
 			#endif
 		}
+
+		p_entityManager->updateAllGpuTiles();
 	}
 
 	void updateGui()

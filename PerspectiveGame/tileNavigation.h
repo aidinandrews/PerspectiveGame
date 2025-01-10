@@ -88,13 +88,13 @@ enum MapType {
 #define MAP_TYPE_IDENTITY MAP_TYPE_0
 
 
-enum BasisType {
-	BASIS_TYPE_NONE,
-	BASIS_TYPE_PRODUCER,
-	BASIS_TYPE_CONSUMER,
-	BASIS_TYPE_FORCE_SINK,
-	BASIS_TYPE_FORCE_GENERATOR,
-};
+//enum BasisType {
+//	BASIS_TYPE_NONE,
+//	BASIS_TYPE_PRODUCER,
+//	BASIS_TYPE_CONSUMER,
+//	BASIS_TYPE_FORCE_SINK,
+//	BASIS_TYPE_FORCE_GENERATOR,
+//};
 
 enum EntityType {
 	ENTITY_TYPE_NONE,
@@ -311,6 +311,5 @@ namespace tnav { // tnav is short for 'tile navigation'
 		return getNodePositionOffsets(getSuperTileType(type));
 	}
 
-	const glm::vec3 getTileEdgeVec(TileType type, LocalDirection orthoDir);
-	const glm::vec3 getCenterToEdgeVec(TileType type, LocalDirection orthoDir);
+	const glm::vec3 getCenterToNeighborVec(TileType type, LocalDirection orthoDir);
 }
