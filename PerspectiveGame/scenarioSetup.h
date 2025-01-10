@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include"currentSelection.h"
-#include"tileManager.h"
+//#include"tileManager.h"
 #include"entityManager.h"
 
 //void create4x4TileGrid(TileManager* tm)

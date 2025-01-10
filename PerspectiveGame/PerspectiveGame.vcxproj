@@ -428,6 +428,7 @@ pause
     <ClInclude Include="guiManager.h" />
     <ClInclude Include="inputManager.h" />
     <ClInclude Include="makeShapes.h" />
+    <ClInclude Include="nodeNavigation.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="playground.h" />
     <ClInclude Include="tile.h" />

@@ -62,7 +62,7 @@ struct App {
 		delete p_wave;
 		//delete p_tileManager;
 		delete p_entityManager;
-		//delete p_basisManager;
+		delete p_basisManager;
 		delete p_currentSelection;
 		delete p_nodeNetwork;
 		delete p_pov;

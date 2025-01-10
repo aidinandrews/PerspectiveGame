@@ -389,8 +389,9 @@ void GuiManager::bindUniforms2d3rdPersonViaNodeNetwork(Button* sceneView)
 	//GLuint povRelativePosID = glGetUniformLocation(p_shaderManager->POV2D3rdPerson.ID, "inPovRelativePositions");
 	//glUniformMatrix4fv(povRelativePosID, 1, GL_FALSE, glm::value_ptr(relativePosData));
 
-	glm::mat4 screenSpaceToWorldSpace = glm::inverse(
-		p_camera->getProjectionMatrix((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight()));
+	glm::vec2 screenSizePixels((float)sceneView->pixelWidth(), (float)sceneView->pixelHeight());
+	glm::mat4 screenSpaceToWorldSpace = p_camera->getProjectionMatrix(screenSizePixels.x, screenSizePixels.y);
+	screenSpaceToWorldSpace = glm::inverse(screenSpaceToWorldSpace);
 	GLuint windowToWorldID = glGetUniformLocation(programID, "inWindowToWorldSpace");
 	glUniformMatrix4fv(windowToWorldID, 1, GL_FALSE, glm::value_ptr(screenSpaceToWorldSpace));
 }
@@ -543,8 +544,8 @@ void GuiManager::draw3DTile(Tile* info)
 		verts.push_back((GLfloat)info->color.g);
 		verts.push_back((GLfloat)info->color.b);
 		// texture coord:
-		verts.push_back(info->textureCoordinates[i].x);
-		verts.push_back(info->textureCoordinates[i].y);
+		verts.push_back(info->getTexCoord(i).x);
+		verts.push_back(info->getTexCoord(i).y);
 		// tile index:
 		verts.push_back((GLfloat)info->index);
 	}

@@ -24,7 +24,6 @@ public:
 	// Helps orient the scene.  Changed when crossing to different tiles.  In the basis if the current tile.
 	// Identity assumed on init.
 	MapType mapType;
-	LocalDirection localNorth, localSouth, localEast, localWest;
 
 	TileNodeNetwork* p_nodeNetwork;
 	Camera* p_camera;
@@ -82,17 +81,21 @@ public:
 		LocalDirection D = d;
 		MapType m1 = node->getNeighborMap(d);
 
-		// Transition to a side node:
-		d = map(node->getNeighborMap(d), d);
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(D));
+		firstNeighbor = p_nodeNetwork->getNode(node->getNeighborIndex(d));
+		d = tnav::map(node->getNeighborMap(d), d);
+		m = tnav::combine(m, firstNeighbor->getNeighborMap(d));
 
-		// Transistion to the neighbor tile (a center node).
-		MapType m2 = node->getNeighborMap(d);
-		node = p_nodeNetwork->getNode(node->getNeighborIndex(d));
+		secondNeighbor = p_nodeNetwork->getNode(firstNeighbor->getNeighborIndex(d));
+		d = tnav::map(firstNeighbor->getNeighborMap(d), d);
+		m = tnav::combine(m, secondNeighbor->getNeighborMap(d));
+
+		thirdNeighbor = p_nodeNetwork->getNode(secondNeighbor->getNeighborIndex(d));
+		d = tnav::map(secondNeighbor->getNeighborMap(d), d);
+		m = tnav::combine(m, thirdNeighbor->getNeighborMap(d));
 
 		// Adjust the window space -> tile space mappings:
-		mapType = combine(mapType, m1);
-		mapType = combine(mapType, m2);
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
 
 		centerNodeIndex = node->getIndex();
 	}
@@ -103,17 +106,15 @@ public:
 	{
 		using namespace tnav;
 
-		CenterNode* oldNode = getNode();
+		TileNode* oldNode = getNode();
 
 		// orthos are the directions to the closest neighbor not in the direction of d.
 		LocalDirection oldOrtho = (d == getNorth() || d == getSouth())
 			? (p_camera->viewPlanePos.x < 0.5f) ? getWest() : getEast()
 			: (p_camera->viewPlanePos.y < 0.5f) ? getSouth() : getNorth();
-		LocalDirection newOrtho = p_nodeNetwork->mapToSecondNeighbor(oldNode, d, oldOrtho);
+		LocalDirection newOrtho = p_nodeNetwork->mapToFourthNeighbor(oldNode, d, oldOrtho);
 
-		CenterNode* newNode = oldNode;
-		LocalDirection D = d;
-		MapType m1 = newNode->getNeighborMap(d);
+		shiftTileSimple(d);
 
 		// Transition to a side node:
 		d = map(newNode->getNeighborMap(d), d);
@@ -124,8 +125,8 @@ public:
 		newNode = static_cast<CenterNode*>(p_nodeNetwork->getNode(newNode->getNeighborIndex(d)));
 
 		// Adjust the window space -> tile space mappings:
-		mapType = combine(mapType, m1);
-		mapType = combine(mapType, m2);
+		mapType = combineMaps(mapType, m1);
+		mapType = combineMaps(mapType, m2);
 
 		centerNodeIndex = newNode->getIndex();
 

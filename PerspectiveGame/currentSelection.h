@@ -15,11 +15,11 @@
 struct QueuedEntity {
 	int tileIndex;
 	EntityType type;
-	LocalOrientation orientation;
+	LocalOrientation basis;
 	LocalDirection direction;
 
-	QueuedEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation orientation) :
-		tileIndex(tileIndex), type(type), orientation(orientation), direction(direction)
+	QueuedEntity(int tileIndex, EntityType type, LocalDirection direction, LocalOrientation basis) :
+		tileIndex(tileIndex), type(type), basis(basis), direction(direction)
 	{}
 };
 
@@ -40,7 +40,7 @@ struct CurrentSelection {
 	TileNodeNetwork* p_nodeNetwork;
 	POV* p_pov;
 
-	CenterNode* hoveredTile;
+	TileNode* hoveredTile;
 	int	hoveredTileConnectionIndex;
 	POV* addTileParentPOV;
 	LocalDirection addTileParentAddDirection;
@@ -49,7 +49,7 @@ struct CurrentSelection {
 	glm::vec3 heldTilePos;
 
 	//Tile::Basis heldBasis;
-	Entity* heldEntity;
+	//Entity* heldEntity;
 	LocalDirection heldEntityDirection;
 
 	std::vector<QueuedEntity> queuedEntities;
@@ -193,17 +193,11 @@ struct CurrentSelection {
 
 		if (p_inputManager->leftClicked()) {
 			p_nodeNetwork->createTilePair(heldTilePos, tnav::getSuperTileType(heldTileInfo.type));
-			
-			p_nodeNetwork->printSize();
-			p_nodeNetwork->printCornerNodePositions();
 		}
 		else if (p_inputManager->rightClicked()) {
 			if (hoveredTile != p_pov->getNode())
 				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTile(hoveredTile->getTileIndex()));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
-
-			p_nodeNetwork->printSize();
-			p_nodeNetwork->printCornerNodePositions();
 		}
 	}
 	void tryEditBases()
