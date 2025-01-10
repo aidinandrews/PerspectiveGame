@@ -10,7 +10,7 @@
 
 #include "cameraManager.h"
 #include "tileNavigation.h"
-#include "tileNodeNetwork.h"
+#include "positionNodeNetwork.h"
 #include "vectorHelperFunctions.h"
 #include "globalVariables.h"
 #include "buttonManager.h"
@@ -25,7 +25,7 @@ public:
 	// Identity assumed on init.
 	MapType mapType;
 
-	TileNodeNetwork* p_nodeNetwork;
+	PositionNodeNetwork* p_nodeNetwork;
 	Camera* p_camera;
 	Button* p_button;
 
@@ -50,7 +50,7 @@ private:
 
 
 public:
-	POV(TileNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
+	POV(PositionNodeNetwork* nodeNetwork, Camera* camera, Button* button) : p_nodeNetwork(nodeNetwork), p_camera(camera)
 	{
 		p_button = button;
 		centerNodeIndex = 0;
@@ -61,7 +61,7 @@ public:
 	}
 
 	CenterNode* getNode() { return static_cast<CenterNode*>(p_nodeNetwork->getNode(centerNodeIndex)); }
-	Tile* getTile() { return p_nodeNetwork->getTile(getNode()->getTileIndex()); }
+	TileInfo* getTile() { return p_nodeNetwork->getTileInfo(getNode()->getTileInfoIndex()); }
 
 	const LocalDirection getNorth() { return tnav::map(mapType, LOCAL_DIRECTION_3); }
 	const LocalDirection getSouth() { return tnav::map(mapType, LOCAL_DIRECTION_1); }
@@ -77,7 +77,7 @@ public:
 	{
 		using namespace tnav;
 
-		TileNode* node = getNode();
+		PositionNode* node = getNode();
 		LocalDirection D = d;
 		MapType m1 = node->getNeighborMap(d);
 
@@ -132,8 +132,8 @@ public:
 
 		// used for 3D transformation matrix lerping:
 		bool sameType = oldNode->orientation == newNode->orientation;
-		TileType ta = p_nodeNetwork->getTile(oldNode->getTileIndex(), oldOrtho)->type;
-		TileType tb = p_nodeNetwork->getTile(newNode->getTileIndex(), newOrtho)->type;
+		TileType ta = p_nodeNetwork->getTileInfo(oldNode->getTileInfoIndex(), oldOrtho)->type;
+		TileType tb = p_nodeNetwork->getTileInfo(newNode->getTileInfoIndex(), newOrtho)->type;
 		if (sameType && ta == tb) return; // no need to lerp if traveling on flat plane w/ no weird geometry.
 
 		lastRotationMatrixWeight = 1.0f;
@@ -142,10 +142,10 @@ public:
 
 	// once the pov crosses an edge, it may have to update its rotation matrix to face the tile in
 	// 3D space.  This function makes sure that currentRotation always does this.
-	glm::mat4 rotMatAdjustment3D(Tile* tile, LocalDirection dir, float angleAmount)
+	glm::mat4 rotMatAdjustment3D(TileInfo* tile, LocalDirection dir, float angleAmount)
 	{
 		TileType oldTileType = tile->type;
-		TileType newTileType = p_nodeNetwork->getTile(getTile(), dir)->type;
+		TileType newTileType = p_nodeNetwork->getTileInfo(getTile(), dir)->type;
 		if (angleAmount == 0 || oldTileType == newTileType) return glm::mat4(1); // No rotation is change necessary if the types are the same.
 
 		float angle;

@@ -9,16 +9,15 @@
 #include <glm/glm.hpp>
 
 #include "tileNavigation.h"
-#include "tileNode.h"
-#include "tile.h"
+#include "positionNode.h"
 #include "cameraManager.h"
 
-struct TileNodeNetwork {
+struct PositionNodeNetwork {
 private:
-	std::vector<TileNode*> nodes;
+	std::vector<PositionNode*> nodes;
 	std::vector<int> freeNodeIndices;
 
-	std::vector<Tile> tiles;
+	std::vector<TileInfo> tileInfos;
 	std::vector<int> freeTileInfoIndices;
 
 	Camera* p_camera;
@@ -26,59 +25,51 @@ private:
 public: // Rendering:
 	GLuint texID;
 	GLuint positionNodeInfosBufferID;
-	GLuint tilesBufferID;
+	GLuint tileInfosBufferID;
 	std::vector<glm::vec2> windowFrustum;
 
-	std::vector<GPU_Tile> gpuTiles;
-	std::vector<GPU_TileNodeInfo> gpuPositionNodeInfos;
+	std::vector<GPU_TileInfoNode> gpuTileInfos;
+	std::vector<GPU_PositionNodeInfo> gpuPositionNodeInfos;
 
 	CenterNode CurrentNode;
 	int currentMapIndex = 0;
 	int currentNodeIndex = 4;
 
 public:
-	TileNodeNetwork(Camera* c) 
-		: p_camera(c)
+	PositionNodeNetwork(Camera* c) : p_camera(c)
 	{
-		for (int x = 0; x < 4; x++) {
-			for (int y = 0; y < 4; y++) {
-				createTilePair(glm::vec3(float(x), float(y), 0), TILE_TYPE_XY);
-			}
-		}
+		createTilePair(glm::vec3(0, 0, 0), TILE_TYPE_XY);
 
 		// Rendering:
 		glGenBuffers(1, &positionNodeInfosBufferID);
-		glGenBuffers(1, &tilesBufferID);
+		glGenBuffers(1, &tileInfosBufferID);
 	}
 
 	void update()
 	{
 		gpuPositionNodeInfos.clear();
-<<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
-		for (TileNode* p : nodes) {
-			if (p == nullptr) 
-				gpuPositionNodeInfos.push_back(GPU_TileNodeInfo());
-			else
-				gpuPositionNodeInfos.push_back(GPU_TileNodeInfo(*p));
-========
 		for (PositionNode* p : nodes) {
-			gpuPositionNodeInfos.push_back(GPU_PositionNodeInfo(*p));
->>>>>>>> 91f7b3b7202d67259637fd123642c59c777ed463:PerspectiveGame/positionNodeNetwork.h
+			if (p == nullptr) 
+				gpuPositionNodeInfos.push_back(GPU_PositionNodeInfo());
+			else
+				gpuPositionNodeInfos.push_back(GPU_PositionNodeInfo(*p));
 		}
 
-		gpuTiles.clear();
-		for (Tile& i : tiles) {
-			gpuTiles.push_back(GPU_Tile(i));
+		gpuTileInfos.clear();
+		for (TileInfo& i : tileInfos) {
+			gpuTileInfos.push_back(GPU_TileInfoNode(i));
 		}
 	}
 
-<<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
-	int size() { return (int)nodes.size(); }
+	int size()
+	{
+		return nodes.size();
+	}
 
 	void printSize()
 	{
 		int numCenterNodes = 0, numSideNodes = 0, numCornerNodes = 0;
-		for (TileNode* n : nodes) {
+		for (PositionNode* n : nodes) {
 			if (n == nullptr) continue;
 			switch (n->type) {
 			case NODE_TYPE_CENTER: numCenterNodes++; break;
@@ -96,48 +87,45 @@ public:
 
 	void printCornerNodePositions()
 	{
-		for (TileNode* n : nodes) {
+		for (PositionNode* n : nodes) {
 			if (n != nullptr && n->type == NODE_TYPE_CORNER)
 				vechelp::println(n->position);
 	}
 	}
 
-	TileNode* getNode(int index)
-========
 	PositionNode* getNode(int index)
->>>>>>>> 91f7b3b7202d67259637fd123642c59c777ed463:PerspectiveGame/positionNodeNetwork.h
 	{
 		return nodes[index];
 	}
 
-	CenterNode* getNode(Tile* info)
+	CenterNode* getNode(TileInfo* info)
 	{
 		return static_cast<CenterNode*>(nodes[info->centerNodeIndex]);
 	}
 
-	Tile* getTile(int index)
+	TileInfo* getTileInfo(int index)
 	{
-		return &tiles[index];
+		return &tileInfos[index];
 	}
 
-	int numTileInfos() { return (int)tiles.size(); }
+	int numTileInfos() { return (int)tileInfos.size(); }
 
-	Tile* getTile(int tileInfoIndex, LocalDirection d)
+	TileInfo* getTileInfo(int tileInfoIndex, LocalDirection d)
 	{
-		return getTile(&tiles[tileInfoIndex], d);
+		return getTileInfo(&tileInfos[tileInfoIndex], d);
 	}
 
 	// Gives the tile info of the neighbor tile in the direction of d.
-	Tile* getTile(Tile* info, LocalDirection d)
+	TileInfo* getTileInfo(TileInfo* info, LocalDirection d)
 	{
 		CenterNode* node = static_cast<CenterNode*>(nodes[info->centerNodeIndex]);
 		LocalDirection d2 = tnav::map(node->getNeighborMap(d), d);
 		SideNode* sideNode = static_cast<SideNode*>(nodes[node->getNeighborIndex(d)]);
 		CenterNode* neighborCenterNode = static_cast<CenterNode*>(nodes[sideNode->getNeighborIndex(d2)]);
-		return &tiles[neighborCenterNode->getTileIndex()];
+		return &tileInfos[neighborCenterNode->getTileInfoIndex()];
 	}
 
-	TileNode* getNeighbor(TileNode* node, LocalDirection toNeighbor)
+	PositionNode* getNeighbor(PositionNode* node, LocalDirection toNeighbor)
 	{
 		return nodes[node->getNeighborIndex(toNeighbor)];
 	}
@@ -160,9 +148,9 @@ public:
 
 	// Will add a node to the nodes list that is unconnected and error prone if it is not connected up!
 	// returns an index to the added node.
-	int addNode(TileNodeType type)
+	int addNode(PositionNodeType type)
 	{
-		TileNode* node = nullptr;
+		PositionNode* node = nullptr;
 		switch (type) {
 		case NODE_TYPE_CENTER:
 			node = new CenterNode();
@@ -264,19 +252,20 @@ public:
 
 	void colorTile(int index)
 	{
-		switch (tiles[index].type) {
-		case TILE_TYPE_XYF: tiles[index].color = glm::vec3(1.0f, 0.0f, 0.0f); break;
-		case TILE_TYPE_XYB: tiles[index].color = glm::vec3(0.5f, 0.0f, 0.0f); break;
-		case TILE_TYPE_XZF: tiles[index].color = glm::vec3(0.0f, 1.0f, 0.0f); break;
-		case TILE_TYPE_XZB: tiles[index].color = glm::vec3(0.0f, 0.5f, 0.0f); break;
-		case TILE_TYPE_YZF: tiles[index].color = glm::vec3(0.0f, 0.0f, 1.0f); break;
-		case TILE_TYPE_YZB: tiles[index].color = glm::vec3(0.0f, 0.0f, 0.5f); break;
+
+		switch (tileInfos[index].type) {
+		case TILE_TYPE_XYF: tileInfos[index].color = glm::vec3(1.0f, 0.0f, 0.0f); break;
+		case TILE_TYPE_XYB: tileInfos[index].color = glm::vec3(0.5f, 0.0f, 0.0f); break;
+		case TILE_TYPE_XZF: tileInfos[index].color = glm::vec3(0.0f, 1.0f, 0.0f); break;
+		case TILE_TYPE_XZB: tileInfos[index].color = glm::vec3(0.0f, 0.5f, 0.0f); break;
+		case TILE_TYPE_YZF: tileInfos[index].color = glm::vec3(0.0f, 0.0f, 1.0f); break;
+		case TILE_TYPE_YZB: tileInfos[index].color = glm::vec3(0.0f, 0.0f, 0.5f); break;
 		}
 	}
 
-	void removeTile(int index)
+	void removeTileInfo(int index)
 	{
-		tiles[index].wipe();
+		tileInfos[index].wipe();
 		freeTileInfoIndices.push_back(index);
 	}
 
@@ -286,39 +275,39 @@ public:
 	{
 		if (freeTileInfoIndices.size() > 1) {
 			frontInfoIndex = freeTileInfoIndices.back();
-			tiles[frontInfoIndex].index = freeTileInfoIndices.back();
+			tileInfos[frontInfoIndex].index = freeTileInfoIndices.back();
 			freeTileInfoIndices.pop_back();
 
 			backInfoIndex = freeTileInfoIndices.back();
-			tiles[backInfoIndex].index = freeTileInfoIndices.back();
+			tileInfos[backInfoIndex].index = freeTileInfoIndices.back();
 			freeTileInfoIndices.pop_back();
 		}
 		else if (freeTileInfoIndices.size() == 1) {
 			frontInfoIndex = freeTileInfoIndices.back();
-			tiles[frontInfoIndex].index = freeTileInfoIndices.back();
+			tileInfos[frontInfoIndex].index = freeTileInfoIndices.back();
 			freeTileInfoIndices.pop_back();
 
-			tiles.push_back(Tile());
-			backInfoIndex = (int)tiles.size() - 1;
-			tiles[backInfoIndex].index = (int)tiles.size() - 1;
+			tileInfos.push_back(TileInfo());
+			backInfoIndex = (int)tileInfos.size() - 1;
+			tileInfos[backInfoIndex].index = (int)tileInfos.size() - 1;
 		}
 		else {
-			tiles.push_back(Tile());
-			frontInfoIndex = (int)tiles.size() - 1;
-			tiles[frontInfoIndex].index = (int)tiles.size() - 1;
+			tileInfos.push_back(TileInfo());
+			frontInfoIndex = (int)tileInfos.size() - 1;
+			tileInfos[frontInfoIndex].index = (int)tileInfos.size() - 1;
 
-			tiles.push_back(Tile());
-			backInfoIndex = (int)tiles.size() - 1;
-			tiles[backInfoIndex].index = (int)tiles.size() - 1;
+			tileInfos.push_back(TileInfo());
+			backInfoIndex = (int)tileInfos.size() - 1;
+			tileInfos[backInfoIndex].index = (int)tileInfos.size() - 1;
 		}
 
-		tiles[frontInfoIndex].centerNodeIndex = frontCenterNodeIndex;
-		tiles[frontInfoIndex].type = tnav::getFrontTileType(type);
-		tiles[frontInfoIndex].siblingIndex = backInfoIndex;
+		tileInfos[frontInfoIndex].centerNodeIndex = frontCenterNodeIndex;
+		tileInfos[frontInfoIndex].type = tnav::getFrontTileType(type);
+		tileInfos[frontInfoIndex].siblingIndex = backInfoIndex;
 
-		tiles[backInfoIndex].centerNodeIndex = backCenterNodeIndex;
-		tiles[backInfoIndex].type = tnav::getBackTileType(type);
-		tiles[backInfoIndex].siblingIndex = frontInfoIndex;
+		tileInfos[backInfoIndex].centerNodeIndex = backCenterNodeIndex;
+		tileInfos[backInfoIndex].type = tnav::getBackTileType(type);
+		tileInfos[backInfoIndex].siblingIndex = frontInfoIndex;
 
 
 		colorTile(frontInfoIndex);
@@ -328,14 +317,13 @@ public:
 	// given a position in space, returns all the tiles connected to that point in the network.
 	// currently assumes the given position is of a side node!  will error if given a position 
 	// relating to a center of corner node.
-	std::vector<Tile> getConnectedTiles(SideNode* node)
+	std::vector<TileInfo> getConnectedTiles(SideNode* node)
 	{
-		std::vector<Tile> connectedTiles;
+		std::vector<TileInfo> connectedTiles;
 		int sideNodeIndex = node->index;
 		glm::vec3 pos = nodes[sideNodeIndex]->getPosition();
 
-<<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
-		for (TileNode* n : nodes) {
+		for (PositionNode* n : nodes) {
 			if (n == nullptr || n->getPosition() != pos || n->getIndex() == sideNodeIndex)
 ========
 		for (PositionNode* n : nodes) {
@@ -349,8 +337,8 @@ public:
 					continue;
 
 				connectedTiles.push_back(
-					tiles[
-						static_cast<CenterNode*>(nodes[s->getNeighborIndexDirect(i)])->getTileIndex()
+					tileInfos[
+						static_cast<CenterNode*>(nodes[s->getNeighborIndexDirect(i)])->getTileInfoIndex()
 					]
 				);
 			}
@@ -361,7 +349,7 @@ public:
 
 	// returns how prioritized the connection between these two tiles should be.
 	// 0 == high prio, 1 == medium, 2 = low, 3 = should not be connected in the first place!
-	int getConnectionPrio(Tile* a, Tile* b)
+	int getConnectionPrio(TileInfo* a, TileInfo* b)
 	{
 
 		glm::vec3 aN = tnav::getNormal(a->type);
@@ -505,9 +493,9 @@ public:
 	}
 
 	// Given a tile pair, will connect OR reconnect all the side nodes of that tile to the world.
-	void connectTilePair(Tile* frontTile)
+	void connectTilePair(TileInfo* frontTile)
 	{
-		Tile* backTile = getTile(frontTile->siblingIndex);
+		TileInfo* backTile = getTileInfo(frontTile->siblingIndex);
 		CenterNode* frontCenterNode = static_cast<CenterNode*>(getNode(frontTile->centerNodeIndex));
 		CenterNode* backCenterNode = static_cast<CenterNode*>(getNode(backTile->centerNodeIndex));
 		SideNode* newSideNode; 
@@ -532,7 +520,7 @@ public:
 				? SIDE_NODE_TYPE_HORIZONTAL
 				: SIDE_NODE_TYPE_VERTICAL);
 
-			std::vector<Tile> linkedTiles = getConnectedTiles(newSideNode);
+			std::vector<TileInfo> linkedTiles = getConnectedTiles(newSideNode);
 			if (linkedTiles.size() == 0) {
 				// connect the side to just the new tile pair:
 				frontCenterNode->setNeighborIndex(d, newSideNode->getIndex());
@@ -549,7 +537,7 @@ public:
 			}
 
 			// reconnect tiles based on heirarchy:
-			for (Tile linkedTile : linkedTiles) {
+			for (TileInfo linkedTile : linkedTiles) {
 				LocalDirection linkedTileDir;
 				CenterNode* linkedTileCenterNode = static_cast<CenterNode*>(getNode(linkedTile.centerNodeIndex));
 
@@ -559,12 +547,12 @@ public:
 						break;
 					}
 				}
-				Tile* currentNeighbor = getTile(&linkedTile, linkedTileDir);
+				TileInfo* currentNeighbor = getTileInfo(&linkedTile, linkedTileDir);
 				CenterNode* currentNeighborCenterNode = getNode(currentNeighbor);
 
 				int currentConnectionPrio = getConnectionPrio(&linkedTile, currentNeighbor);
-				int newConnectionPrio1 = getConnectionPrio(&linkedTile, getTile(frontTile->index));
-				int newConnectionPrio2 = getConnectionPrio(&linkedTile, getTile(backTile->index));
+				int newConnectionPrio1 = getConnectionPrio(&linkedTile, getTileInfo(frontTile->index));
+				int newConnectionPrio2 = getConnectionPrio(&linkedTile, getTileInfo(backTile->index));
 				if (currentConnectionPrio < newConnectionPrio1 && currentConnectionPrio < newConnectionPrio2) {
 					// the current connection is of heavier prio, so we wont switch.
 					continue;
@@ -628,20 +616,17 @@ public:
 				}
 				break;
 			}
-			for (Tile& t : linkedTiles) {
-				reconnectTile(tiles[t.index]);
-			}
 		}
 	}
 
 	// returns a pointer to the center node of the newly created tile or nullptr if the tile could not be made.
-	Tile* createTilePair(glm::vec3 pos, SuperTileType type)
+	TileInfo* createTilePair(glm::vec3 pos, SuperTileType type)
 	{
 		// check if there is already a tile where we are trying to add one:
 		// increment by 2s since we always add/remove 2 tiles at a time (front and back).
-		for (int i = 0; i < tiles.size(); i += 2) {
-			if (tiles[i].index == -1) continue;
-			if (nodes[tiles[i].centerNodeIndex]->getPosition() == pos)
+		for (int i = 0; i < tileInfos.size(); i += 2) {
+			if (tileInfos[i].index == -1) continue;
+			if (nodes[tileInfos[i].centerNodeIndex]->getPosition() == pos)
 				return nullptr;
 		}
 
@@ -656,34 +641,14 @@ public:
 		static_cast<CenterNode*>(nodes[newFrontNodeIndex])->setTileInfoIndex(newFrontTileIndex);
 		static_cast<CenterNode*>(nodes[newBackNodeIndex])->setTileInfoIndex(newBackTileIndex);
 
-<<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
-		connectTilePair(&tiles[newFrontTileIndex]);
-		reconnectCornerNodes(&tiles[newFrontTileIndex]);
-		reconnectCornerNodes(&tiles[newBackTileIndex]);
-		reconnectTile(tiles[newFrontTileIndex]);
-		reconnectTile(tiles[newBackTileIndex]);
-========
-		connectTilePair(&tileInfos[newFrontTileIndex]);		
+		connectTilePair(&tileInfos[newFrontTileIndex]);
+		reconnectCornerNodes(&tileInfos[newFrontTileIndex]);
+		reconnectCornerNodes(&tileInfos[newBackTileIndex]);
 
-		// TODO: add/remove corner nodes based on new geometry:
->>>>>>>> 91f7b3b7202d67259637fd123642c59c777ed463:PerspectiveGame/positionNodeNetwork.h
-
-		return &tiles[newFrontTileIndex];
+		return &tileInfos[newFrontTileIndex];
 	}
 
-<<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
-	void reconnectTile(Tile& tile)
-	{
-		CenterNode* centerNode = static_cast<CenterNode*>(nodes[tile.centerNodeIndex]);
-		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			MapType m = getSecondNeighborMap(centerNode, d);
-			CenterNode* neighborCenterNode = getSecondNeighbor(centerNode, d);
-			tile.setNeighborMap(d, m);
-			tile.setNeighborIndex(d, neighborCenterNode->getTileIndex());
-		}
-	}
-
-	void reconnectCornerNodes(Tile* frontTileInfo)
+	void reconnectCornerNodes(TileInfo* frontTileInfo)
 	{
 		CenterNode* frontNode = static_cast<CenterNode*>(getNode(frontTileInfo->centerNodeIndex));
 
@@ -792,28 +757,23 @@ public:
 		}
 	}
 
-	void removeTilePair(int tileInfoIndex) { removeTilePair(&tiles[tileInfoIndex]); }
+	void removeTilePair(int tileInfoIndex) { removeTilePair(&tileInfos[tileInfoIndex]); }
 
-	void removeTilePair(Tile* t)
-========
-	void deleteTilePair(int tileInfoIndex) { deleteTilePair(&tileInfos[tileInfoIndex]); }
-
-	void deleteTilePair(TileInfo* t)
->>>>>>>> 91f7b3b7202d67259637fd123642c59c777ed463:PerspectiveGame/positionNodeNetwork.h
+	void removeTilePair(TileInfo* t)
 	{
 		using namespace tnav;
 
 		if (t == nullptr) return;
 
-		Tile* siblingTile = getTile(t->siblingIndex);
+		TileInfo* siblingTile = getTileInfo(t->siblingIndex);
 		int centerNodeIndex = (t->centerNodeIndex);
 		int sibCenterNodeIndex = (siblingTile->centerNodeIndex);
 
 		// reconnect edges:
 		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			Tile
-				* neighborTile1 = getTile(t, d),
-				* neighborTile2 = getTile(t->siblingIndex, d);
+			TileInfo
+				* neighborTile1 = getTileInfo(t, d),
+				* neighborTile2 = getTileInfo(t->siblingIndex, d);
 			if (neighborTile1 == siblingTile) {
 				// edges that dont connect to anything can be simply removed, 
 				// as no reconnection is necessary:
@@ -860,14 +820,32 @@ public:
 			removeNode(sideNode2->getIndex());
 		}
 
-		removeTile(static_cast<CenterNode*>(getNode(centerNodeIndex))->getTileIndex());
-		removeTile(static_cast<CenterNode*>(getNode(sibCenterNodeIndex))->getTileIndex());
+		for (LocalDirection d : tnav::DIAGONAL_DIRECTION_SET) {
+			CenterNode* c = static_cast<CenterNode*>(getNode(centerNodeIndex));
+			if (c->getNeighborIndex(d) != -1) {
+				LocalDirection D = tnav::map(c->getNeighborMap(d), tnav::inverse(d));
+				CornerNode* C = static_cast<CornerNode*>(getNode(c->getNeighborIndex(d)));
+				C->setNeighborIndex(D, -1);
+				C->setNeighborMap(D, MAP_TYPE_ERROR);
+			}
+
+			c = static_cast<CenterNode*>(getNode(sibCenterNodeIndex));
+			if (c->getNeighborIndex(d) != -1) {
+				LocalDirection D = tnav::map(c->getNeighborMap(d), tnav::inverse(d));
+				CornerNode* C = static_cast<CornerNode*>(getNode(c->getNeighborIndex(d)));
+				C->setNeighborIndex(D, -1);
+				C->setNeighborMap(D, MAP_TYPE_ERROR);
+			}
+		}
+		
+		removeTileInfo(static_cast<CenterNode*>(getNode(centerNodeIndex))->getTileInfoIndex());
+		removeTileInfo(static_cast<CenterNode*>(getNode(sibCenterNodeIndex))->getTileInfoIndex());
 		removeNode(centerNodeIndex);
 		removeNode(sibCenterNodeIndex);
 
 <<<<<<<< HEAD:PerspectiveGame/tileNodeNetwork.h
 		for (int i : affectedCenterNodeIndices) {
-			reconnectCornerNodes(getTile(static_cast<CenterNode*>(getNode(i))->getTileIndex()));
+			reconnectCornerNodes(getTileInfo(static_cast<CenterNode*>(getNode(i))->getTileInfoIndex()));
 		}
 ========
 		// TODO: add/remove corner nodes based on new geometry:

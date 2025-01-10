@@ -28,6 +28,9 @@
     <Filter Include="Source Files\Dependancies\vcxproj">
       <UniqueIdentifier>{eb532003-9d09-4113-ae5c-b0bf40a2f268}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Shaders\2d3rdPersonPov">
+      <UniqueIdentifier>{bae931d7-f5f3-45e4-8427-62d82ab4976b}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\vcxProj">
       <UniqueIdentifier>{67602ee2-dedf-4dcd-a5a5-bfe1d47d6e1d}</UniqueIdentifier>
     </Filter>
@@ -132,7 +135,7 @@
     <ClInclude Include="app.h">
       <Filter>Source Files\Meta</Filter>
     </ClInclude>
-    <ClInclude Include="building.h">
+    <ClInclude Include="Building.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="currentSelection.h">
@@ -156,10 +159,10 @@
     <ClInclude Include="pov.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
-    <ClInclude Include="tileNode.h">
+    <ClInclude Include="positionNode.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
-    <ClInclude Include="tileNodeNetwork.h">
+    <ClInclude Include="positionNodeNetwork.h">
       <Filter>Source Files\Game\World</Filter>
     </ClInclude>
     <ClInclude Include="scene.h">
@@ -188,12 +191,6 @@
     </ClInclude>
     <ClInclude Include="tile3dViewCamera.h">
       <Filter>Source Files\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="collisionSolver.h">
-      <Filter>Source Files\Game\World</Filter>
-    </ClInclude>
-    <ClInclude Include="tile.h">
-      <Filter>Source Files\Game\World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -278,9 +275,6 @@
     <ClCompile Include="vectorHelperFunctions.cpp">
       <Filter>Source Files\Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="tile.cpp">
-      <Filter>Source Files\Game\World</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\3D3rdPersonPOV.frag">
@@ -333,6 +327,15 @@
     </None>
     <None Include="helperFunctions.glsl">
       <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovHeader.frag">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPov.vert">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
+    </None>
+    <None Include="shaders\2d3rdPersonPovBody.frag">
+      <Filter>Resource Files\Shaders\2d3rdPersonPov</Filter>
     </None>
     <None Include="shaders\2d3rdPersonPovViaNodeNetwork.frag">
       <Filter>Resource Files\Shaders</Filter>

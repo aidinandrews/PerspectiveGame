@@ -10,33 +10,20 @@
 
 #include "tileNavigation.h"
 
-// Connecitons    Nodes      Types
-// ___________
-// |\  /|\  /|   * * * *   L S L S L
-// | \/ | \/ |   * * * *   S M S M S
-// | /\ | /\ |   * * * *   L S L S L
-// |/__\|/__\|   * * * *   S M S M S
-// |\  /|\  /|   * * * *   L S L S L
-// | \/ | \/ |
-// | /\ | /\ |
-// |/__\|/__\|
-// 
-//
-
-enum TileNodeType {
+enum PositionNodeType {
 	NODE_TYPE_CENTER,
 	NODE_TYPE_SIDE,
 	NODE_TYPE_CORNER,
 	NODE_TYPE_ERROR,
 };
 
-enum SideTileNodeType {
+enum SidePositionNodeType {
 	SIDE_NODE_TYPE_HORIZONTAL, 
 	SIDE_NODE_TYPE_VERTICAL,
 	SIDE_NODE_TYPE_ERROR,
 };
 
-class TileNode {
+class PositionNode {
 private:
 	int numNeighbors;
 	std::vector<int> neighborIndices;
@@ -47,8 +34,7 @@ private:
 	std::vector<MapType> tileMaps;
 
 public:
-<<<<<<<< HEAD:PerspectiveGame/tileNode.h
-	TileNodeType type;
+	PositionNodeType type;
 	OrientationType orientation;
 ========
 	PositionNodeType type;
@@ -57,8 +43,8 @@ public:
 	int index;
 	glm::vec3 position;
 
-	TileNode(TileNodeType t) : type(t) {}
-	virtual ~TileNode() = default;
+	PositionNode(PositionNodeType t) : type(t) {}
+	virtual ~PositionNode() = default;
 
 	glm::vec3 getPosition() { return position; }
 	void setPosition(glm::vec3 pos) { position = pos; }
@@ -77,7 +63,7 @@ public:
 	void setIndex(int i) { index = i; }
 };
 
-class CenterNode : public TileNode {
+class CenterNode : public PositionNode {
 private:
 	static const int NUM_NEIGHBORS = 8;
 	int neighborIndices[NUM_NEIGHBORS];
@@ -85,10 +71,7 @@ private:
 	int tileInfoIndex;
 
 public:
-	bool hasEntity;
-
-public:
-	CenterNode() : TileNode(NODE_TYPE_CENTER)
+	CenterNode() : PositionNode(NODE_TYPE_CENTER)
 	{
 		wipe();
 		}
@@ -107,11 +90,8 @@ public:
 		oriType = ORIENTATION_TYPE_ERROR;
 		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
-				neighborIndices[i] = -1;
-				neighborMaps[i] = MAP_TYPE_ERROR;
-			}
-		hasEntity = false;
-			}
+			neighborIndices[i] = -1;
+			neighborMaps[i] = MAP_TYPE_ERROR;
 		}
 	}
 
@@ -120,16 +100,18 @@ public:
 		return tnav::map(neighborMaps[toNeighbor], alignment);
 	}
 
-	int getTileIndex() { return tileInfoIndex; }
+	int getTileInfoIndex() { return tileInfoIndex; }
 	void setTileInfoIndex(int i) { tileInfoIndex = i; }
 };
 
-class SideNode : public TileNode {
+
+
+class SideNode : public PositionNode {
 private:
 	static const int NUM_NEIGHBORS = 2;
 	int neighborIndices[NUM_NEIGHBORS];
 	MapType neighborMaps[NUM_NEIGHBORS];
-	SideTileNodeType sideNodeType;
+	SidePositionNodeType sideNodeType;
 
 public:
 
@@ -160,8 +142,8 @@ private:
 		}
 
 public:
-	SideNode(SideTileNodeType sideNodeType) 
-		: TileNode(NODE_TYPE_SIDE)
+	SideNode(SidePositionNodeType sideNodeType) 
+		: PositionNode(NODE_TYPE_SIDE)
 		, sideNodeType(sideNodeType)
 	{
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
@@ -172,8 +154,8 @@ public:
 			neighborMaps = nullptr;
 		}
 
-	SideTileNodeType getSideNodeType() { return sideNodeType; }
-	void setSideNodeType(SideTileNodeType type) { sideNodeType = type; }
+	SidePositionNodeType getSideNodeType() { return sideNodeType; }
+	void setSideNodeType(SidePositionNodeType type) { sideNodeType = type; }
 
 	int getNeighborIndex(LocalDirection dir) override
 	{
@@ -186,30 +168,6 @@ public:
 	int getNeighborIndexDirect(int i)
 	{
 		return neighborIndices[i];
-	}
-
-	MapType getNeighborMapDirect(int i)
-	{
-		return neighborMaps[i];
-			}
-
-	LocalDirection getLocalDirDirect(int i)
-	{
-		switch (sideNodeType) {
-		case SIDE_NODE_TYPE_HORIZONTAL:
-			switch (i) {
-			case 0: return LOCAL_DIRECTION_0;
-			case 1: return LOCAL_DIRECTION_2;
-			default: return LOCAL_DIRECTION_ERROR;
-			}	
-		case SIDE_NODE_TYPE_VERTICAL:
-			switch (i) {
-			case 0: return LOCAL_DIRECTION_1;
-			case 1: return LOCAL_DIRECTION_3;
-			default: return LOCAL_DIRECTION_ERROR;
-			}
-		default: return LOCAL_DIRECTION_ERROR;
-		}
 	}
 
 	void setNeighborIndex(LocalDirection dir, int neighborIndex) override
@@ -245,7 +203,7 @@ public:
 	}
 };
 
-class CornerNode : public TileNode {
+class CornerNode : public PositionNode {
 private:
 	static const int NUM_NEIGHBORS = 4;
 	int neighborIndices[NUM_NEIGHBORS];
@@ -277,7 +235,7 @@ private:
 	}
 
 public:
-	CornerNode() : TileNode(NODE_TYPE_CORNER)
+	CornerNode() : PositionNode(NODE_TYPE_CORNER)
 	{
 		for (int i = 0; i < NUM_NEIGHBORS; i++) {
 			neighborIndices[i] = -1;
@@ -322,6 +280,49 @@ public:
 			neighborMaps[i] = MAP_TYPE_ERROR;
 		}
 	}
+};
+
+
+
+
+
+
+
+
+struct TileInfo {
+	TileType type;
+	int index;
+	int centerNodeIndex;
+	glm::vec3 color;
+	glm::vec2 textureCoordinates[4];
+	int siblingIndex;
+
+	TileInfo(TileType type, int index, int siblingIndex, int centerNodeIndex, glm::vec3 color) : 
+		type(type), index(index), siblingIndex(siblingIndex), centerNodeIndex(centerNodeIndex), color(color)
+	{
+		textureCoordinates[0] = glm::vec2(1, 1);
+		textureCoordinates[1] = glm::vec2(1, 0);
+		textureCoordinates[2] = glm::vec2(0, 0);
+		textureCoordinates[3] = glm::vec2(0, 1);
+	}
+
+	TileInfo()
+	{
+		wipe();
+		textureCoordinates[0] = glm::vec2(1, 1);
+		textureCoordinates[1] = glm::vec2(1, 0);
+		textureCoordinates[2] = glm::vec2(0, 0);
+		textureCoordinates[3] = glm::vec2(0, 1);
+	}
+
+	void wipe()
+	{
+		index = -1;
+		siblingIndex = -1;
+		centerNodeIndex = -1;
+		type = TILE_TYPE_ERROR;
+		color = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+	}
 
 	TileType getType() { return type; }
 	void setType(TileType t) { type = t; }
@@ -352,7 +353,7 @@ struct alignas(8) GPU_EntityInfo {
 	int index, heading;
 };
 
-struct alignas(32) GPU_TileNodeInfo {
+struct alignas(32) GPU_PositionNodeInfo {
 	alignas(32) int neighborIndices[8];
 	alignas(32) int neighborMaps[8];
 
@@ -360,8 +361,7 @@ struct alignas(32) GPU_TileNodeInfo {
 	alignas(4) int tileInfoIndex;
 	alignas(4) int padding[6];
 
-<<<<<<<< HEAD:PerspectiveGame/tileNode.h
-	GPU_TileNodeInfo()
+	GPU_PositionNodeInfo()
 	{
 		index = -1;
 		tileInfoIndex = -1;
@@ -371,10 +371,7 @@ struct alignas(32) GPU_TileNodeInfo {
 		}
 	}
 
-	GPU_TileNodeInfo(TileNode& node)
-========
 	GPU_PositionNodeInfo(PositionNode& node)
->>>>>>>> 91f7b3b7202d67259637fd123642c59c777ed463:PerspectiveGame/positionNode.h
 	{
 		index = node.getIndex();
 
@@ -383,7 +380,7 @@ struct alignas(32) GPU_TileNodeInfo {
 
 		switch (node.type) {
 		case NODE_TYPE_CENTER:
-			tileInfoIndex = dynamic_cast<CenterNode&>(node).getTileIndex();
+			tileInfoIndex = dynamic_cast<CenterNode&>(node).getTileInfoIndex();
 
 			for (LocalDirection d : tnav::DIRECTION_SET) {
 				neighborIndices[d] = node.getNeighborIndex(d);
@@ -461,8 +458,22 @@ struct alignas(32) GPU_TileInfo {
 			texCoords[d] = info.getTexCoord(d);
 			entityIndices[d] = -1;
 		}
-		numEntities = 0;
+	}
+};
+
+struct alignas(32) GPU_TileInfoNode {
+	alignas(32) glm::vec2 texCoords[4];
+
+	alignas(16) glm::vec4 color;
+	alignas(4) int centerNodeIndex;
+	alignas(4) int padding[3];
+
+	GPU_TileInfoNode(TileInfo& info)
+	{
+		for (int i = 0; i < 4; i++) {
+			texCoords[i] = info.textureCoordinates[i];
+		}
 		color = glm::vec4(info.color, 1.0f);
-		//centerNodeIndex = info.centerNodeIndex;
+		centerNodeIndex = info.centerNodeIndex;
 	}
 };
