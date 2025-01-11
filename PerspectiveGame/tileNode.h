@@ -8,6 +8,7 @@ enum TileNodeType {
 	NODE_TYPE_CENTER,
 	NODE_TYPE_SIDE,
 	NODE_TYPE_CORNER,
+	NODE_TYPE_DEGENERATE,
 	NODE_TYPE_ERROR,
 };
 
@@ -24,9 +25,15 @@ public:
 	TileNodeType type;
 	OrientationType orientation;
 	int index;
+	int forceListIndex;
 	glm::vec3 position;
 
-	TileNode(TileNodeType t) : type(t) {}
+	TileNode(TileNodeType t) : type(t) {
+		index = -1;
+		forceListIndex = -1;
+		position = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+		orientation = ORIENTATION_TYPE_ERROR;
+	}
 	virtual ~TileNode() = default;
 
 	glm::vec3 getPosition() { return position; }
@@ -202,6 +209,79 @@ public:
 			neighborIndices[i] = -1;
 			neighborMaps[i] = MAP_TYPE_ERROR;
 		}
+	}
+};
+
+// No basis for this node, entities cannot exist whithin it.
+class DegenerateCornerNode : public TileNode
+{
+public:
+	// list of indices to the ForceList who CANNOT both be true, as the resulting force would face a degenerate tile.
+	// used to invert the force, as the two given indices can determine the two indices not given.
+	std::vector<int> componentPairIndices;
+	int numDegenComponents;
+
+public:
+	DegenerateCornerNode() : TileNode(NODE_TYPE_DEGENERATE)
+	{
+		// it is assumed that a new degenerate node is connected to only 2 tiles, who must be siblings.
+		//componentPairIndices = new int[4];
+		componentPairIndices.resize(4);
+		numDegenComponents = 4;
+	}
+
+	// Unneeded virtual functions:
+	int getNeighborIndex(LocalDirection dir) { return -1; }
+	void setNeighborIndex(LocalDirection dir, int neighborIndex) {}
+	MapType getNeighborMap(LocalDirection dir) { return MAP_TYPE_ERROR; }
+	void setNeighborMap(LocalDirection dir, MapType type) {}
+	LocalAlignment mapToNeighbor(LocalAlignment alignment, LocalDirection toNeighbor) { return LOCAL_ALIGNMENT_ERROR; }
+	void wipe() {}
+
+	void addDegenPair(int componentIndexA1, int componentIndexA2)
+	{
+		/*int* newList = new int[numDegenComponents + 2];
+		for (int i = 0; i < numDegenComponents; i++) newList[i] = componentPairIndices[i];
+		newList[numDegenComponents + 0] = componentIndexA;
+		newList[numDegenComponents + 1] = componentIndexB;
+		numDegenComponents += 2;
+		delete[] componentPairIndices;
+		componentPairIndices = newList;*/
+		componentPairIndices.push_back(componentIndexA1);
+		componentPairIndices.push_back(componentIndexA2);
+		numDegenComponents += 2;
+
+	}
+
+	// returns false if the node has no pairs to remove/the given pair is not in the list.
+	bool removeDegenPair(int componentIndexA, int componentIndexB)
+	{
+		if (numDegenComponents == 0) return false;
+
+		/*int* newList = new int[numDegenComponents - 2];
+		int added = 0;
+		for (int i = 0; i < numDegenComponents; i++) {
+			if (componentPairIndices[i] != componentIndexA &&
+				componentPairIndices[i] != componentIndexB) {
+				if (added == numDegenComponents - 2) return false;
+
+				newList[i] = componentPairIndices[i];
+				added++;
+			}
+		}
+		numDegenComponents -= 2;
+		delete[] componentPairIndices;
+		componentPairIndices = newList;*/
+
+		for (int i = 0; i < numDegenComponents; i++) {
+			if (componentPairIndices[i] == componentIndexA ||
+				componentPairIndices[i] == componentIndexB) {
+				componentPairIndices.erase(componentPairIndices.begin() + i--);
+			}
+		}
+		numDegenComponents -= 2;
+
+		return true;
 	}
 };
 

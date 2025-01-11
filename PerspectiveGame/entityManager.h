@@ -52,7 +52,7 @@ struct EntityManager
 		entities.push_back(Entity(Entity::Type::ENTITY_TYPE_DEFAULT,
 								  glm::vec3(0.5, 0.5, 0.5),
 								  node, (int)p_forceManager->forceList.size()));
-		p_forceManager->addForce(entityDir);
+		p_forceManager->addForce(entityDir, node->index);
 
 		return true;
 	}

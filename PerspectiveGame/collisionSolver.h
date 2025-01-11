@@ -6,8 +6,24 @@
 #include "tileNode.h"
 #include "forceManager.h"
 
+// Solves collisions between single forces and degenerate corners.
+// the forces will simply be inverted.
+// * Used in tick state A only.
+struct DgenCollisionSolver
+{
+	// the array is two the two force component pairs that MUST BOTH be set to true in order
+	// to be inverted by this solver.  The solver will use these indices to find the other two
+	// indices that need flipping as well.
+	// X______,    X______,
+	// | ,__  |	   |  . . |
+	// | |`.  | -> |  _\| |
+	// |______|	   |______|
+
+	int forceListIndices[2];
+};
+
 // Solves collisions between orthogonally touching entities.
-// *Used in tick state A and B.
+// * Used in tick state A and B.
 struct OrthCollisionSolver
 {
 	// This array is a set of indices into the collision solver's force list, which designates
@@ -26,7 +42,7 @@ struct OrthCollisionSolver
 };
 
 // Solves collisions between diagonally touching entities.
-// *Used in tick state A and B.
+// * Used in tick state A and B.
 struct DiagCollisionSolver
 {
 	// This array is a set of indices into the collision solver's force list, which designates

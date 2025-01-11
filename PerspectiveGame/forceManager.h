@@ -7,7 +7,20 @@
 
 struct ForceManager
 {
-	std::vector<bool> forceList;
+	// * both vectors here miror the node vector in TileNodeNetwork
+	std::vector<bool> forceList; // Sets of 4 bools represent force components in local bases of TileNodes.
+	std::vector<int> freeForceListIndices;
+	
+	std::vector<int> nodeIndices; // Indices to the tile nodes associated with the forceList.
+
+	// Given an index to a component in the force list, will return that component's node index.
+	int getNodeIndex(int forceListComponentIndex)
+	{
+		int index = forceListComponentIndex;
+		index -= index % 4; // go to the initial index of the component list
+		index /= 4; // there are 4x more bools in the forceList than nodes in the node list.
+		return index;
+	}
 
 	LocalDirection getForce(int index)
 	{
@@ -27,7 +40,7 @@ struct ForceManager
 		case 0b0110: return LOCAL_DIRECTION_1_2;
 		case 0b1100: return LOCAL_DIRECTION_2_3;
 		case 0b1001: return LOCAL_DIRECTION_3_0;
-		default:	 return LOCAL_DIRECTION_ERROR;
+		default: return LOCAL_DIRECTION_ERROR;
 		}
 	}
 
@@ -54,7 +67,7 @@ struct ForceManager
 		setForce(forceIndex, tnav::map(map, d));
 	}
 
-	int addForce(LocalDirection d)
+	int addForce(LocalDirection d, int nodeIndex)
 	{
 		const static std::array<std::array<int, 4>, 9> forces = {{
 			{{1, 0, 0, 0}}, // LOCAL_DIRECTION_0 
@@ -68,7 +81,39 @@ struct ForceManager
 			{{0, 0, 0, 0}}  // LOCAL_DIRECTION_STATIC 
 		}}; 
 			
-		forceList.insert(forceList.end(), forces[d].begin(), forces[d].end());
-		return (int)forceList.size() - 5;
+		if (freeForceListIndices.size() == 0) {
+			forceList.insert(forceList.end(), forces[d].begin(), forces[d].end());
+			nodeIndices.push_back(nodeIndex);
+
+			return (int)forceList.size() - 4;
+		}
+		else {
+			int i = freeForceListIndices.back();
+			freeForceListIndices.pop_back();
+
+			for (int j = 0; j < 4; j++) {
+				forceList[i + j] = forces[d][j];
+			}
+
+			nodeIndices[(i - (i % 4)) / 4] = nodeIndex;
+
+			return i;
+		}
+	}
+
+	void removeForce(int forceIndex)
+	{
+		if (forceIndex == forceList.size() - 1) {
+			forceList.pop_back();
+			nodeIndices.pop_back();
+		}
+		else {
+			freeForceListIndices.push_back(forceIndex);
+			forceList[forceIndex + 0] = 0;
+			forceList[forceIndex + 1] = 0;
+			forceList[forceIndex + 2] = 0;
+			forceList[forceIndex + 3] = 0;
+			nodeIndices[(forceIndex - (forceIndex % 4)) / 4] = -1;
+		}
 	}
 };

@@ -22,6 +22,7 @@ private:
 	std::vector<int> freeTileInfoIndices;
 
 	Camera* p_camera;
+	ForceManager* p_forceManager;
 
 public: // Rendering:
 	GLuint texID;
@@ -37,11 +38,12 @@ public: // Rendering:
 	int currentNodeIndex = 4;
 
 public:
-	TileNodeNetwork(Camera* c) 
+	TileNodeNetwork(Camera* c, ForceManager* fm)
 		: p_camera(c)
+		, p_forceManager(fm)
 	{
 		for (int x = 0; x < 4; x++) {
-			for (int y = 0; y < 4; y++) {
+			for (int y = 0; y < 1; y++) {
 				createTilePair(glm::vec3(float(x), float(y), 0), TILE_TYPE_XY);
 			}
 		}
@@ -158,7 +160,7 @@ public:
 	 
 	// Will add a node to the nodes list that is unconnected and error prone if it is not connected up!
 	// returns an index to the added node.
-	int addNode(TileNodeType type)
+	int addNode(TileNodeType type, glm::vec3 pos, OrientationType orientation)
 	{
 		TileNode* node = nullptr;
 		switch (type) {
@@ -168,10 +170,18 @@ public:
 		case NODE_TYPE_SIDE:
 			node = (new SideNode(SIDE_NODE_TYPE_ERROR));
 			break;
-		default: //case NODE_TYPE_CORNER:
-			node = (new CornerNode());
+		case NODE_TYPE_CORNER:
+			node = new CornerNode();
 			break;
+		case NODE_TYPE_DEGENERATE:
+			node = new DegenerateCornerNode();
+			break;
+		default:
+			return -1;
 		}
+		node->position = pos;
+		node->orientation = orientation;
+		node->forceListIndex = p_forceManager->addForce(LOCAL_DIRECTION_STATIC, node->index);
 
 		if (freeNodeIndices.size() > 0) {
 			nodes[freeNodeIndices.back()] = node;
@@ -187,38 +197,86 @@ public:
 	}
 
 	// center nodes inherantly require more information, hence the inputs:
-	int addCenterNode(glm::vec3 pos, TileType type)
+	int addCenterNode(glm::vec3 pos, TileType orientation)
 	{
-		int i = addNode(NODE_TYPE_CENTER);
-		nodes[i]->setPosition(pos);
-		nodes[i]->type = NODE_TYPE_CENTER;
-		nodes[i]->orientation = type;
+		return addNode(NODE_TYPE_CENTER, pos, orientation);
+	}
+
+	int addSideNode(glm::vec3 pos, OrientationType orientation)
+	{
+		return addNode(NODE_TYPE_SIDE, pos, orientation);
+	}
+
+	int addCornerNode(glm::vec3 pos, OrientationType orientation)
+	{
+		return addNode(NODE_TYPE_CORNER, pos, orientation);
+	}
+
+	int addDegenNode(glm::vec3 pos, int forceComponentIndexA1, int forceComponentIndexA2, int forceComponentIndexB1, int forceComponentIndexB2)
+	{
+		if (forceComponentIndexA1 == -1 || forceComponentIndexA2 == -1 || forceComponentIndexB1 == -1 || forceComponentIndexB2 == -1) {
+
+		}
+
+		int i = addNode(NODE_TYPE_DEGENERATE, pos, ORIENTATION_TYPE_ERROR);
+		DegenerateCornerNode* degenNode = static_cast<DegenerateCornerNode*>(getNode(i));
+		degenNode->componentPairIndices[0] = forceComponentIndexA1;
+		degenNode->componentPairIndices[1] = forceComponentIndexA2;
+		degenNode->componentPairIndices[2] = forceComponentIndexB1;
+		degenNode->componentPairIndices[3] = forceComponentIndexB2;
 		return i;
 	}
 
-	int addSideNode(glm::vec3 pos, OrientationType type)
+	int addDegenNode(CornerNode& cornerNode)
 	{
-		int i = addNode(NODE_TYPE_SIDE);
-		nodes[i]->setPosition(pos);
-		nodes[i]->type = NODE_TYPE_SIDE;
-		nodes[i]->orientation = type;
-		return i;
-	}
+		DegenerateCornerNode* degenNode = new DegenerateCornerNode();
+		degenNode->index = cornerNode.index;
+		degenNode->position = cornerNode.position;
+		degenNode->forceListIndex = cornerNode.forceListIndex;
+		degenNode->numDegenComponents = 8;
 
-	int addCornerNode(glm::vec3 pos, OrientationType type)
-	{
-		int i = addNode(NODE_TYPE_CORNER);
-		nodes[i]->setPosition(pos);
-		nodes[i]->type = NODE_TYPE_CORNER;
-		nodes[i]->orientation = type;
-		return i;
+		for (LocalDirection d : tnav::DIAGONAL_DIRECTION_SET) {
+			LocalDirection toCorner = d;
+			toCorner = tnav::map(cornerNode.getNeighborMap(toCorner), tnav::inverse(toCorner));
+			int forceListIndex = degenNode->forceListIndex;
+			
+			switch (toCorner) {
+			case LOCAL_DIRECTION_0_1:
+				degenNode->componentPairIndices[0] = forceListIndex + 0;
+				degenNode->componentPairIndices[1] = forceListIndex + 1; break;
+			case LOCAL_DIRECTION_1_2:
+				degenNode->componentPairIndices[0] = forceListIndex + 1;
+				degenNode->componentPairIndices[1] = forceListIndex + 2; break;
+			case LOCAL_DIRECTION_2_3:
+				degenNode->componentPairIndices[0] = forceListIndex + 2;
+				degenNode->componentPairIndices[1] = forceListIndex + 3; break;
+			case LOCAL_DIRECTION_3_0:
+				degenNode->componentPairIndices[0] = forceListIndex + 3;
+				degenNode->componentPairIndices[1] = forceListIndex + 0; break;
+			default:
+				std::cout << "ERROR" << std::endl; return -1;
+			}
+
+			CenterNode* neighbor = static_cast<CenterNode*>(getNode(cornerNode.getNeighborIndex(d)));
+			neighbor->setNeighborMap(toCorner, MAP_TYPE_ERROR);
+		}
+
+		delete nodes[cornerNode.index];
+		nodes[degenNode->index] = degenNode;
+		return degenNode->index;
 	}
 
 	void removeNode(int index)
 	{
-		freeNodeIndices.push_back(index);
-		delete nodes[index];
-		nodes[index] = nullptr;
+		if (index == nodes.size() - 1) {
+			delete nodes[index];
+			nodes.pop_back();
+		}
+		else {
+			freeNodeIndices.push_back(index);
+			delete nodes[index];
+			nodes[index] = nullptr;
+		}
 	}
 
 	void colorTile(int index)
@@ -347,14 +405,45 @@ public:
 		return INT_MAX;
 	}
 
+	// returns a pointer to the center node of the newly created tile or nullptr if the tile could not be made.
+	Tile* createTilePair(glm::vec3 pos, SuperTileType type)
+	{
+		// check if there is already a tile where we are trying to add one:
+		// increment by 2s since we always add/remove 2 tiles at a time (front and back).
+		for (int i = 0; i < tiles.size(); i += 2) {
+			if (tiles[i].index == -1) continue;
+			if (nodes[tiles[i].centerNodeIndex]->getPosition() == pos)
+				return nullptr;
+		}
+
+		// create the new tile pair and center nodes:
+		// indices are used because apparently pointers are unsafe if the vector resizes itself.
+		TileType frontType = tnav::getTileType(type, true);
+		TileType backType = tnav::getTileType(type, false);
+		int newFrontNodeIndex = addCenterNode(pos, frontType);
+		int newBackNodeIndex = addCenterNode(pos, backType);
+		int newFrontTileIndex, newBackTileIndex;
+		addTilePair(newFrontNodeIndex, newBackNodeIndex, type, newFrontTileIndex, newBackTileIndex);
+		static_cast<CenterNode*>(nodes[newFrontNodeIndex])->setTileInfoIndex(newFrontTileIndex);
+		static_cast<CenterNode*>(nodes[newBackNodeIndex])->setTileInfoIndex(newBackTileIndex);
+
+		connectTilePair(&tiles[newFrontTileIndex]);
+		reconnectCornerNodes(tiles[newFrontTileIndex]);
+		reconnectCornerNodes(tiles[newBackTileIndex]);
+		reconnectTile(tiles[newFrontTileIndex]);
+		reconnectTile(tiles[newBackTileIndex]);
+
+		return &tiles[newFrontTileIndex];
+	}
+
 	// Given a tile pair, will connect OR reconnect all the side nodes of that tile to the world.
 	void connectTilePair(Tile* frontTile)
 	{
 		Tile* backTile = getTile(frontTile->siblingIndex);
 		CenterNode* frontCenterNode = static_cast<CenterNode*>(getNode(frontTile->centerNodeIndex));
 		CenterNode* backCenterNode = static_cast<CenterNode*>(getNode(backTile->centerNodeIndex));
-		SideNode* newSideNode; 
-		
+		SideNode* newSideNode;
+
 		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
 			// add a new side node is none exists:
 			if (frontCenterNode->getNeighborIndex(d) == -1) {
@@ -374,17 +463,7 @@ public:
 
 			std::vector<Tile> linkedTiles = getConnectedTiles(newSideNode);
 			if (linkedTiles.size() == 0) {
-				// connect the side to just the new tile pair:
-				frontCenterNode->setNeighborIndex(d, newSideNode->getIndex());
-				frontCenterNode->setNeighborMap(d, MAP_TYPE_IDENTITY);
-
-				backCenterNode->setNeighborIndex(d, newSideNode->getIndex());
-				backCenterNode->setNeighborMap(d, tnav::getNeighborMap(d, d));
-
-				newSideNode->setNeighborIndex(tnav::inverse(d), frontCenterNode->getIndex());
-				newSideNode->setNeighborMap(tnav::inverse(d), MAP_TYPE_IDENTITY);
-				newSideNode->setNeighborIndex(d, backCenterNode->getIndex());
-				newSideNode->setNeighborMap(d, tnav::getNeighborMap(d, d));
+				connectTilePairSidesToThemselves(*frontTile, *newSideNode, d);
 				continue;
 			}
 
@@ -472,37 +551,52 @@ public:
 				reconnectTile(tiles[t.index]);
 			}
 		}
+
+		// add degenerate corners here:
+		tryAddDegenNodes(*frontTile);
 	}
 
-	// returns a pointer to the center node of the newly created tile or nullptr if the tile could not be made.
-	Tile* createTilePair(glm::vec3 pos, SuperTileType type)
+	void connectTilePairSidesToThemselves(Tile& t, SideNode& newSideNode, LocalDirection toSibling)
 	{
-		// check if there is already a tile where we are trying to add one:
-		// increment by 2s since we always add/remove 2 tiles at a time (front and back).
-		for (int i = 0; i < tiles.size(); i += 2) {
-			if (tiles[i].index == -1) continue;
-			if (nodes[tiles[i].centerNodeIndex]->getPosition() == pos)
-				return nullptr;
+		CenterNode* centerNode = static_cast<CenterNode*>(getNode(t.centerNodeIndex));
+		CenterNode* siblingNode = static_cast<CenterNode*>(getNode(getTile(t.siblingIndex)->centerNodeIndex));
+
+		centerNode->setNeighborIndex(toSibling, newSideNode.getIndex());
+		centerNode->setNeighborMap(toSibling, MAP_TYPE_IDENTITY);
+
+		siblingNode->setNeighborIndex(toSibling, newSideNode.getIndex());
+		siblingNode->setNeighborMap(toSibling, tnav::getNeighborMap(toSibling, toSibling));
+
+		newSideNode.setNeighborIndex(tnav::inverse(toSibling), centerNode->getIndex());
+		newSideNode.setNeighborMap(tnav::inverse(toSibling), MAP_TYPE_IDENTITY);
+		newSideNode.setNeighborIndex(toSibling, siblingNode->getIndex());
+		newSideNode.setNeighborMap(toSibling, tnav::getNeighborMap(toSibling, toSibling));
+	}
+
+	// adds any degen nodes to corners of a tile pair that are connected to nothing but the tile pair.
+	void tryAddDegenNodes(Tile& t)
+	{
+		CenterNode* centerNode = static_cast<CenterNode*>(getNode(t.centerNodeIndex));
+		CenterNode* siblingNode = static_cast<CenterNode*>(getNode(getTile(t.siblingIndex)->centerNodeIndex));
+
+		for (LocalDirection component1 : tnav::ORTHOGONAL_DIRECTION_SET) {
+			LocalDirection component2 = LocalDirection((component1 + 1) % 4);
+			if (getSecondNeighbor(centerNode, component1) != siblingNode ||
+				getSecondNeighbor(centerNode, component2) != siblingNode) {
+				continue;
+			}
+
+			LocalDirection toCorner = tnav::combine(component1, component2);
+			glm::vec3 degenPos = centerNode->position + tnav::getCenterToNeighborVec(t.type, toCorner) / 2.0f;
+			int i = addDegenNode(degenPos,
+								 centerNode->forceListIndex + component1, 
+								 centerNode->forceListIndex + component2, 
+								 siblingNode->forceListIndex + component1, 
+								 siblingNode->forceListIndex + component2);
+
+			centerNode->setNeighborIndex(toCorner, i);
+			siblingNode->setNeighborIndex(toCorner, i);
 		}
-
-		// create the new tile pair and center nodes:
-		// indices are used because apparently pointers are unsafe if the vector resizes itself.
-		TileType frontType = tnav::getTileType(type, true);
-		TileType backType = tnav::getTileType(type, false);
-		int newFrontNodeIndex = addCenterNode(pos, frontType);
-		int newBackNodeIndex = addCenterNode(pos, backType);
-		int newFrontTileIndex, newBackTileIndex;
-		addTilePair(newFrontNodeIndex, newBackNodeIndex, type, newFrontTileIndex, newBackTileIndex);
-		static_cast<CenterNode*>(nodes[newFrontNodeIndex])->setTileInfoIndex(newFrontTileIndex);
-		static_cast<CenterNode*>(nodes[newBackNodeIndex])->setTileInfoIndex(newBackTileIndex);
-
-		connectTilePair(&tiles[newFrontTileIndex]);
-		reconnectCornerNodes(&tiles[newFrontTileIndex]);
-		reconnectCornerNodes(&tiles[newBackTileIndex]);
-		reconnectTile(tiles[newFrontTileIndex]);
-		reconnectTile(tiles[newBackTileIndex]);
-
-		return &tiles[newFrontTileIndex];
 	}
 
 	void reconnectTile(Tile& tile)
@@ -516,113 +610,234 @@ public:
 		}
 	}
 
-	void reconnectCornerNodes(Tile* frontTileInfo)
+	int addCornerNode(DegenerateCornerNode& degenNode)
 	{
-		CenterNode* frontNode = static_cast<CenterNode*>(getNode(frontTileInfo->centerNodeIndex));
+		if (degenNode.numDegenComponents != 8) return -1;
 
-		// remove all corner nodes associated with this tile pair
-		std::set<int> deleteList;
-		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			CenterNode* neighborCenterNode = getSecondNeighbor(frontNode, d);
-			LocalDirection 
-				D = tnav::map(getSecondNeighborMap(frontNode, d), tnav::inverse(d)),
-				diagonal1 = tnav::combine(D, LocalDirection((D + 1) % 4)),
-				diagonal2 = tnav::combine(D, LocalDirection((D + 3) % 4));
+		// gather all the center nodes we need to connect:
+		CenterNode* centerNodes[4] = {
+			static_cast<CenterNode*>(nodes[p_forceManager->getNodeIndex(degenNode.componentPairIndices[0])]),
+			static_cast<CenterNode*>(nodes[p_forceManager->getNodeIndex(degenNode.componentPairIndices[2])]),
+			static_cast<CenterNode*>(nodes[p_forceManager->getNodeIndex(degenNode.componentPairIndices[4])]),
+			static_cast<CenterNode*>(nodes[p_forceManager->getNodeIndex(degenNode.componentPairIndices[6])]),
+		};
 
-			deleteList.insert(neighborCenterNode->getNeighborIndex(diagonal1));
-			deleteList.insert(neighborCenterNode->getNeighborIndex(diagonal2));
-		}
-		deleteList.erase(-1); // gets rid of all invalid indices.
+		CornerNode* newCornerNode = new CornerNode(); 
+		newCornerNode->index = degenNode.index;
+		newCornerNode->position = degenNode.position;
+		newCornerNode->orientation = centerNodes[0]->orientation; // arbitrary
+		newCornerNode->forceListIndex = degenNode.forceListIndex;
 
-		// removes all connections to the corner nodes associated with this corner pair:
-		for (int i : deleteList) {
-			CornerNode* c = static_cast<CornerNode*>(getNode(i));
-			// remove centerNode -> this corner node connections:
-			for (LocalDirection d : tnav::DIAGONAL_DIRECTION_SET) { // ALL corner nodes MUST have 4 connections definitially
-				LocalDirection D = tnav::map(c->getNeighborMap(d), tnav::inverse(d));
-				int index = c->getNeighborIndex(d);
-				if (index == -1) continue;
-				CenterNode* centerNode = static_cast<CenterNode*>(getNode(index));
-				centerNode->setNeighborIndex(D, -1);
-				centerNode->setNeighborMap(D, MAP_TYPE_ERROR);
+		// find the direction from the initial center node to the new corner node:
+		const LocalDirection* comps = nullptr;
+		for (LocalDirection d : tnav::DIAGONAL_DIRECTION_SET) {
+			TileType type = getTile(centerNodes[0]->getTileIndex())->type;
+			glm::vec3 pos = centerNodes[0]->position + tnav::getCenterToNeighborVec(type, d) / 2.0f;
+			if (pos == newCornerNode->position) {
+				comps = tnav::getAlignmentComponents(d);
 			}
-			removeNode(c->index);
 		}
+		LocalDirection neighborToCornerComponents[2] = { comps[0], comps[1] };
 
-		// cycle through all 4 possible corner nodes and re-add them if they are valid
-		for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
-			// could be that the deletion earlier resized the underlying node vector:
-			frontNode = static_cast<CenterNode*>(getNode(frontTileInfo->centerNodeIndex));
-			LocalDirection
-				centralNorth = d,
-				centralEast = LocalDirection((d + 1) % 4),
-				centralSouth = LocalDirection((d + 2) % 4),
-				centralWest = LocalDirection((d + 3) % 4),
-				centralNorthEast = tnav::combine(centralNorth, centralEast),
-				centralNorthWest = tnav::combine(centralNorth, centralWest),
-				centralSouthEast = tnav::combine(centralSouth, centralEast),
-				centralSouthWest = tnav::combine(centralSouth, centralWest);
-			CenterNode
-				* northNode = static_cast<CenterNode*>(getSecondNeighbor(frontNode, centralNorth)),
-				* eastNode = static_cast<CenterNode*>(getSecondNeighbor(frontNode, centralEast));
-			MapType
-				goNorth = getSecondNeighborMap(frontNode, centralNorth),
-				goEast = getSecondNeighborMap(frontNode, centralEast);
-			LocalDirection
-				toNorthEast = tnav::map(goNorth, centralEast),
-				toEastNorth = tnav::map(goEast, centralNorth);
-			CenterNode
-				* northEastNode = static_cast<CenterNode*>(getSecondNeighbor(northNode, toNorthEast)),
-				* eastNorthNode = static_cast<CenterNode*>(getSecondNeighbor(eastNode, toEastNorth));
+		//int componenti = 0;
+		//for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
+		//	CenterNode* neighbor = getSecondNeighbor(centerNodes[0], d);
+		//	
+		//	for (int i = 1; i < 4; i++) {
+		//		if (neighbor == centerNodes[i]) {
+		//			if (neighborToCornerComponents[0] != LOCAL_DIRECTION_ERROR &&
+		//				neighbor == getSecondNeighbor(centerNodes[0], neighborToCornerComponents[0]))
+		//				continue; // both sides connecting to a sibling does not a connection make, in this case.
+		//			if (componenti > 1) continue;
+		//
+		//			neighborToCornerComponents[componenti++] = d;
+		//			break;
+		//		}
+		//	}
+		//}
 
-			if (northEastNode != eastNorthNode || northEastNode == frontNode) 
-				continue; // this corner is degenerate!
+		// connect up the initial center node and the new corner node:
+		LocalDirection neighborToCorner = tnav::combine(neighborToCornerComponents[0], neighborToCornerComponents[1]);
+		centerNodes[0]->setNeighborIndex(neighborToCorner, newCornerNode->index);
+		centerNodes[0]->setNeighborMap(neighborToCorner, MAP_TYPE_IDENTITY);
+		newCornerNode->setNeighborIndex(tnav::inverse(neighborToCorner), centerNodes[0]->index);
+		newCornerNode->setNeighborMap(tnav::inverse(neighborToCorner), MAP_TYPE_IDENTITY);
+
+		// move to the other center nodes in centerNodes[] and connect them to the new corner node:
+		CenterNode* neighbor = centerNodes[0];
+		MapType M = MAP_TYPE_IDENTITY;
+		for (int i = 0; i < 3; i++) {
+			MapType m = getSecondNeighborMap(neighbor, neighborToCornerComponents[0]);
+			M = tnav::combine(M, m);
+			neighbor = getSecondNeighbor(neighbor, neighborToCornerComponents[0]);
+			LocalDirection temp = neighborToCornerComponents[0];
+			neighborToCornerComponents[0] = tnav::map(m, neighborToCornerComponents[1]);
+			neighborToCornerComponents[1] = tnav::map(m, tnav::inverse(temp));
+			neighborToCorner = tnav::combine(neighborToCornerComponents[0], neighborToCornerComponents[1]);
+
+			neighbor->setNeighborIndex(neighborToCorner, newCornerNode->index);
+			neighbor->setNeighborMap(neighborToCorner, tnav::inverse(M));
+
+			LocalDirection cornerToCenterNode = tnav::map(tnav::inverse(M), tnav::inverse(neighborToCorner));
+			newCornerNode->setNeighborIndex(cornerToCenterNode, neighbor->index);
+			newCornerNode->setNeighborMap(cornerToCenterNode, M);
+		}
+		
+		delete nodes[degenNode.index];
+		nodes[newCornerNode->index] = newCornerNode;
+
+		return newCornerNode->index;
+	}
+
+	void reconnectCornerNodes(Tile& tile)
+	{
+		using namespace tnav;
+
+		CenterNode* centerNode = static_cast<CenterNode*>(getNode(tile.centerNodeIndex));
+		CenterNode* siblingNode = static_cast<CenterNode*>(getNode(getTile(tile.siblingIndex)->centerNodeIndex));
+
+		for (LocalDirection d : DIAGONAL_DIRECTION_SET) {
+			// centerNodes with no diagonal connection must connect to at least on tile in a 
+			// component of the diagonal direction, making that connection either to a degenerate 
+			// node or a corner node, depending on how many connections the degenerate node has.
+			bool needsConnecting = centerNode->getNeighborIndex(d) == -1;
+			if (!needsConnecting)
+				continue;
+
+			const LocalDirection* components = getAlignmentComponents(d);
+			LocalDirection toN = map(getSecondNeighborMap(centerNode, components[0]), combine(inverse(components[0]), components[1]));
+			CenterNode* neighbor = getSecondNeighbor(centerNode, components[0]);
+			if (neighbor == siblingNode) {
+				toN = map(getSecondNeighborMap(centerNode, components[1]), combine(inverse(components[1]), components[0]));
+				neighbor = getSecondNeighbor(centerNode, components[1]);
+			}
+			TileNode* n = getNode(neighbor->getNeighborIndex(toN));
 			
-			MapType
-				northToNorthEast = getSecondNeighborMap(northNode, toNorthEast),
-				goNorthEast = tnav::combine(goNorth, northToNorthEast);
+			CornerNode* c;
+			DegenerateCornerNode* degen;
+			switch (n->type) {
+			case NODE_TYPE_CORNER:
+				c = static_cast<CornerNode*>(n);
+				degen = static_cast<DegenerateCornerNode*>(getNode(addDegenNode(*c))); 
+				degen->addDegenPair(centerNode->forceListIndex + components[0], centerNode->forceListIndex + components[1]);
+				break;
 
-			glm::vec3 newCornerNodePosition = frontNode->position
-				+ tnav::globalDirToVec3(tnav::localToGlobalDir(frontNode->orientation, centralNorth)) / 2.0f
-				+ tnav::globalDirToVec3(tnav::localToGlobalDir(frontNode->orientation, centralEast)) / 2.0f;
-
-			int northNodeIndex = northNode->index,
-				eastNodeIndex = eastNode->index,
-				northEastNodeIndex = northEastNode->index,
-				newCornerNodeIndex = addCornerNode(newCornerNodePosition, frontNode->orientation);
-
-			// addNode() may have resized the underlying vector that keeps nodes, making the pointers
-			// error-prone.  just re-find here to avoid potential issues:
-			northNode = static_cast<CenterNode*>(getNode(northNodeIndex));
-			eastNode = static_cast<CenterNode*>(getNode(eastNodeIndex));
-			northEastNode = static_cast<CenterNode*>(getNode(northEastNodeIndex));
-
-			// stitch everything together finally:
-			CornerNode* newCornerNode = static_cast<CornerNode*>(getNode(newCornerNodeIndex));
-			newCornerNode->setNeighborIndex(centralSouthWest, frontNode->index);
-			newCornerNode->setNeighborMap(centralSouthWest, MAP_TYPE_IDENTITY);
-			newCornerNode->setNeighborIndex(centralNorthWest, northNode->index);
-			newCornerNode->setNeighborMap(centralNorthWest, goNorth);
-			newCornerNode->setNeighborIndex(centralSouthEast, eastNode->index);
-			newCornerNode->setNeighborMap(centralSouthEast, goEast);
-			newCornerNode->setNeighborIndex(centralNorthEast, northEastNode->index);
-			newCornerNode->setNeighborMap(centralNorthEast, goNorthEast);
-
-			frontNode->setNeighborIndex(centralNorthEast, newCornerNode->index);
-			frontNode->setNeighborMap(centralNorthEast, MAP_TYPE_IDENTITY);
-
-			LocalDirection toCornerNode = tnav::map(goNorth, centralSouthEast);
-			northNode->setNeighborIndex(toCornerNode, newCornerNode->index);
-			northNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralNorthWest)));
-
-			toCornerNode = tnav::map(goEast, centralNorthWest);
-			eastNode->setNeighborIndex(toCornerNode, newCornerNode->index);
-			eastNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralSouthEast)));
-
-			toCornerNode = tnav::map(goNorthEast, centralSouthWest);
-			northEastNode->setNeighborIndex(toCornerNode, newCornerNode->index);
-			northEastNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralNorthEast)));
+			case NODE_TYPE_DEGENERATE:
+				degen = static_cast<DegenerateCornerNode*>(n);
+				degen->addDegenPair(centerNode->forceListIndex + components[0], centerNode->forceListIndex + components[1]);
+				if (degen->numDegenComponents == 8) { // degen is connected to exactly 4 tiles, making it no longer degenerate
+					addCornerNode(*static_cast<DegenerateCornerNode*>(n));
+				}
+				break;
+			}
 		}
+
+
+
+		//CenterNode* frontNode = static_cast<CenterNode*>(getNode(frontTileInfo->centerNodeIndex));
+
+		//// remove all corner nodes associated with this tile pair
+		//std::set<int> deleteList;
+		//for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
+		//	CenterNode* neighborCenterNode = getSecondNeighbor(frontNode, d);
+		//	LocalDirection D = tnav::map(getSecondNeighborMap(frontNode, d), tnav::inverse(d));
+		//	LocalDirection diagonal1 = tnav::combine(D, LocalDirection((D + 1) % 4));
+		//	LocalDirection diagonal2 = tnav::combine(D, LocalDirection((D + 3) % 4));
+
+		//	deleteList.insert(neighborCenterNode->getNeighborIndex(diagonal1));
+		//	deleteList.insert(neighborCenterNode->getNeighborIndex(diagonal2));
+		//}
+		//deleteList.erase(-1); // gets rid of all invalid indices.
+
+		//// removes all connections to the corner nodes associated with this corner pair:
+		//for (int i : deleteList) {
+		//	CornerNode* c = static_cast<CornerNode*>(getNode(i));
+		//	// remove centerNode -> this corner node connections:
+		//	for (LocalDirection d : tnav::DIAGONAL_DIRECTION_SET) { // ALL corner nodes MUST have 4 connections definitially
+		//		LocalDirection D = tnav::map(c->getNeighborMap(d), tnav::inverse(d));
+		//		int index = c->getNeighborIndex(d);
+		//		if (index == -1) continue;
+		//		CenterNode* centerNode = static_cast<CenterNode*>(getNode(index));
+		//		centerNode->setNeighborIndex(D, -1);
+		//		centerNode->setNeighborMap(D, MAP_TYPE_ERROR);
+		//	}
+		//	removeNode(c->index);
+		//}
+
+		//// cycle through all 4 possible corner nodes and re-add them if they are valid
+		//for (LocalDirection d : tnav::ORTHOGONAL_DIRECTION_SET) {
+		//	// could be that the deletion earlier resized the underlying node vector:
+		//	frontNode = static_cast<CenterNode*>(getNode(frontTileInfo->centerNodeIndex));
+		//	LocalDirection
+		//		centralNorth = d,
+		//		centralEast = LocalDirection((d + 1) % 4),
+		//		centralSouth = LocalDirection((d + 2) % 4),
+		//		centralWest = LocalDirection((d + 3) % 4),
+		//		centralNorthEast = tnav::combine(centralNorth, centralEast),
+		//		centralNorthWest = tnav::combine(centralNorth, centralWest),
+		//		centralSouthEast = tnav::combine(centralSouth, centralEast),
+		//		centralSouthWest = tnav::combine(centralSouth, centralWest);
+		//	CenterNode
+		//		* northNode = static_cast<CenterNode*>(getSecondNeighbor(frontNode, centralNorth)),
+		//		* eastNode = static_cast<CenterNode*>(getSecondNeighbor(frontNode, centralEast));
+		//	MapType
+		//		goNorth = getSecondNeighborMap(frontNode, centralNorth),
+		//		goEast = getSecondNeighborMap(frontNode, centralEast);
+		//	LocalDirection
+		//		toNorthEast = tnav::map(goNorth, centralEast),
+		//		toEastNorth = tnav::map(goEast, centralNorth);
+		//	CenterNode
+		//		* northEastNode = static_cast<CenterNode*>(getSecondNeighbor(northNode, toNorthEast)),
+		//		* eastNorthNode = static_cast<CenterNode*>(getSecondNeighbor(eastNode, toEastNorth));
+
+		//	if (northEastNode != eastNorthNode || northEastNode == frontNode) 
+		//		continue; // this corner is degenerate!
+		//	
+		//	MapType
+		//		northToNorthEast = getSecondNeighborMap(northNode, toNorthEast),
+		//		goNorthEast = tnav::combine(goNorth, northToNorthEast);
+
+		//	glm::vec3 newCornerNodePosition = frontNode->position
+		//		+ tnav::globalDirToVec3(tnav::localToGlobalDir(frontNode->orientation, centralNorth)) / 2.0f
+		//		+ tnav::globalDirToVec3(tnav::localToGlobalDir(frontNode->orientation, centralEast)) / 2.0f;
+
+		//	int northNodeIndex = northNode->index,
+		//		eastNodeIndex = eastNode->index,
+		//		northEastNodeIndex = northEastNode->index,
+		//		newCornerNodeIndex = addCornerNode(newCornerNodePosition, frontNode->orientation);
+
+		//	// addNode() may have resized the underlying vector that keeps nodes, making the pointers
+		//	// error-prone.  just re-find here to avoid potential issues:
+		//	northNode = static_cast<CenterNode*>(getNode(northNodeIndex));
+		//	eastNode = static_cast<CenterNode*>(getNode(eastNodeIndex));
+		//	northEastNode = static_cast<CenterNode*>(getNode(northEastNodeIndex));
+
+		//	// stitch everything together finally:
+		//	CornerNode* newCornerNode = static_cast<CornerNode*>(getNode(newCornerNodeIndex));
+		//	newCornerNode->setNeighborIndex(centralSouthWest, frontNode->index);
+		//	newCornerNode->setNeighborMap(centralSouthWest, MAP_TYPE_IDENTITY);
+		//	newCornerNode->setNeighborIndex(centralNorthWest, northNode->index);
+		//	newCornerNode->setNeighborMap(centralNorthWest, goNorth);
+		//	newCornerNode->setNeighborIndex(centralSouthEast, eastNode->index);
+		//	newCornerNode->setNeighborMap(centralSouthEast, goEast);
+		//	newCornerNode->setNeighborIndex(centralNorthEast, northEastNode->index);
+		//	newCornerNode->setNeighborMap(centralNorthEast, goNorthEast);
+
+		//	frontNode->setNeighborIndex(centralNorthEast, newCornerNode->index);
+		//	frontNode->setNeighborMap(centralNorthEast, MAP_TYPE_IDENTITY);
+
+		//	LocalDirection toCornerNode = tnav::map(goNorth, centralSouthEast);
+		//	northNode->setNeighborIndex(toCornerNode, newCornerNode->index);
+		//	northNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralNorthWest)));
+
+		//	toCornerNode = tnav::map(goEast, centralNorthWest);
+		//	eastNode->setNeighborIndex(toCornerNode, newCornerNode->index);
+		//	eastNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralSouthEast)));
+
+		//	toCornerNode = tnav::map(goNorthEast, centralSouthWest);
+		//	northEastNode->setNeighborIndex(toCornerNode, newCornerNode->index);
+		//	northEastNode->setNeighborMap(toCornerNode, tnav::inverse(newCornerNode->getNeighborMap(centralNorthEast)));
+		//}
 	}
 
 	void removeTilePair(int tileInfoIndex) { removeTilePair(&tiles[tileInfoIndex]); }
@@ -660,7 +875,6 @@ public:
 			CenterNode* centerNode2 = static_cast<CenterNode*>(getNode(sibCenterNodeIndex));
 			SideNode* sideNode2 = static_cast<SideNode*>(getNode(centerNode2->getNeighborIndex(d)));
 			CenterNode* neighborCenterNode2 = static_cast<CenterNode*>(getNode(neighborTile2->centerNodeIndex));
-			SideNode* newNode = static_cast<SideNode*>(getNode(addNode(NODE_TYPE_SIDE)));
 			
 			LocalDirection 
 				n1ToNew = mapToSecondNeighbor(centerNode1, d, inverse(d)),
@@ -673,8 +887,9 @@ public:
 				n2ToNewMap = inverse(newToN2Map);
 			
 			// While we could edit the existing nodes, its conceptually simpler to just make a fresh one:
-			newNode->setPosition(sideNode1->getPosition());
-			newNode->orientation = neighborCenterNode1->orientation; // makes sure the transition from center node type -> new side node type is possible
+			SideNode* newNode = static_cast<SideNode*>(getNode(
+				addSideNode(sideNode1->getPosition(), 
+							neighborCenterNode1->orientation))); // makes sure the transition from center node type -> new side node type is possible
 			newNode->setSideNodeType(
 				(n1ToNew == LOCAL_DIRECTION_0 || n1ToNew == LOCAL_DIRECTION_2)
 				? SIDE_NODE_TYPE_HORIZONTAL
@@ -717,7 +932,7 @@ public:
 		removeNode(sibCenterNodeIndex);
 
 		for (int i : affectedCenterNodeIndices) {
-			reconnectCornerNodes(getTile(static_cast<CenterNode*>(getNode(i))->getTileIndex()));
+			reconnectCornerNodes(*getTile(static_cast<CenterNode*>(getNode(i))->getTileIndex()));
 		}
 	}
 };
