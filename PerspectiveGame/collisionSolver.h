@@ -15,9 +15,9 @@ struct DgenCollisionSolver
 	// to be inverted by this solver.  The solver will use these indices to find the other two
 	// indices that need flipping as well.
 	// X______,    X______,
-	// | ,__  |	   |  . . |
+	// | ,__  |    |  . . |
 	// | |`.  | -> |  _\| |
-	// |______|	   |______|
+	// |______|    |______|
 
 	int forceListIndices[2];
 };
