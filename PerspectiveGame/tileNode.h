@@ -250,28 +250,12 @@ public:
 		componentPairIndices.push_back(componentIndexA1);
 		componentPairIndices.push_back(componentIndexA2);
 		numDegenComponents += 2;
-
 	}
 
 	// returns false if the node has no pairs to remove/the given pair is not in the list.
 	bool removeDegenPair(int componentIndexA, int componentIndexB)
 	{
 		if (numDegenComponents == 0) return false;
-
-		/*int* newList = new int[numDegenComponents - 2];
-		int added = 0;
-		for (int i = 0; i < numDegenComponents; i++) {
-			if (componentPairIndices[i] != componentIndexA &&
-				componentPairIndices[i] != componentIndexB) {
-				if (added == numDegenComponents - 2) return false;
-
-				newList[i] = componentPairIndices[i];
-				added++;
-			}
-		}
-		numDegenComponents -= 2;
-		delete[] componentPairIndices;
-		componentPairIndices = newList;*/
 
 		for (int i = 0; i < numDegenComponents; i++) {
 			if (componentPairIndices[i] == componentIndexA ||
@@ -282,6 +266,13 @@ public:
 		numDegenComponents -= 2;
 
 		return true;
+	}
+
+	int numConnectedTiles() { return numDegenComponents / 2; }
+
+	void resizeComponentList(int newSize) {
+		componentPairIndices.resize(newSize);
+		numDegenComponents = newSize;
 	}
 };
 

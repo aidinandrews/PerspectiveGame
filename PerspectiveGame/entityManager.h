@@ -62,7 +62,7 @@ struct EntityManager
 		LocalDirection d = p_forceManager->getForce(e.forceListIndex);
 		if (d == LOCAL_DIRECTION_STATIC) return;
 		p_forceManager->setForce(e.forceListIndex, tnav::map(e.node->getNeighborMap(d), d));
-		e.node = p_nodeNetwork->getNeighbor(e.node, d);
+		e.node = p_nodeNetwork->getNeighbor(*e.node, d);
 	}
 
 	void updateGpuTiles(Entity& e)

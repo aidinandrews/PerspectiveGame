@@ -144,7 +144,7 @@ struct App {
 	void setupWorld()
 	{
 		//setupScenarioDirectCollisionFromEdge(p_tileManager, p_entityManager, p_currentSelection);
-		p_entityManager->createEntity(static_cast<CenterNode*>(p_nodeNetwork->getNode(0)), LOCAL_DIRECTION_3);
+		//p_entityManager->createEntity(static_cast<CenterNode*>(p_nodeNetwork->getNode(0)), LOCAL_DIRECTION_3);
 	}
 
 	void updateGraphicsAPI()

@@ -109,7 +109,7 @@ public:
 		LocalDirection oldOrtho = (d == getNorth() || d == getSouth())
 			? (p_camera->viewPlanePos.x < 0.5f) ? getWest() : getEast()
 			: (p_camera->viewPlanePos.y < 0.5f) ? getSouth() : getNorth();
-		LocalDirection newOrtho = p_nodeNetwork->mapToSecondNeighbor(oldNode, d, oldOrtho);
+		LocalDirection newOrtho = p_nodeNetwork->mapToSecondNeighbor(*oldNode, d, oldOrtho);
 
 		CenterNode* newNode = oldNode;
 		LocalDirection D = d;
@@ -144,7 +144,7 @@ public:
 	glm::mat4 rotMatAdjustment3D(Tile* tile, LocalDirection dir, float angleAmount)
 	{
 		TileType oldTileType = tile->type;
-		TileType newTileType = p_nodeNetwork->getTile(getTile(), dir)->type;
+		TileType newTileType = p_nodeNetwork->getTile(*getTile(), dir)->type;
 		if (angleAmount == 0 || oldTileType == newTileType) return glm::mat4(1); // No rotation is change necessary if the types are the same.
 
 		float angle;

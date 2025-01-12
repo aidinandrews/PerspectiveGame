@@ -494,20 +494,32 @@ const MapType tnav::getNeighborMap(LocalDirection currentToNeighbor, LocalDirect
 	return NEIGHBOR_ALIGNMENT_MAP_TYPE[currentToNeighbor][neighborToCurrent];
 }
 
-// ALIGNMENT_MAP_COMBINATIONS[map index 0][map index 1]
-const MapType COMBINE_MAP_INDICES[8][8] = {
-	{ MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7 },
-	{ MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6 },
-	{ MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5 },
-	{ MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4 },
-	{ MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3 },
-	{ MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1, MAP_TYPE_2 },
-	{ MAP_TYPE_6, MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0, MAP_TYPE_1 },
-	{ MAP_TYPE_7, MAP_TYPE_4, MAP_TYPE_5, MAP_TYPE_6, MAP_TYPE_1, MAP_TYPE_2, MAP_TYPE_3, MAP_TYPE_0 }
-};
+
 
 const MapType tnav::combine(MapType map1, MapType map2)
 {
+	const static MapType M_0 = MAP_TYPE_0;
+	const static MapType M_1 = MAP_TYPE_1;
+	const static MapType M_2 = MAP_TYPE_2;
+	const static MapType M_3 = MAP_TYPE_3;
+	const static MapType M_4 = MAP_TYPE_4;
+	const static MapType M_5 = MAP_TYPE_5;
+	const static MapType M_6 = MAP_TYPE_6;
+	const static MapType M_7 = MAP_TYPE_7;
+	const static MapType ERR = MAP_TYPE_ERROR;
+	// COMBINE_MAP_INDICES[map index 0][map index 1]
+	const static MapType COMBINE_MAP_INDICES[9][9] = {
+		{ M_0, M_1, M_2, M_3, M_4, M_5, M_6, M_7, ERR },
+		{ M_1, M_2, M_3, M_0, M_7, M_4, M_5, M_6, ERR },
+		{ M_2, M_3, M_0, M_1, M_6, M_7, M_4, M_5, ERR },
+		{ M_3, M_0, M_1, M_2, M_5, M_6, M_7, M_4, ERR },
+		{ M_4, M_5, M_6, M_7, M_0, M_1, M_2, M_3, ERR },
+		{ M_5, M_6, M_7, M_4, M_3, M_0, M_1, M_2, ERR },
+		{ M_6, M_7, M_4, M_5, M_2, M_3, M_0, M_1, ERR },
+		{ M_7, M_4, M_5, M_6, M_1, M_2, M_3, M_0, ERR },
+		{ ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR },
+	};
+
 	return COMBINE_MAP_INDICES[map1][map2];
 }
 

@@ -220,8 +220,9 @@ namespace tnav { // tnav is short for 'tile navigation'
 
 	const MapType getNeighborMap(LocalDirection connectedCurrentTileEdgeIndex, LocalDirection connectedNeighborEdgeIndex);
 
-	const MapType combine
-	(MapType map1, MapType map2);
+	// Combines and returns map1 -> map2.
+	// * Return may be different than map2 -> map1!
+	const MapType combine(MapType map1, MapType map2);
 
 	const MapType inverse(MapType mapType);
 
@@ -256,7 +257,7 @@ namespace tnav { // tnav is short for 'tile navigation'
 		case TILE_TYPE_XZB: std::cout << "TILE_TYPE_XZB" << std::endl; return;
 		case TILE_TYPE_YZF: std::cout << "TILE_TYPE_YZF" << std::endl; return;
 		case TILE_TYPE_YZB: std::cout << "TILE_TYPE_YZB" << std::endl; return;
-		} 
+		}
 	}
 	
 	bool isOrthogonal(LocalDirection direction);
