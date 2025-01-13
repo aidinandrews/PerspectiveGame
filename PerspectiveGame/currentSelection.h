@@ -198,12 +198,13 @@ struct CurrentSelection {
 			p_nodeNetwork->printCornerNodePositions();
 		}
 		else if (p_inputManager->rightClicked()) {
-			if (hoveredTile != p_pov->getNode())
+			CenterNode* sibling = static_cast<CenterNode*>(p_nodeNetwork->getNode(p_nodeNetwork->getTile(p_pov->getTile()->siblingIndex)->centerNodeIndex));
+			if (hoveredTile != p_pov->getNode() && hoveredTile != sibling)
 				p_nodeNetwork->removeTilePair(p_nodeNetwork->getTile(hoveredTile->getTileIndex()));
 			//p_tileManager->deleteTilePair(hoveredTile, false);
 
 			p_nodeNetwork->printSize();
-			p_nodeNetwork->printCornerNodePositions();
+			//p_nodeNetwork->printCornerNodePositions();
 		}
 	}
 	void tryEditBases()

@@ -11,8 +11,6 @@ struct ForceManager
 	std::vector<bool> forceList; // Sets of 4 bools represent force components in local bases of TileNodes.
 	std::vector<int> freeForceListIndices;
 	
-	std::vector<int> nodeIndices; // Indices to the tile nodes associated with the forceList.
-
 	// Given an index to a component in the force list, will return that component's node index.
 	int getNodeIndex(int forceListComponentIndex)
 	{
@@ -81,39 +79,29 @@ struct ForceManager
 			{{0, 0, 0, 0}}  // LOCAL_DIRECTION_STATIC 
 		}}; 
 			
-		if (freeForceListIndices.size() == 0) {
-			forceList.insert(forceList.end(), forces[d].begin(), forces[d].end());
-			nodeIndices.push_back(nodeIndex);
-
-			return (int)forceList.size() - 4;
-		}
-		else {
+		if (freeForceListIndices.size() > 0) {
 			int i = freeForceListIndices.back();
 			freeForceListIndices.pop_back();
-
-			for (int j = 0; j < 4; j++) {
-				forceList[i + j] = forces[d][j];
-			}
-
-			nodeIndices[(i - (i % 4)) / 4] = nodeIndex;
-
+			forceList.insert(forceList.begin() + i, forces[d].begin(), forces[d].end());
 			return i;
+		}
+		else {
+			forceList.insert(forceList.end(), forces[d].begin(), forces[d].end());
+			return (int)forceList.size() - 4;
 		}
 	}
 
 	void removeForce(int forceIndex)
 	{
-		if (forceIndex == forceList.size() - 1) {
+		if (forceIndex == forceList.size() - 4) {
 			forceList.pop_back();
-			nodeIndices.pop_back();
+			forceList.pop_back();
+			forceList.pop_back();
+			forceList.pop_back();
 		}
 		else {
 			freeForceListIndices.push_back(forceIndex);
-			forceList[forceIndex + 0] = 0;
-			forceList[forceIndex + 1] = 0;
-			forceList[forceIndex + 2] = 0;
-			forceList[forceIndex + 3] = 0;
-			nodeIndices[(forceIndex - (forceIndex % 4)) / 4] = -1;
+			setForce(forceIndex, LOCAL_DIRECTION_STATIC);
 		}
 	}
 };

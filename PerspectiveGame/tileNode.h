@@ -252,27 +252,35 @@ public:
 		numDegenComponents += 2;
 	}
 
-	// returns false if the node has no pairs to remove/the given pair is not in the list.
-	bool removeDegenPair(int componentIndexA, int componentIndexB)
-	{
-		if (numDegenComponents == 0) return false;
-
-		for (int i = 0; i < numDegenComponents; i++) {
-			if (componentPairIndices[i] == componentIndexA ||
-				componentPairIndices[i] == componentIndexB) {
-				componentPairIndices.erase(componentPairIndices.begin() + i--);
-			}
-		}
-		numDegenComponents -= 2;
-
-		return true;
-	}
-
 	int numConnectedTiles() { return numDegenComponents / 2; }
 
 	void resizeComponentList(int newSize) {
 		componentPairIndices.resize(newSize);
 		numDegenComponents = newSize;
+	}
+
+	void removeConnection(int initialForceIndex)
+	{
+		std::vector<int>c;
+		for (int i : componentPairIndices) c.push_back(i);
+
+		int removedComponents = 0;
+		for (int i = 0; i < componentPairIndices.size(); i++) {
+			int degenComponenti = componentPairIndices[i];
+			int a = degenComponenti - initialForceIndex;
+			if (-1 < a && a < 4) {
+				componentPairIndices.erase(componentPairIndices.begin() + i--);
+				removedComponents++;
+			}
+		}
+		numDegenComponents -= removedComponents;
+	}
+
+   LocalDirection neighborToThisNode(int neighbori)
+   {
+      auto d =  tnav::combine(LocalDirection(componentPairIndices[neighbori * 2 + 0] % 4),
+                           LocalDirection(componentPairIndices[neighbori * 2 + 1] % 4));
+		return d;
 	}
 };
 
